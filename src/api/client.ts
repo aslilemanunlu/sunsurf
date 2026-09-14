@@ -70,11 +70,34 @@ function toBooking(row: BookingRow): Booking {
   };
 }
 
+type Result<T> = { data: T | null; error: { message: string } | null };
+
 /** PostgREST reports failures in the payload rather than throwing. */
-function unwrap<T>(result: { data: T | null; error: { message: string } | null }, what: string): T {
+function unwrap<T>(result: Result<T>, what: string): T {
   if (result.error) throw new Error(`${what}: ${result.error.message}`);
   if (result.data === null) throw new Error(`${what}: no data returned`);
   return result.data;
+}
+
+/**
+ * Runs a read, retrying once if it comes back aborted.
+ *
+ * The Data API rejects requests with no JWT, so a signed-out visitor's first
+ * call has to mint an anonymous token first. On an origin that has never done
+ * that, the very first request loses that race and aborts — reproducibly, on
+ * the first page load of a fresh origin, and never afterwards. One retry
+ * settles it, by which time the token exists. A genuine failure still surfaces,
+ * because the retry reports its own error.
+ *
+ * `build` must construct the query afresh: a PostgREST builder is a one-shot
+ * thenable and cannot be awaited twice.
+ */
+async function read<T>(build: () => PromiseLike<Result<T>>, what: string): Promise<T> {
+  const first = await build();
+  if (first.error && /abort/i.test(first.error.message)) {
+    return unwrap(await build(), what);
+  }
+  return unwrap(first, what);
 }
 
 /** Local midnight either side of a day, as the instants Postgres compares against. */
@@ -86,24 +109,25 @@ function dayBounds(dateKey: string): { from: string; to: string } {
 }
 
 export async function listInstructors(): Promise<Instructor[]> {
-  const rows = unwrap(
-    await neon.from('instructors').select('*').order('name'),
+  const rows = await read<InstructorRow[]>(
+    () => neon.from('instructors').select('*').order('name'),
     'Could not load instructors',
-  ) as InstructorRow[];
+  );
   return rows.map(toInstructor);
 }
 
 export async function listSlots(dateKey: string): Promise<SlotWithInstructor[]> {
   const { from, to } = dayBounds(dateKey);
-  const rows = unwrap(
-    await neon
-      .from('slots')
-      .select(SLOT_SELECT)
-      .gte('starts_at', from)
-      .lt('starts_at', to)
-      .order('starts_at'),
+  const rows = await read<SlotRow[]>(
+    () =>
+      neon
+        .from('slots')
+        .select(SLOT_SELECT)
+        .gte('starts_at', from)
+        .lt('starts_at', to)
+        .order('starts_at'),
     'Could not load classes',
-  ) as SlotRow[];
+  );
   return rows.map(toSlot);
 }
 
@@ -113,27 +137,26 @@ export async function findNextDayWithSlots(
   direction: 1 | -1,
 ): Promise<string | null> {
   const { from, to } = dayBounds(fromKey);
-  const query =
-    direction === 1
-      ? neon.from('slots').select('starts_at').gte('starts_at', to).order('starts_at').limit(1)
-      : neon
-          .from('slots')
-          .select('starts_at')
-          .lt('starts_at', from)
-          .order('starts_at', { ascending: false })
-          .limit(1);
-
-  const rows = unwrap(await query, 'Could not find the next day with classes') as {
-    starts_at: string;
-  }[];
+  const rows = await read<{ starts_at: string }[]>(
+    () =>
+      direction === 1
+        ? neon.from('slots').select('starts_at').gte('starts_at', to).order('starts_at').limit(1)
+        : neon
+            .from('slots')
+            .select('starts_at')
+            .lt('starts_at', from)
+            .order('starts_at', { ascending: false })
+            .limit(1),
+    'Could not find the next day with classes',
+  );
   return rows.length > 0 ? toDateKey(new Date(rows[0].starts_at)) : null;
 }
 
 export async function getSlot(slotId: string): Promise<SlotWithInstructor | null> {
-  const rows = unwrap(
-    await neon.from('slots').select(SLOT_SELECT).eq('id', slotId).limit(1),
+  const rows = await read<SlotRow[]>(
+    () => neon.from('slots').select(SLOT_SELECT).eq('id', slotId).limit(1),
     'Could not load the class',
-  ) as SlotRow[];
+  );
   return rows.length > 0 ? toSlot(rows[0]) : null;
 }
 
@@ -144,13 +167,10 @@ export type BookingWithSlot = Booking & { slot: SlotWithInstructor };
  * the foreign keys, so callers don't have to fetch slots one at a time.
  */
 export async function listBookings(): Promise<BookingWithSlot[]> {
-  const rows = unwrap(
-    await neon
-      .from('bookings')
-      .select(`*, slot:slots(${SLOT_SELECT})`)
-      .order('created_at'),
+  const rows = await read<(BookingRow & { slot: SlotRow | null })[]>(
+    () => neon.from('bookings').select(`*, slot:slots(${SLOT_SELECT})`).order('created_at'),
     'Could not load your bookings',
-  ) as (BookingRow & { slot: SlotRow | null })[];
+  );
 
   return rows
     .filter((row) => row.slot !== null)
