@@ -4,48 +4,48 @@ export default function SetupNotice() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <span className="brand-mark" aria-hidden="true">
-            ≈
-          </span>
+          <img className="brand-mark" src="/logo.jpg" alt="Sun Surf Alaçatı" />
           <div>
-            <h1>Windfoil</h1>
-            <p>Windsurf &amp; wingfoil classes with local instructors</p>
+            <h1>Sun Surf Alaçatı</h1>
+            <p>Yerel eğitmenlerle windsurf &amp; wingfoil dersleri</p>
           </div>
         </div>
       </header>
 
       <main className="setup">
-        <h2>Connect this app to Neon</h2>
+        <h2>Uygulamayı Neon'a bağlayın</h2>
         <p>
-          The schedule and your bookings live in a Neon Postgres database, so the app needs two URLs
-          from your Neon project before it can start.
+          Takvim ve rezervasyonlar bir Neon Postgres veritabanında duruyor; uygulamanın açılabilmesi
+          için projenizden iki adrese ihtiyacı var.
         </p>
 
         <ol>
           <li>
-            Create a project at <code>pg.new</code>.
+            <code>pg.new</code> adresinde bir proje oluşturun.
           </li>
           <li>
-            Open <strong>Auth</strong> and enable Neon Auth. Copy the <em>Auth Base URL</em>.
+            <strong>Auth</strong> bölümünü açıp Neon Auth'u etkinleştirin ve <em>Auth Base URL</em>'i
+            kopyalayın.
           </li>
           <li>
-            Open <strong>Postgres database → Data API</strong>, point JWT auth at Managed Better
-            Auth, enable it, and copy the <em>Data API URL</em>.
+            <strong>Postgres database → Data API</strong> bölümünde JWT doğrulamasını Managed Better
+            Auth'a yönlendirip etkinleştirin, <em>Data API URL</em>'i kopyalayın.
           </li>
           <li>
-            Copy <code>.env.example</code> to <code>.env</code> and paste both in, along with your
-            Postgres connection string for the seed script.
+            <code>.env.example</code> dosyasını <code>.env</code> olarak kopyalayıp ikisini de
+            yapıştırın; seed betiği için Postgres bağlantı dizesini de ekleyin.
           </li>
           <li>
-            Run <code>db/001_init.sql</code> in the Neon SQL Editor, then <code>npm run seed</code>.
+            <code>npm run migrate</code> ve ardından <code>npm run seed</code> çalıştırın.
           </li>
           <li>
-            Restart <code>npm run dev</code> — Vite only reads <code>.env</code> at startup.
+            <code>npm run dev</code>'i yeniden başlatın — Vite <code>.env</code> dosyasını yalnızca
+            açılışta okur.
           </li>
         </ol>
 
         <p className="setup-foot">
-          The full walkthrough is in <code>README.md</code>.
+          Ayrıntılı anlatım <code>README.md</code> içinde.
         </p>
       </main>
     </div>

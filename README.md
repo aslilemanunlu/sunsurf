@@ -33,18 +33,26 @@ lets Vite put a value in the browser bundle, and the connection string must neve
 
 ```bash
 npm install
-npm run migrate   # applies db/*.sql
-npm run seed      # instructors + classes for today ±14 days
+npm run migrate   # applies db/*.sql in order
+npm run seed      # the starter instructors
 ```
 
-`npm run migrate` applies [`db/001_init.sql`](db/001_init.sql): the three tables, the grants for the
-`anonymous` and `authenticated` roles, and the RLS policies. Run it *after* enabling Auth and the
-Data API, since it depends on the roles and the `auth.user_id()` function they provide. You can
-paste the file into the Neon SQL Editor instead if you prefer.
+Run these *after* enabling Auth and the Data API, since the SQL depends on the `anonymous` and
+`authenticated` roles and the `auth.user_id()` function they provide. You can paste the files into
+the Neon SQL Editor instead if you prefer.
 
-Both scripts are safe to re-run and **never overwrite your edits**. Slot ids are derived from the
-date and every insert is `on conflict do nothing`, so re-seeding extends the window forward while
-leaving renamed instructors, edited classes and existing bookings alone.
+Both scripts are safe to re-run and **never overwrite your edits**: every insert is
+`on conflict do nothing`, so renamed instructors and existing bookings are left alone.
+
+### 3b. Refresh the Data API schema cache — required after any migration
+
+The Data API caches the schema, so new tables and views return
+`PGRST205 Could not find the table … in the schema cache` until it is refreshed. There is no SQL
+way to trigger it (`NOTIFY pgrst` is not honoured). Do one of:
+
+- **Console** → Postgres database → Data API → Advanced settings → **Save**
+- **CLI** → `neon data-api refresh-schema --database neondb`
+- **API** → `PATCH` the Data API config with an empty body
 
 ### 4. Run
 
@@ -105,42 +113,62 @@ no longer need it.
 
 ## What it does
 
-- **One day at a time.** Arrows, a 7-day strip, and a "jump to today" link. No week or month view.
-- **A calendar grid**: one column per instructor teaching that day, hours 7 AM–8 PM down the side.
-  Each class is a block positioned and sized by its real start time and duration, labelled
-  Available, ✓ Booked, or Past, with a colour bar marking the sport.
-- **A class is** an instructor, a sport (windsurf or wingfoil), a start time, and a duration.
-- **Filter** by sport — columns narrow to the instructors teaching it.
-- **Book** a class by clicking its block. Signed out, the same dialog asks you to sign in first.
-- **Your classes** lists everything you have upcoming; clicking one jumps the calendar to that day.
-- Days with no classes show an empty state with a jump to the next day that has some.
+- **One day at a time.** Arrows, a 7-day strip, and a jump back to today. No week or month view.
+- **Every instructor is a column**, every hour from 07:00 to 21:00 is a row.
+- **Availability is not stored.** Each instructor is open 08:00–20:00 every day. An hour is
+  unavailable only because a booking exists for it, or because the instructor closed it.
+- **Booking** a free hour takes one click; if the instructor teaches both sports you pick which.
+  One booking per instructor per hour.
+- **Roles**: `admin`, `instructor`, `customer`. Signing up makes you a customer. An admin promotes
+  people from the Kullanıcılar panel and links an instructor account to an instructor row.
+- **Instructors** see only their own column, can close an hour and reopen it, and see who booked.
+
+The interface is in Turkish.
 
 ## Structure
 
 ```
-db/001_init.sql       tables, grants, RLS policies
+db/*.sql              tables, views, grants, RLS policies — applied in order
 scripts/migrate.mjs   applies db/*.sql (npm run migrate)
-scripts/seed.mjs      instructors + a rolling window of classes (npm run seed)
+scripts/seed.mjs      the starter instructors (npm run seed) — nothing else to seed
 src/
-  types.ts            Sport, Instructor, Slot, Booking
-  lib/date.ts         local-date helpers (YYYY-MM-DD keys, formatting)
+  types.ts            Sport, Role, Instructor, Viewer, Booking, Block
+  lib/date.ts         local-date helpers (YYYY-MM-DD keys, Turkish formatting)
+  lib/hours.ts        the working-hours rules the whole calendar derives from
   neon.ts             the Neon client — auth + Data API, anonymous reads allowed
   api/client.ts       ← all data access goes through here
-  components/         DayNav, SportFilter, DayCalendar, BookingDialog, MyBookings
+  components/         DayNav, SportFilter, DayCalendar, BookingDialog, MyBookings, AdminPanel
   App.tsx             state + wiring
 ```
 
 ## How the security works
 
-Authorisation lives in the database, not in the client. Three policies in `db/001_init.sql`:
+Authorisation lives in the database, not in the client.
 
-- `instructors` and `slots` are readable by both `anonymous` and `authenticated`.
-- `bookings` is readable, insertable and deletable only where `auth.user_id() = user_id`.
+| table | select | insert / delete |
+| --- | --- | --- |
+| `instructors` | everyone, signed out included | nobody |
+| `instructor_blocks` | everyone — customers must see closed hours | only `instructor_id = my_instructor_id()` |
+| `bookings` | only the owner | only as yourself |
+| `user_roles` | your own row, or everything if admin | admin only |
 
-`bookings.user_id` defaults to `auth.user_id()`, which comes from the JWT, so the client never sends
-it and cannot book on anybody else's behalf. Cancelling someone else's booking simply deletes zero
-rows. Since a booking is visible only to its owner, a slot can't show how many people are on it —
-that's the thing to revisit when capacity arrives.
+`bookings.user_id` and `user_roles` are never sent by the client: `user_id` defaults to
+`auth.user_id()`, which comes from the JWT. An instructor cannot touch another instructor's calendar
+because `my_instructor_id()` also derives from the JWT, so it cannot be spoofed.
+
+Three `security definer` views expose exactly as much as each caller needs and no more:
+
+- **`busy_hours`** — which hours are taken, across all instructors, *without* saying by whom. Booking
+  rows stay private to their owner, so this is how the calendar can grey out a taken hour.
+- **`instructor_bookings`** — an instructor's own bookings with the customer's name and email.
+  Returns nothing for anyone who is not that instructor.
+- **`admin_users`** — the user directory, empty unless `app_role() = 'admin'`. Lets the admin panel
+  work without granting anyone access to the `neon_auth` schema.
+
+**Roles are deliberately not stored in `neon_auth."user".role`.** That column exists, but the Data
+API switches to a Postgres role named by the JWT's `role` claim — writing `admin` there could try to
+`SET ROLE admin`, which does not exist, and lock the account out. App roles live in `user_roles` and
+the `neon_auth` schema is never written to.
 
 ## Notes and limits
 
@@ -152,6 +180,11 @@ that's the thing to revisit when capacity arrives.
   is imported after it and restores what the app assumes — keep that import order.
 - The auth UI navigates between its screens by URL. This app has no routes, so `App.tsx` passes the
   provider a `navigate` and `Link` that map those hrefs to a view name and keep it in the dialog.
-- The seed script writes times in the machine's local timezone and stores them as `timestamptz`.
-  Seeding from a different timezone than you browse from will shift the schedule.
-- Still out of scope: instructor-side scheduling, capacity and waitlists, payments, weather.
+- Every migration needs a Data API schema-cache refresh (step 3b) before the app can see the new
+  tables and views.
+- Hours are stored as `timestamptz` and rendered in the browser's timezone. Everyone involved being
+  in the same timezone is an assumption, not something the schema enforces.
+- Capacity is one person per instructor per hour, enforced by `unique (instructor_id, starts_at)`.
+- Closing an hour and booking it are independent: an instructor can close an hour that is already
+  booked, and it does not cancel the booking.
+- Still out of scope: multi-hour lessons, waitlists, payments, weather.

@@ -1,44 +1,66 @@
+/*
+ * Warm, orange-led palette. --accent is the brand orange the app was asked for;
+ * --accent-strong is the deeper burnt orange from the Sun Surf logo, used for
+ * hover states and for orange text on light backgrounds, where the lighter
+ * orange does not carry enough contrast.
+ */
 :root {
-  --bg: #f4f7f9;
+  --bg: #fdf6ef;
   --surface: #ffffff;
-  --surface-2: #eef2f6;
-  --text: #10232e;
-  --text-dim: #5b7183;
-  --border: #dbe4ec;
-  --accent: #0d7a8c;
+  --surface-2: #f7ede3;
+  --text: #2a1710;
+  --text-dim: #8a6e5d;
+  --border: #ead9c9;
+  --accent: #ff6b35;
+  --accent-strong: #c9491f;
   --accent-text: #ffffff;
-  --windsurf: #1f7ae0;
-  --windsurf-soft: #e7f0fd;
-  --wingfoil: #109171;
-  --wingfoil-soft: #e2f4ee;
+  --windsurf: #1f6feb;
+  --windsurf-soft: #e6f0fe;
+  --wingfoil: #0f8a72;
+  --wingfoil-soft: #e2f2ee;
   --danger: #b4362f;
-  --open-fill: #edfaf3;
-  --open-line: #bfe6d4;
-  --open-text: #17795a;
+  --individual: #1f6feb;
+  --individual-soft: #e6f0fe;
+  --group: #7c4dcc;
+  --group-soft: #efe8fb;
+  --kids: #0f8a72;
+  --kids-soft: #e2f2ee;
+  --open-fill: #ffeee4;
+  --open-line: #ffcdb4;
+  --accent-ink: #a83c16;
+  --open-text: #a83c16;
   --radius: 14px;
-  --shadow: 0 1px 2px rgba(16, 35, 46, 0.06), 0 8px 24px rgba(16, 35, 46, 0.06);
+  --shadow: 0 1px 2px rgba(74, 40, 22, 0.05), 0 8px 24px rgba(74, 40, 22, 0.07);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0c1720;
-    --surface: #132430;
-    --surface-2: #1b323f;
-    --text: #e8f1f6;
-    --text-dim: #93aab9;
-    --border: #233c4a;
-    --accent: #2bb3c4;
-    --accent-text: #05222a;
-    --windsurf: #6fb2ff;
-    --windsurf-soft: #12314d;
-    --wingfoil: #4bd1ac;
-    --wingfoil-soft: #0f3b31;
+    --bg: #1a120d;
+    --surface: #241811;
+    --surface-2: #2f2017;
+    --text: #f7ece3;
+    --text-dim: #b49a88;
+    --border: #3d2a1e;
+    --accent: #ff7a47;
+    --accent-strong: #ff9a6a;
+    --accent-text: #2a1409;
+    --windsurf: #7fb4ff;
+    --windsurf-soft: #172b47;
+    --wingfoil: #4fd0b3;
+    --wingfoil-soft: #0f3830;
     --danger: #ff8a80;
-    --open-fill: #103128;
-    --open-line: #1e5c4a;
-    --open-text: #5fd8b4;
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.3);
+    --individual: #7fb4ff;
+    --individual-soft: #172b47;
+    --group: #bda2f0;
+    --group-soft: #2a2140;
+    --kids: #4fd0b3;
+    --kids-soft: #0f3830;
+    --open-fill: #3a2114;
+    --open-line: #5c3620;
+    --accent-ink: #ffb995;
+    --open-text: #ffb995;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 8px 24px rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }
 }
@@ -89,6 +111,39 @@ ol {
 
 .account {
   flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Language switch: a small two-up pill that sits beside the account menu. */
+.lang {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.lang-btn {
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.lang-btn:hover {
+  color: var(--text);
+}
+
+.lang-btn.is-active {
+  background: var(--accent);
+  color: var(--accent-text);
 }
 
 .brand {
@@ -97,17 +152,17 @@ ol {
   gap: 12px;
 }
 
+/*
+ * The logo is a JPG, so it carries an opaque square behind a circular disc.
+ * Clipping it to a circle hides those corners against the warm page colour.
+ */
 .brand-mark {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 46px;
+  height: 46px;
   flex: none;
-  border-radius: 12px;
-  background: var(--accent);
-  color: var(--accent-text);
-  font-size: 22px;
-  font-weight: 700;
+  border-radius: 50%;
+  object-fit: cover;
+  display: block;
 }
 
 .brand h1 {
@@ -171,7 +226,7 @@ ol {
 
 .icon-btn:hover {
   border-color: var(--accent);
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .daystrip {
@@ -212,7 +267,7 @@ ol {
 }
 
 .daychip.is-today .daychip-num {
-  color: var(--accent);
+  color: var(--accent-ink);
 }
 
 .daychip.is-selected {
@@ -263,7 +318,7 @@ ol {
   background: var(--surface);
   color: var(--text);
   font-weight: 600;
-  box-shadow: 0 1px 2px rgba(16, 35, 46, 0.12);
+  box-shadow: 0 1px 2px rgba(74, 40, 22, 0.12);
 }
 
 .count {
@@ -316,27 +371,47 @@ ol {
 }
 
 .legend-item--booked::before {
-  background: var(--accent);
-  border-color: var(--accent);
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
 }
 
 .legend-item--past::before {
   background: var(--surface-2);
 }
 
+.notice {
+  margin: 0 0 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.role-badge {
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--accent-strong);
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 .cal-scroll {
   overflow-x: auto;
-  /* keep columns a sane width when only one or two instructors are teaching */
-  max-width: calc(70px + var(--cols) * 230px);
+  max-width: calc(76px + var(--cols) * 230px);
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
 
+/* one column per instructor, one row per hour — every cell the same size */
 .cal {
   display: grid;
-  grid-template-columns: 68px repeat(var(--cols), minmax(132px, 1fr));
+  grid-template-columns: 76px repeat(var(--cols), minmax(124px, 1fr));
   min-width: min-content;
 }
 
@@ -371,45 +446,37 @@ ol {
   justify-content: center;
 }
 
-.cal-gutter {
+.cal-hour {
   position: sticky;
   left: 0;
   z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 0 10px;
+  min-height: 46px;
   background: var(--surface);
-}
-
-.cal-hour {
-  position: absolute;
-  right: 10px;
-  transform: translateY(-50%);
-  font-size: 11px;
+  border-top: 1px solid var(--border);
+  font-size: 12px;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
 
-.cal-col {
-  position: relative;
-  border-left: 1px solid var(--border);
-  background-image: repeating-linear-gradient(
-    to bottom,
-    var(--border) 0 1px,
-    transparent 1px var(--row-h)
-  );
+.cal-hour.is-first {
+  border-top: 0;
 }
 
-.cal-slot {
-  position: absolute;
-  left: 5px;
-  right: 5px;
+.cal-cell {
+  position: relative;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1px;
+  gap: 2px;
   padding: 4px 8px;
-  border-radius: 8px;
-  border: 1px solid transparent;
-  overflow: hidden;
+  min-height: 46px;
+  border-left: 1px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 
 .cal-state {
@@ -418,7 +485,7 @@ ol {
   line-height: 1.3;
 }
 
-.cal-when {
+.cal-customer {
   font-size: 11px;
   line-height: 1.3;
   color: var(--text-dim);
@@ -427,19 +494,13 @@ ol {
   text-overflow: ellipsis;
 }
 
-.cal-cancel {
-  align-self: flex-start;
-  font-size: 11px;
-}
-
-/* a whole-block button so the entire slot is the hit target */
+/* the whole cell is the hit target */
 .cal-hit {
   position: absolute;
   inset: 0;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 1px;
   padding: 4px 8px;
   border: 0;
   background: none;
@@ -451,75 +512,70 @@ ol {
 
 .cal-hit:disabled {
   cursor: default;
-  opacity: 0.6;
 }
 
-.cal-slot.is-open {
+.cal-cell.is-free {
   background: var(--open-fill);
-  border-color: var(--open-line);
 }
 
-.cal-slot.is-open:hover {
-  border-color: var(--accent);
-}
-
-.cal-slot.is-open .cal-state {
+.cal-cell.is-free .cal-state {
   color: var(--open-text);
 }
 
-.cal-slot.is-booked {
-  background: var(--accent);
-  border-color: var(--accent);
+.cal-cell.is-free:hover {
+  background: color-mix(in srgb, var(--open-fill) 70%, var(--accent) 12%);
 }
 
-.cal-slot.is-booked .cal-state {
+.cal-cell.is-mine {
+  background: var(--accent-strong);
+}
+
+.cal-cell.is-mine .cal-state {
   color: var(--accent-text);
 }
 
-.cal-slot.is-booked .cal-when {
-  color: var(--accent-text);
-  opacity: 0.8;
-}
-
-.cal-slot.is-booked .cal-cancel {
-  color: var(--accent-text);
-  opacity: 0.9;
-}
-
-.cal-slot.is-past {
+.cal-cell.is-taken {
   background: var(--surface-2);
-  border-color: var(--border);
 }
 
-.cal-slot.is-past .cal-state {
+.cal-cell.is-taken .cal-state {
+  color: var(--text);
+}
+
+.cal-cell.is-blocked {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--surface-2) 0 6px,
+    var(--surface) 6px 12px
+  );
+}
+
+.cal-cell.is-blocked .cal-state,
+.cal-cell.is-past .cal-state,
+.cal-cell.is-closed .cal-state {
   color: var(--text-dim);
   font-weight: 500;
 }
 
-/* the sport shows as a colour bar down the left edge of every block */
-.cal-slot::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 3px;
+.cal-cell.is-past,
+.cal-cell.is-closed {
+  background: var(--surface);
+  opacity: 0.55;
 }
 
-.cal-slot--windsurf::before {
-  background: var(--windsurf);
+.cal-cell.is-busy {
+  opacity: 0.6;
 }
 
-.cal-slot--wingfoil::before {
-  background: var(--wingfoil);
-}
-
-.cal-slot.is-past::before {
-  opacity: 0.35;
+/* an instructor's own column reads as editable */
+.cal-cell.is-own.is-free,
+.cal-cell.is-own.is-blocked {
+  outline: 1px dashed var(--border);
+  outline-offset: -3px;
 }
 
 .cal-skeleton {
-  height: 320px;
+  height: 420px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -564,6 +620,90 @@ ol {
   color: var(--wingfoil);
 }
 
+/* ---------- admin panel ---------- */
+.dialog--wide {
+  max-width: 620px;
+}
+
+.admin-hint {
+  margin: 0 0 14px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.admin-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.admin-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.admin-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.admin-email {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.admin-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.admin-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.admin-field span {
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+.admin-field select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.segmented--block {
+  display: flex;
+  width: 100%;
+}
+
+.segmented--block .segment {
+  flex: 1;
+}
 
 /* ---------- buttons ---------- */
 .btn {
@@ -579,7 +719,8 @@ ol {
 }
 
 .btn:hover:not(:disabled) {
-  filter: brightness(1.08);
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
 }
 
 .btn:disabled {
@@ -589,7 +730,8 @@ ol {
 
 .btn--ghost {
   background: transparent;
-  color: var(--accent);
+  color: var(--accent-ink);
+  border-color: var(--accent);
 }
 
 .link-btn {
@@ -712,7 +854,7 @@ ol {
      back to. This centres when there's room and scrolls when there isn't. */
   overflow-y: auto;
   padding: 16px;
-  background: rgba(9, 22, 30, 0.55);
+  background: rgba(42, 23, 16, 0.55);
   z-index: 10;
 }
 
@@ -723,7 +865,7 @@ ol {
   padding: 22px;
   background: var(--surface);
   border-radius: 18px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 60px rgba(42, 23, 16, 0.3);
 }
 
 .dialog h3 {
@@ -871,10 +1013,704 @@ ol {
   }
 
   .cal {
-    grid-template-columns: 56px repeat(var(--cols), minmax(124px, 1fr));
+    grid-template-columns: 60px repeat(var(--cols), minmax(112px, 1fr));
+  }
+
+  .cal-hour {
+    padding: 0 6px;
+    font-size: 11px;
   }
 
   .cal-head {
     padding: 10px 6px;
+  }
+}
+
+/* ---------- pending / approval ---------- */
+.legend-item--pending::before {
+  background: repeating-linear-gradient(45deg, var(--open-fill) 0 4px, var(--accent) 4px 8px);
+  border-color: var(--accent);
+}
+
+/* waiting on a decision: locked, but visibly not settled */
+.cal-cell.is-pending,
+.cal-cell.is-mine-pending {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--open-fill) 0 7px,
+    var(--surface) 7px 14px
+  );
+}
+
+.cal-cell.is-pending .cal-state,
+.cal-cell.is-mine-pending .cal-state {
+  color: var(--accent-ink);
+}
+
+.cal-cell.is-mine-pending {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.status {
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.status--pending {
+  background: var(--open-fill);
+  color: var(--accent-ink);
+}
+
+.status--approved {
+  background: var(--accent-strong);
+  color: var(--accent-text);
+}
+
+.status--rejected {
+  background: var(--surface-2);
+  color: var(--text-dim);
+}
+
+/* ---------- requests ---------- */
+.requests {
+  margin-bottom: 20px;
+}
+
+.request-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.request {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.request--windsurf {
+  border-left-color: var(--windsurf);
+}
+
+.request--wingfoil {
+  border-left-color: var(--wingfoil);
+}
+
+.request-main {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.request-when {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.request-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.request-customer {
+  font-size: 13px;
+}
+
+.request-interests {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.request-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ---------- profile form ---------- */
+.checks {
+  border: 0;
+  padding: 0;
+  margin: 16px 0 0;
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent);
+}
+
+.field-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.dialog-foot {
+  margin: 14px 0 0;
+}
+
+.segment:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---------- manage panel ---------- */
+.manage {
+  margin-bottom: 20px;
+}
+
+.manage-box {
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  margin-bottom: 14px;
+}
+
+.manage-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.manage-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.manage-box .admin-hint {
+  margin: 12px 0 0;
+}
+
+.manage-sub {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.manage-move {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--border);
+}
+
+.admin-field input[type='date'],
+.manage-move input[type='date'],
+.manage-move select {
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+@media (max-width: 560px) {
+  .manage-actions {
+    margin-left: 0;
+  }
+}
+
+/* ---------- lesson types ---------- */
+.tag--individual,
+.booking--individual,
+.request--individual {
+  --lesson: var(--individual);
+  --lesson-soft: var(--individual-soft);
+}
+
+.tag--group,
+.booking--group,
+.request--group {
+  --lesson: var(--group);
+  --lesson-soft: var(--group-soft);
+}
+
+.tag--kids,
+.booking--kids,
+.request--kids {
+  --lesson: var(--kids);
+  --lesson-soft: var(--kids-soft);
+}
+
+.tag--individual,
+.tag--group,
+.tag--kids {
+  background: var(--lesson-soft);
+  color: var(--lesson);
+}
+
+.booking--individual,
+.booking--group,
+.booking--kids,
+.request--individual,
+.request--group,
+.request--kids {
+  border-left-color: var(--lesson);
+}
+
+/* an occupied hour is tinted by what kind of lesson it is */
+.cal-cell.is-individual {
+  background: var(--individual-soft);
+}
+
+.cal-cell.is-group {
+  background: var(--group-soft);
+}
+
+.cal-cell.is-kids {
+  background: var(--kids-soft);
+}
+
+.cal-cell.is-individual .cal-state {
+  color: var(--individual);
+}
+
+.cal-cell.is-group .cal-state {
+  color: var(--group);
+}
+
+.cal-cell.is-kids .cal-state {
+  color: var(--kids);
+}
+
+/* still hatched while it waits for a decision, whatever kind it is */
+.cal-cell.is-pending,
+.cal-cell.is-mine-pending {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.55) 0 7px,
+    transparent 7px 14px
+  );
+}
+
+.hour-actions {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.field select {
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+/* ---------- admin shell ---------- */
+.app--wide {
+  max-width: 1180px;
+}
+
+.admin {
+  display: grid;
+  grid-template-columns: 210px 1fr;
+  gap: 20px;
+  align-items: start;
+  margin-top: 12px;
+}
+
+.admin-nav {
+  position: sticky;
+  top: 16px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.admin-nav ul {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.admin-navitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.admin-navitem:hover {
+  background: var(--surface-2);
+  color: var(--text);
+}
+
+.admin-navitem.is-active {
+  background: var(--accent);
+  color: var(--accent-text);
+  font-weight: 600;
+}
+
+.admin-back {
+  font-size: 13px;
+}
+
+.admin-content {
+  min-width: 0;
+}
+
+.admin-title {
+  margin: 0 0 16px;
+  font-size: 20px;
+}
+
+.admin-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.admin-bar .admin-title {
+  margin: 0;
+}
+
+/* ---------- stat cards ---------- */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  position: relative;
+  padding: 16px 16px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* the coloured hairline along the top of each card */
+.stat::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--stat-tone, var(--accent));
+}
+
+.stat--accent {
+  --stat-tone: var(--accent);
+}
+.stat--individual {
+  --stat-tone: var(--individual);
+}
+.stat--group {
+  --stat-tone: var(--group);
+}
+.stat--kids {
+  --stat-tone: var(--kids);
+}
+
+.stat-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stat-title {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.stat-icon {
+  font-size: 16px;
+  opacity: 0.8;
+}
+
+.stat-value {
+  margin: 6px 0 0;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-suffix {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dim);
+}
+
+/* ---------- filters and tables ---------- */
+.filters {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.filters select,
+.search,
+.range input {
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.search {
+  flex: 1;
+  min-width: 180px;
+}
+
+.range {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.table th {
+  text-align: left;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+.table td {
+  padding: 11px 14px;
+  border-top: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.table tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.table select {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.cell-dim {
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.cell-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.btn--small {
+  padding: 5px 11px;
+  font-size: 13px;
+}
+
+/* ---------- account menu ---------- */
+.account-menu {
+  position: relative;
+}
+
+.account-trigger {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 10px 5px 5px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  max-width: 190px;
+}
+
+.account-trigger:hover {
+  border-color: var(--accent);
+}
+
+.account-avatar {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--accent-strong);
+  color: var(--accent-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.account-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.account-pop {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 20;
+  min-width: 210px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(42, 23, 16, 0.18);
+}
+
+.account-who {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.account-who span {
+  color: var(--text-dim);
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.account-pop button {
+  display: block;
+  width: 100%;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.account-pop button:hover {
+  background: var(--surface-2);
+}
+
+.account-pop button.danger {
+  color: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .admin {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-nav {
+    position: static;
+  }
+
+  .admin-nav ul {
+    grid-auto-flow: column;
+    grid-auto-columns: 1fr;
+  }
+
+  .account-name {
+    display: none;
   }
 }

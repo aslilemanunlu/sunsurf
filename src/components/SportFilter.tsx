@@ -1,9 +1,10 @@
 import type { Sport } from '../types';
+import { useT } from '../lib/i18n';
 
 export type SportFilterValue = Sport | 'all';
 
 const OPTIONS: { value: SportFilterValue; label: string }[] = [
-  { value: 'all', label: 'All' },
+  { value: 'all', label: 'Tümü' },
   { value: 'windsurf', label: 'Windsurf' },
   { value: 'wingfoil', label: 'Wingfoil' },
 ];
@@ -14,8 +15,9 @@ type Props = {
 };
 
 export default function SportFilter({ value, onChange }: Props) {
+  const { t } = useT();
   return (
-    <div className="segmented" role="group" aria-label="Filter by sport">
+    <div className="segmented" role="group" aria-label={t('Spora göre filtrele')}>
       {OPTIONS.map((o) => (
         <button
           key={o.value}
@@ -23,7 +25,7 @@ export default function SportFilter({ value, onChange }: Props) {
           onClick={() => onChange(o.value)}
           aria-pressed={value === o.value}
         >
-          {o.label}
+          {t(o.label)}
         </button>
       ))}
     </div>

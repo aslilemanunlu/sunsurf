@@ -1,4 +1,5 @@
 import { addDays, formatDayLabel, formatFullDate, isToday, todayKey } from '../lib/date';
+import { locale, useT } from '../lib/i18n';
 
 type Props = {
   dateKey: string;
@@ -7,15 +8,16 @@ type Props = {
 
 /** Big day headline with arrows, plus a 7-day strip centred on the selection. */
 export default function DayNav({ dateKey, onChange }: Props) {
+  const { t } = useT();
   const strip = Array.from({ length: 7 }, (_, i) => addDays(dateKey, i - 3));
 
   return (
-    <nav className="daynav" aria-label="Choose a day">
+    <nav className="daynav" aria-label={t('Gün seçin')}>
       <div className="daynav-head">
         <button
           className="icon-btn"
           onClick={() => onChange(addDays(dateKey, -1))}
-          aria-label="Previous day"
+          aria-label={t('Önceki gün')}
         >
           ‹
         </button>
@@ -28,7 +30,7 @@ export default function DayNav({ dateKey, onChange }: Props) {
         <button
           className="icon-btn"
           onClick={() => onChange(addDays(dateKey, 1))}
-          aria-label="Next day"
+          aria-label={t('Sonraki gün')}
         >
           ›
         </button>
@@ -46,7 +48,7 @@ export default function DayNav({ dateKey, onChange }: Props) {
               aria-current={selected ? 'date' : undefined}
             >
               <span className="daychip-dow">
-                {d.toLocaleDateString(undefined, { weekday: 'short' })}
+                {d.toLocaleDateString(locale(), { weekday: 'short' })}
               </span>
               <span className="daychip-num">{d.getDate()}</span>
             </button>
@@ -56,7 +58,7 @@ export default function DayNav({ dateKey, onChange }: Props) {
 
       {!isToday(dateKey) && (
         <button className="link-btn daynav-today" onClick={() => onChange(todayKey())}>
-          Jump to today
+          {t('Bugüne dön')}
         </button>
       )}
     </nav>

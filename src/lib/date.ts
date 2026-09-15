@@ -1,5 +1,7 @@
 /** Local-date helpers. Dates are keyed as YYYY-MM-DD so a day is unambiguous. */
 
+import { locale, translate } from './i18n';
+
 export function toDateKey(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -32,10 +34,10 @@ export function isPast(key: string): boolean {
 
 /** "Sat 14 Mar" — or "Today" / "Tomorrow" when close by. */
 export function formatDayLabel(key: string): string {
-  if (isToday(key)) return 'Today';
-  if (key === addDays(todayKey(), 1)) return 'Tomorrow';
-  if (key === addDays(todayKey(), -1)) return 'Yesterday';
-  return fromDateKey(key).toLocaleDateString(undefined, {
+  if (isToday(key)) return translate('Bugün');
+  if (key === addDays(todayKey(), 1)) return translate('Yarın');
+  if (key === addDays(todayKey(), -1)) return translate('Dün');
+  return fromDateKey(key).toLocaleDateString(locale(), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -44,7 +46,7 @@ export function formatDayLabel(key: string): string {
 
 /** Always the plain date, for the subtitle under the big label. */
 export function formatFullDate(key: string): string {
-  return fromDateKey(key).toLocaleDateString(undefined, {
+  return fromDateKey(key).toLocaleDateString(locale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -52,7 +54,7 @@ export function formatFullDate(key: string): string {
 }
 
 export function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, {
+  return new Date(iso).toLocaleTimeString(locale(), {
     hour: 'numeric',
     minute: '2-digit',
   });

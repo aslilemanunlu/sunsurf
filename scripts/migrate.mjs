@@ -19,15 +19,56 @@ if (!DATABASE_URL) {
 
 const sql = neon(DATABASE_URL);
 
-/** The HTTP driver runs one statement per call, so split the file up. */
+/**
+ * The HTTP driver runs one statement per call, so split the file up.
+ *
+ * Splitting on bare semicolons is not enough: function bodies and DO blocks are
+ * dollar-quoted ($$ … $$ or $tag$ … $tag$) and contain their own semicolons.
+ * This walks the text and only breaks on semicolons at the top level.
+ */
 function statements(text) {
-  return text
+  const src = text
     .split('\n')
     .filter((line) => !line.trim().startsWith('--'))
-    .join('\n')
-    .split(';')
-    .map((s) => s.trim())
-    .filter(Boolean);
+    .join('\n');
+
+  const out = [];
+  let current = '';
+  let dollarTag = null;
+  let inSingleQuote = false;
+
+  for (let i = 0; i < src.length; i++) {
+    const rest = src.slice(i);
+
+    if (dollarTag) {
+      if (rest.startsWith(dollarTag)) {
+        current += dollarTag;
+        i += dollarTag.length - 1;
+        dollarTag = null;
+        continue;
+      }
+    } else if (inSingleQuote) {
+      if (src[i] === "'") inSingleQuote = false;
+    } else {
+      const open = rest.match(/^\$[A-Za-z_]*\$/);
+      if (open) {
+        dollarTag = open[0];
+        current += dollarTag;
+        i += dollarTag.length - 1;
+        continue;
+      }
+      if (src[i] === "'") inSingleQuote = true;
+      else if (src[i] === ';') {
+        if (current.trim()) out.push(current.trim());
+        current = '';
+        continue;
+      }
+    }
+    current += src[i];
+  }
+
+  if (current.trim()) out.push(current.trim());
+  return out;
 }
 
 const dir = new URL('../db/', import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1');
