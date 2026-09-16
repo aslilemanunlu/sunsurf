@@ -249,6 +249,9 @@ const EN: Record<string, string> = {
   'Bu müşteri silinemiyor: başka bir kayda bağlı.':
     'This customer cannot be deleted: something else still refers to them.',
 
+  'Ne yaptığı, yazdığınız dersten anlaşılıyor; ayrıca sormuyoruz.':
+    'What they are here for comes from the lesson you are writing; we do not ask twice.',
+
   // accounts and access
   'Kullanıcı Ekle': 'Add user',
   'Davet et': 'Invite',

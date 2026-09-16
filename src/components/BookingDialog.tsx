@@ -6,8 +6,6 @@ import { durationChoices, repeatDates, OPEN_UNTIL_HOUR, type Repeat } from '../l
 import { SPORT_LABEL } from '../lib/lessons';
 import * as api from '../api/client';
 import { planLabel } from '../lib/agreements';
-import { SEGMENTS, SEGMENT_LABEL, segmentTone } from '../lib/segments';
-import type { Segment } from '../types';
 
 export type NewBooking = {
   lessonType: LessonType;
@@ -102,7 +100,7 @@ export default function BookingDialog({
   const [agreementId, setAgreementId] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [segments, setSegments] = useState<Segment[]>([]);
+
   const [repeat, setRepeat] = useState<Repeat>('none');
   const [times, setTimes] = useState(10);
 
@@ -145,10 +143,6 @@ export default function BookingDialog({
     };
   }, [matched]);
 
-  useEffect(() => {
-    setSegments([lessonType === 'kids_camp' ? 'kids_camp' : 'lesson']);
-  }, [lessonType]);
-
   const dayKey = toDateKey(startsAt);
   const endsAt = new Date(startsAt.getTime() + duration * 60 * 60 * 1000);
   const isCamp = lessonType === 'kids_camp';
@@ -179,7 +173,12 @@ export default function BookingDialog({
       // for a kids camp especially, the name is all anyone has at that moment.
       let customerId: string | null = matched?.customerId ?? null;
       if (!customerId && name.trim().length >= 2) {
-        customerId = await api.createCustomer({ fullName: name, phone, segments });
+        customerId = await api.createCustomer({
+          fullName: name,
+          phone,
+          // what they are here for, taken from what is being written
+          segments: isCamp ? ['kids_camp'] : ['lesson', sport],
+        });
         onCustomerAdded();
       }
       onConfirm({
@@ -250,39 +249,15 @@ export default function BookingDialog({
         )}
 
         {!matched && name.trim().length >= 2 && (
-          <>
-            <label className="field">
-              <span>
-                {t('Telefon')} ({t('opsiyonel')})
-              </span>
-              <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
-            </label>
-
-            <fieldset className="field">
-              <span>{t('Neyle ilgileniyor?')}</span>
-              <div className="chipset">
-                {SEGMENTS.map((sg) => {
-                  const on = segments.includes(sg);
-                  const tone = segmentTone(sg);
-                  return (
-                    <button
-                      key={sg}
-                      type="button"
-                      className={`chip${on ? ' is-on' : ''}${tone ? ` chip--${tone}` : ''}`}
-                      onClick={() =>
-                        setSegments((prev) =>
-                          prev.includes(sg) ? prev.filter((x) => x !== sg) : [...prev, sg],
-                        )
-                      }
-                      aria-pressed={on}
-                    >
-                      {t(SEGMENT_LABEL[sg])}
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-          </>
+          <label className="field">
+            <span>
+              {t('Telefon')} ({t('opsiyonel')})
+            </span>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
+            <small className="field-hint">
+              {t('Ne yaptığı, yazdığınız dersten anlaşılıyor; ayrıca sormuyoruz.')}
+            </small>
+          </label>
         )}
 
         {!isCamp && packages.length > 0 && (
