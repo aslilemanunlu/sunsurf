@@ -1714,3 +1714,836 @@ ol {
     display: none;
   }
 }
+
+/* ---------- reporting: charts ---------- */
+.admin-subtitle {
+  margin: 32px 0 12px;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.stat-grid--compact .stat-value {
+  font-size: 26px;
+}
+
+.chart-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  margin: 16px 0;
+}
+
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+  margin-bottom: 16px;
+  min-width: 0;
+}
+
+.panel-title {
+  margin: 0 0 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+
+.chart-empty {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.check--inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+/* every chart part borrows the lesson palette through one variable */
+.barrow-fill,
+.column-fill,
+.split-part,
+.dot {
+  background: var(--accent);
+}
+
+.barrow-fill--individual,
+.column-fill--individual,
+.split-part--individual,
+.dot--individual {
+  background: var(--individual);
+}
+
+.barrow-fill--group,
+.column-fill--group,
+.split-part--group,
+.dot--group {
+  background: var(--group);
+}
+
+.barrow-fill--kids,
+.column-fill--kids,
+.split-part--kids,
+.dot--kids {
+  background: var(--kids);
+}
+
+.split-part--approved,
+.dot--approved {
+  background: var(--kids);
+}
+
+.split-part--pending,
+.dot--pending {
+  background: var(--accent);
+}
+
+.split-part--rejected,
+.dot--rejected {
+  background: var(--danger);
+}
+
+/* horizontal bars */
+.barrows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.barrow {
+  display: grid;
+  grid-template-columns: minmax(80px, 30%) 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+}
+
+.barrow-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.barrow-track {
+  height: 12px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.barrow-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+}
+
+.barrow-value {
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+/* vertical columns */
+.columns {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 8px;
+  height: 200px;
+}
+
+.columns-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-bottom: 22px;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.columns-body {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.columns-plot {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.column {
+  flex: 1 1 0;
+  min-width: 3px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.column-fill {
+  width: 100%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+}
+
+/* three anchors instead of a label per column — see Charts.tsx */
+.columns-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 6px;
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+
+/* one bar, several parts */
+.split-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-2);
+}
+
+.split-part {
+  display: block;
+  height: 100%;
+}
+
+.split-legend {
+  list-style: none;
+  margin: 14px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.split-legend li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.split-legend strong {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.split-pct {
+  color: var(--text-dim);
+  min-width: 38px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+
+/* ---------- cancellation window ---------- */
+.booking-locked {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-align: right;
+  max-width: 120px;
+  line-height: 1.3;
+}
+
+/* ---------- phones ----------
+ *
+ * The calendar is a wide grid by nature, so on a phone it keeps its shape and
+ * scrolls sideways instead of being rebuilt into a list. What changes is
+ * everything around it: the header row and hour column stay put while you
+ * scroll, taps are big enough to hit, inputs are large enough that iOS does
+ * not zoom the page when they are focused, and dialogs become sheets.
+ */
+@media (max-width: 760px) {
+  .app,
+  .app--wide {
+    padding: 0 12px 32px;
+  }
+
+  .topbar {
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 16px 0 8px;
+  }
+
+  .topbar h1 {
+    font-size: 20px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* the header row and the hour column are what keep a wide grid legible */
+  .cal-head,
+  .cal-corner {
+    position: sticky;
+    top: 0;
+    z-index: 3;
+    background: var(--surface);
+  }
+
+  .cal-corner {
+    left: 0;
+    z-index: 4;
+  }
+
+  .cal-scroll {
+    max-height: 70vh;
+    overflow-y: auto;
+    /* a hint that there is more to the right */
+    background:
+      linear-gradient(to right, var(--surface) 30%, rgba(255, 255, 255, 0)) left center,
+      linear-gradient(to left, var(--surface) 30%, rgba(255, 255, 255, 0)) right center;
+    background-size: 24px 100%, 24px 100%;
+    background-repeat: no-repeat;
+    background-attachment: local, local;
+  }
+
+  .cal-cell,
+  .cal-hour {
+    min-height: 52px;
+  }
+
+  .section-title {
+    font-size: 13px;
+  }
+
+  /* fonts under 16px make mobile Safari zoom the whole page on focus */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  .filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filters .segmented {
+    flex-wrap: wrap;
+  }
+
+  .filters select,
+  .filters .search,
+  .filters .range {
+    width: 100%;
+  }
+
+  .range input {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  /* dialogs sit at the bottom, where a thumb reaches */
+  .overlay {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .dialog {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    max-height: 92vh;
+    border-radius: var(--radius) var(--radius) 0 0;
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+
+  .dialog-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--surface);
+    padding-top: 12px;
+  }
+
+  .dialog-actions .btn {
+    flex: 1 1 0;
+    min-height: 46px;
+  }
+
+  .btn,
+  .link-btn {
+    min-height: 44px;
+  }
+
+  .segment {
+    min-height: 40px;
+  }
+
+  .booking {
+    flex-wrap: wrap;
+  }
+
+  .booking-locked {
+    max-width: none;
+    text-align: left;
+  }
+
+  .chart-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .columns {
+    height: 170px;
+  }
+
+  .barrow {
+    grid-template-columns: minmax(70px, 38%) 1fr auto;
+    font-size: 12px;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+
+@media (max-width: 430px) {
+  .legend {
+    display: none;
+  }
+
+  .role-badge {
+    display: none;
+  }
+
+  .stat-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stat-value {
+    font-size: 24px;
+  }
+}
+
+/* ---------- management: switch, chips, drawer ---------- */
+.switchbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--kids);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.switchbar.is-closed {
+  border-left-color: var(--danger);
+  background: var(--surface-2);
+}
+
+.switchbar-title {
+  margin: 0 0 2px;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.switchbar-sub {
+  margin: 0;
+  font-size: 13px;
+  color: var(--text-dim);
+  max-width: 62ch;
+}
+
+.admin-count {
+  color: var(--text-dim);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.notice--closed {
+  border-left-color: var(--danger);
+}
+
+/* segment chips: a button when it can be toggled, a label when it cannot */
+.chipset {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chipset--tight {
+  gap: 4px;
+}
+
+.chip {
+  --chip: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.chip--individual {
+  --chip: var(--individual);
+}
+
+.chip--group {
+  --chip: var(--group);
+}
+
+.chip--kids {
+  --chip: var(--kids);
+}
+
+.chip:hover:not(.is-static):not(:disabled) {
+  border-color: var(--chip);
+  color: var(--chip);
+}
+
+.chip.is-on {
+  background: var(--chip);
+  border-color: var(--chip);
+  color: var(--surface);
+}
+
+.chip.is-static {
+  cursor: default;
+  color: var(--chip);
+  border-color: color-mix(in srgb, var(--chip) 35%, var(--border));
+}
+
+.chip:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.note-badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+/* the customer drawer slides in from the right on a desktop */
+.drawer {
+  margin-left: auto;
+  width: min(460px, 100%);
+  max-height: 100vh;
+  overflow-y: auto;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+
+.drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.drawer-head h3 {
+  margin: 0 0 2px;
+  font-size: 19px;
+}
+
+.drawer-head p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.drawer-block {
+  padding-top: 18px;
+  margin-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin: 0;
+}
+
+.facts dt {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.facts dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.note-add {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.note-add textarea {
+  flex: 1;
+  resize: vertical;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.notes {
+  list-style: none;
+  margin: 0 0 10px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.notes li {
+  padding: 10px 12px;
+  background: var(--surface-2);
+  border-radius: 10px;
+}
+
+.notes p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  white-space: pre-wrap;
+}
+
+.note-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.history li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 760px) {
+  .drawer {
+    width: 100%;
+    margin: 0;
+    max-height: 92vh;
+    border-left: 0;
+    border-radius: var(--radius) var(--radius) 0 0;
+  }
+
+  .facts {
+    grid-template-columns: 1fr;
+  }
+
+  .switchbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+
+/* ---------- adding a customer without leaving the flow ---------- */
+.inline-add {
+  display: grid;
+  gap: 8px;
+}
+
+.inline-add--row {
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  align-items: center;
+}
+
+.inline-add input {
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.drawer-block--first {
+  padding-top: 0;
+  margin-top: 0;
+  border-top: 0;
+}
+
+.btn--ghost.danger {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 35%, var(--border));
+}
+
+/* ---------- money ---------- */
+.table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.table td.owing {
+  color: var(--danger);
+  font-weight: 700;
+}
+
+.table tr.is-owing td:first-child {
+  box-shadow: inset 3px 0 0 var(--danger);
+}
+
+.money-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.money-summary {
+  display: flex;
+  gap: 24px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+}
+
+.money-summary span {
+  display: block;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.money-summary strong {
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+
+.money-summary .owing {
+  color: var(--danger);
+}
+
+@media (max-width: 760px) {
+  .money-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- dragging out a range of hours ---------- */
+.cal-cell.is-selecting {
+  background: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent-strong);
+}
+
+.cal-cell.is-selecting .cal-state {
+  color: var(--accent-text);
+}
+
+/* while a drag is in progress the text must not turn blue and selected */
+.cal.is-dragging,
+.cal-cell.is-own.is-free {
+  user-select: none;
+}
+
+/* ---------- safety notes ---------- */
+.alertline {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 10px 0 0;
+  padding: 10px 12px;
+  border-left: 3px solid var(--danger);
+  background: var(--surface-2);
+  border-radius: 0 10px 10px 0;
+  font-size: 13px;
+}
+
+.alert-tag {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--danger);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.drawer .admin-bar {
+  margin-bottom: 10px;
+}
+
+.notice--done {
+  border-left-color: var(--kids);
+  cursor: pointer;
+}
+
+.btn--small {
+  padding: 6px 12px;
+  font-size: 13px;
+  min-height: 0;
+}
+
+.daylist {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.daylist li {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+  max-width: 260px;
+}
+
+.admin-bar input[type='month'] {
+  margin-left: auto;
+}

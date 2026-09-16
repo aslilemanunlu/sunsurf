@@ -12,17 +12,23 @@
  * lives here so no component has to know about either.
  */
 import type {
+  Agreement,
+  AgreementKind,
   Block,
   Booking,
   BookingStatus,
+  CrmCustomer,
+  CustomerDetails,
+  CustomerNote,
   DirectoryUser,
+  KidsCampEntry,
   Instructor,
   CustomerRef,
-  Interest,
   LessonType,
   ManagedBooking,
-  Profile,
+  Payment,
   Role,
+  Segment,
   Sport,
   Viewer,
 } from '../types';
@@ -98,7 +104,6 @@ export type BusyRow = {
   starts_at: string;
   status: BookingStatus;
   lesson_type: LessonType;
-  group_size: number | null;
 };
 
 /**
@@ -111,7 +116,7 @@ export async function listBusyHours(dateKey: string): Promise<BusyRow[]> {
     () =>
       neon
         .from('busy_hours')
-        .select('instructor_id,starts_at,status,lesson_type,group_size')
+        .select('instructor_id,starts_at,status,lesson_type')
         .gte('starts_at', from)
         .lt('starts_at', to),
     'Dolu saatler yüklenemedi',
@@ -162,26 +167,13 @@ function toBooking(row: BookingRow): Booking {
   };
 }
 
-/** Your own bookings. RLS makes this your rows and nobody else's. */
-export async function listMyBookings(): Promise<Booking[]> {
-  const rows = await read<BookingRow[]>(
-    () => neon.from('bookings').select('*').order('starts_at'),
-    'Rezervasyonlarınız yüklenemedi',
-  );
-  return rows.map(toBooking);
-}
-
 /**
- * `user_id` is deliberately not sent — the column defaults to auth.user_id(), so
- * the database takes it from the JWT and a client cannot book as someone else.
- */
-/**
- * Creates a booking.
+ * Writes a lesson onto an instructor's calendar.
  *
- * `user_id` is only sent when staff book on somebody else's behalf; left off,
- * the column defaults to auth.user_id() so a customer cannot book as anyone but
- * themselves. A database trigger decides the initial status: a customer's own
- * request starts pending, anything staff enter is already approved.
+ * Only staff get here — an admin for anyone, an instructor for themselves — and
+ * the insert policy in db/009 is what holds that line. `customerId` names the
+ * person the lesson is for; they have no account, so nothing about the caller
+ * identifies them.
  */
 export async function createBooking(input: {
   instructorId: string;
@@ -190,8 +182,11 @@ export async function createBooking(input: {
   lessonType: LessonType;
   sport?: Sport | null;
   groupSize?: number | null;
-  /** Staff only: who the lesson is for. */
-  userId?: string;
+  customerId: string;
+  /** The package this lesson comes off, when there is one. */
+  agreementId?: string | null;
+  /** An enquiry that is not settled yet. */
+  tentative?: boolean;
 }): Promise<Booking> {
   const row: Record<string, unknown> = {
     instructor_id: input.instructorId,
@@ -200,8 +195,10 @@ export async function createBooking(input: {
     lesson_type: input.lessonType,
     sport: input.lessonType === 'kids_camp' ? null : (input.sport ?? null),
     group_size: input.lessonType === 'group' ? (input.groupSize ?? null) : null,
+    customer_id: input.customerId,
+    agreement_id: input.agreementId ?? null,
+    status: input.tentative ? 'pending' : 'approved',
   };
-  if (input.userId) row.user_id = input.userId;
 
   const result = (await neon.from('bookings').insert(row).select('*')) as Result<BookingRow[]>;
 
@@ -210,15 +207,25 @@ export async function createBooking(input: {
   if (result.error?.code === '23P01') {
     throw new Error(translate('Bu saatler az önce doldu. Lütfen başka bir saat seçin.'));
   }
-  if (result.error?.code === '42501') {
-    throw new Error(translate('Rezervasyon için önce profilinizi tamamlamanız gerekiyor.'));
-  }
   return toBooking(unwrap(result, 'Rezervasyon oluşturulamadı')[0]);
 }
 
+/**
+ * Asks for the deleted row back, because a delete that row-level security
+ * filters out is not an error: it matches nothing and succeeds having done
+ * nothing. An empty result is the refusal — almost always the cancellation
+ * window in db/007.
+ */
 export async function cancelBooking(bookingId: string): Promise<void> {
-  const result = await neon.from('bookings').delete().eq('id', bookingId);
-  if (result.error) throw new Error(`${translate("Rezervasyon iptal edilemedi")}: ${result.error.message}`);
+  const result = await neon.from('bookings').delete().eq('id', bookingId).select('id');
+  if (result.error) {
+    throw new Error(`${translate('Rezervasyon iptal edilemedi')}: ${result.error.message}`);
+  }
+  if (!result.data || result.data.length === 0) {
+    throw new Error(
+      translate('Ders başlamasına 12 saatten az kaldı; iptal için eğitmeninizle görüşün.'),
+    );
+  }
 }
 
 // ------------------------------------------------- instructor's own calendar
@@ -237,6 +244,7 @@ export async function unblockHour(blockId: string): Promise<void> {
 
 type ManagedRow = {
   id: string;
+  customer_id: string | null;
   instructor_id: string;
   instructor_name: string;
   starts_at: string;
@@ -247,14 +255,14 @@ type ManagedRow = {
   status: string;
   customer_name: string | null;
   customer_email: string | null;
-  customer_full_name: string | null;
   customer_phone: string | null;
-  customer_interests: string[] | null;
+  customer_segments: string[] | null;
 };
 
 function toManaged(r: ManagedRow): ManagedBooking {
   return {
     id: r.id,
+    customerId: r.customer_id,
     instructorId: r.instructor_id,
     instructorName: r.instructor_name.trim(),
     startsAt: r.starts_at,
@@ -263,10 +271,10 @@ function toManaged(r: ManagedRow): ManagedBooking {
     sport: r.sport as Sport | null,
     groupSize: r.group_size,
     status: r.status as BookingStatus,
-    customerName: r.customer_full_name ?? r.customer_name,
+    customerName: r.customer_name,
     customerEmail: r.customer_email,
     customerPhone: r.customer_phone,
-    customerInterests: (r.customer_interests ?? []) as Interest[],
+    customerSegments: (r.customer_segments ?? []) as Segment[],
   };
 }
 
@@ -296,8 +304,8 @@ export async function listPendingRequests(): Promise<ManagedBooking[]> {
 }
 
 /**
- * Approve or reject. Only the status is sent: a database trigger rejects any
- * other change from someone who is not the customer, and stamps who decided.
+ * Settles a tentative booking, or drops one. Staff only, on a calendar they
+ * hold — the update policy in db/009 decides which.
  */
 export async function decideBooking(
   bookingId: string,
@@ -307,53 +315,19 @@ export async function decideBooking(
   if (result.error) throw new Error(`${translate("Karar kaydedilemedi")}: ${result.error.message}`);
 }
 
-// -------------------------------------------------------------- profiles
+// ------------------------------------------------------------------- viewer
 
-type ProfileRow = {
+type RoleRow = {
   user_id: string;
-  full_name: string;
-  phone: string;
-  interests: string[];
+  role: string;
+  instructor_id: string | null;
 };
 
-/** Null when the account has not completed its profile yet. */
-export async function getProfile(): Promise<Profile | null> {
-  const rows = await read<ProfileRow[]>(
-    () => neon.from('profiles').select('*').limit(1),
-    'Profil okunamadı',
-  );
-  if (rows.length === 0) return null;
-  const r = rows[0];
-  return {
-    userId: r.user_id,
-    fullName: r.full_name,
-    phone: r.phone,
-    interests: (r.interests ?? []) as Interest[],
-  };
-}
-
-export async function saveProfile(input: {
-  fullName: string;
-  phone: string;
-  interests: Interest[];
-}): Promise<void> {
-  const result = await neon.from('profiles').upsert(
-    {
-      full_name: input.fullName,
-      phone: input.phone,
-      interests: input.interests,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'user_id' },
-  );
-  if (result.error) throw new Error(`${translate("Profil kaydedilemedi")}: ${result.error.message}`);
-}
-
-// --------------------------------------------------------------- roles
-
-type RoleRow = { user_id: string; role: string; instructor_id: string | null };
-
-/** No row means customer, so signing up needs no server-side hook. */
+/**
+ * What this account may do. An account with no row here can read the public
+ * schedule and nothing else — which is every account until an admin gives it
+ * a job.
+ */
 export async function getViewer(): Promise<Viewer> {
   const rows = await read<RoleRow[]>(
     () => neon.from('user_roles').select('user_id,role,instructor_id').limit(1),
@@ -367,7 +341,6 @@ type DirectoryRow = {
   user_id: string;
   email: string;
   name: string | null;
-  phone: string | null;
   role: string;
   instructor_id: string | null;
   email_verified: boolean | null;
@@ -384,7 +357,6 @@ export async function listUsers(): Promise<DirectoryUser[]> {
     userId: r.user_id,
     email: r.email,
     name: r.name,
-    phone: r.phone,
     role: r.role as Role,
     instructorId: r.instructor_id,
     emailVerified: r.email_verified ?? false,
@@ -483,13 +455,85 @@ export async function moveBooking(
   if (result.error) throw new Error(`${translate("Ders taşınamadı")}: ${result.error.message}`);
 }
 
-/** Who staff may book on behalf of. Empty for a plain customer.  */
+/** Who staff may book. Empty for anyone who is not staff. */
 export async function listCustomers(): Promise<CustomerRef[]> {
-  const rows = await read<{ user_id: string; name: string | null; email: string; phone: string | null }[]>(
+  const rows = await read<
+    { customer_id: string; name: string; email: string | null; phone: string | null }[]
+  >(
     () => neon.from('customer_directory').select('*').order('name'),
-    'Kullanıcılar yüklenemedi',
+    'Müşteriler yüklenemedi',
   );
-  return rows.map((r) => ({ userId: r.user_id, name: r.name, email: r.email, phone: r.phone }));
+  return rows.map((r) => ({
+    customerId: r.customer_id,
+    name: r.name,
+    email: r.email,
+    phone: r.phone,
+  }));
+}
+
+/** Maps the optional half of a customer record onto its columns. */
+function detailRow(d: CustomerDetails): Record<string, unknown> {
+  const row: Record<string, unknown> = {};
+  const text = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
+  if (d.phone !== undefined) row.phone = text(d.phone);
+  if (d.email !== undefined) row.email = d.email?.trim().toLowerCase() || null;
+  if (d.birthDate !== undefined) row.birth_date = d.birthDate || null;
+  if (d.source !== undefined) row.source = text(d.source);
+  if (d.injuryNote !== undefined) row.injury_note = text(d.injuryNote);
+  if (d.allergyNote !== undefined) row.allergy_note = text(d.allergyNote);
+  if (d.emergency1Name !== undefined) row.emergency1_name = text(d.emergency1Name);
+  if (d.emergency1Phone !== undefined) row.emergency1_phone = text(d.emergency1Phone);
+  if (d.emergency2Name !== undefined) row.emergency2_name = text(d.emergency2Name);
+  if (d.emergency2Phone !== undefined) row.emergency2_phone = text(d.emergency2Phone);
+  if (d.guardianName !== undefined) row.guardian_name = text(d.guardianName);
+  if (d.guardianPhone !== undefined) row.guardian_phone = text(d.guardianPhone);
+  if (d.segments !== undefined) row.segments = d.segments;
+  return row;
+}
+
+/** Adds a customer record. Staff type these in; nobody signs up. */
+export async function createCustomer(
+  input: CustomerDetails & { fullName: string },
+): Promise<string> {
+  const result = (await neon
+    .from('customers')
+    .insert({ full_name: input.fullName.trim(), ...detailRow(input) })
+    .select('id')) as Result<{ id: string }[]>;
+  if (result.error) {
+    throw new Error(`${translate('Müşteri eklenemedi')}: ${result.error.message}`);
+  }
+  const rows = unwrap(result, 'Müşteri eklenemedi');
+  return rows[0].id;
+}
+
+export async function updateCustomer(
+  customerId: string,
+  patch: CustomerDetails & { fullName?: string },
+): Promise<void> {
+  const row = detailRow(patch);
+  if (patch.fullName !== undefined) row.full_name = patch.fullName.trim();
+
+  const result = await neon.from('customers').update(row).eq('id', customerId).select('id');
+  if (result.error) {
+    throw new Error(`${translate('Müşteri kaydedilemedi')}: ${result.error.message}`);
+  }
+  if (!result.data || result.data.length === 0) {
+    throw new Error(translate('Müşteri kaydedilemedi'));
+  }
+}
+
+/** Refused by a foreign key while the customer still has lessons on record. */
+export async function deleteCustomer(customerId: string): Promise<void> {
+  const result = await neon.from('customers').delete().eq('id', customerId).select('id');
+  if (result.error?.code === '23503') {
+    throw new Error(translate('Bu müşterinin dersleri var; önce onları silin.'));
+  }
+  if (result.error) {
+    throw new Error(`${translate('Müşteri silinemedi')}: ${result.error.message}`);
+  }
+  if (!result.data || result.data.length === 0) {
+    throw new Error(translate('Müşteri silinemedi'));
+  }
 }
 
 // ------------------------------------------------------------ admin screens
@@ -525,10 +569,11 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const [users, instructors, bookings, thisMonth] = await Promise.all([
+  const [users, instructors, bookings, students, thisMonth] = await Promise.all([
     countOf('admin_users', 'user_id'),
     countOf('instructors', 'id'),
     countOf('bookings', 'id'),
+    countOf('customers', 'id'),
     // hours has to be summed, so these rows do come back — one month at a time
     read<{ duration_hours: number }[]>(
       () =>
@@ -542,12 +587,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     ),
   ]);
 
-  const staff = await countOf('admin_users', 'user_id', (q) => q.neq('role', 'customer'));
-
   return {
     users,
     instructors,
-    students: Math.max(0, users - staff),
+    students,
     bookings,
     hoursThisMonth: thisMonth.reduce((sum, r) => sum + r.duration_hours, 0),
   };
@@ -576,6 +619,7 @@ export type InstructorAdmin = {
   email: string | null;
   phone: string | null;
   linkedUserId: string | null;
+  createdAt: string | null;
 };
 
 export async function listInstructorsAdmin(): Promise<InstructorAdmin[]> {
@@ -586,6 +630,7 @@ export async function listInstructorsAdmin(): Promise<InstructorAdmin[]> {
     bio: string;
     email: string | null;
     phone: string | null;
+    created_at: string | null;
     linked_user_id: string | null;
   }[]>(() => neon.from('instructor_admin').select('*').order('name'), 'Eğitmenler yüklenemedi');
 
@@ -596,6 +641,7 @@ export async function listInstructorsAdmin(): Promise<InstructorAdmin[]> {
     bio: r.bio,
     email: r.email,
     phone: r.phone,
+    createdAt: r.created_at,
     linkedUserId: r.linked_user_id,
   }));
 }
@@ -628,4 +674,416 @@ export async function createInstructor(input: {
     throw new Error(translate('Bu e-posta ile kayıtlı bir eğitmen zaten var.'));
   }
   if (result.error) throw new Error(`${translate("Eğitmen eklenemedi")}: ${result.error.message}`);
+}
+
+// ------------------------------------------------------- management settings
+
+// ------------------------------------------------------------------ customers
+
+type CrmRow = {
+  customer_id: string;
+  email: string | null;
+  name: string;
+  phone: string | null;
+  birth_date: string | null;
+  age: number | null;
+  source: string | null;
+  injury_note: string | null;
+  allergy_note: string | null;
+  emergency1_name: string | null;
+  emergency1_phone: string | null;
+  emergency2_name: string | null;
+  emergency2_phone: string | null;
+  guardian_name: string | null;
+  guardian_phone: string | null;
+  segments: string[] | null;
+  created_at: string | null;
+  lessons: number;
+  hours: number;
+  kids_camps: number;
+  last_lesson_at: string | null;
+  notes: number;
+};
+
+function toCustomer(r: CrmRow): CrmCustomer {
+  return {
+    customerId: r.customer_id,
+    email: r.email,
+    name: r.name,
+    phone: r.phone,
+    birthDate: r.birth_date,
+    age: r.age === null ? null : Number(r.age),
+    source: r.source,
+    injuryNote: r.injury_note,
+    allergyNote: r.allergy_note,
+    emergency1Name: r.emergency1_name,
+    emergency1Phone: r.emergency1_phone,
+    emergency2Name: r.emergency2_name,
+    emergency2Phone: r.emergency2_phone,
+    guardianName: r.guardian_name,
+    guardianPhone: r.guardian_phone,
+    segments: (r.segments ?? []) as Segment[],
+    createdAt: r.created_at,
+    lessons: Number(r.lessons ?? 0),
+    hours: Number(r.hours ?? 0),
+    kidsCamps: Number(r.kids_camps ?? 0),
+    lastLessonAt: r.last_lesson_at,
+    notes: Number(r.notes ?? 0),
+  };
+}
+
+export async function listCrmCustomers(): Promise<CrmCustomer[]> {
+  const rows = await read<CrmRow[]>(
+    () => neon.from('crm_customers').select('*').order('name'),
+    'Müşteriler yüklenemedi',
+  );
+  return rows.map(toCustomer);
+}
+
+/**
+ * Segments are admin-only. An empty result means the policy refused the write —
+ * an instructor may add a customer but not reclassify one.
+ */
+export async function setSegments(customerId: string, segments: Segment[]): Promise<void> {
+  const result = await neon
+    .from('customers')
+    .update({ segments })
+    .eq('id', customerId)
+    .select('id');
+  if (result.error) {
+    throw new Error(`${translate('Segment kaydedilemedi')}: ${result.error.message}`);
+  }
+  if (!result.data || result.data.length === 0) {
+    throw new Error(translate('Segment değiştirmek için yönetici olmanız gerekiyor.'));
+  }
+}
+
+export async function listNotes(customerId: string): Promise<CustomerNote[]> {
+  const rows = await read<{ id: string; customer_id: string; body: string; created_at: string }[]>(
+    () =>
+      neon
+        .from('customer_notes')
+        .select('id,customer_id,body,created_at')
+        .eq('customer_id', customerId)
+        .order('created_at', { ascending: false }),
+    'Notlar yüklenemedi',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    customerId: r.customer_id,
+    body: r.body,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function addNote(customerId: string, body: string): Promise<void> {
+  const result = await neon
+    .from('customer_notes')
+    .insert({ customer_id: customerId, body: body.trim() });
+  if (result.error) throw new Error(`${translate('Not kaydedilemedi')}: ${result.error.message}`);
+}
+
+export async function deleteNote(id: string): Promise<void> {
+  const result = await neon.from('customer_notes').delete().eq('id', id);
+  if (result.error) throw new Error(`${translate('Not silinemedi')}: ${result.error.message}`);
+}
+
+// ----------------------------------------------------------------- kids camp
+
+export async function listKidsCamp(fromISO: string, toISO: string): Promise<KidsCampEntry[]> {
+  const rows = await read<
+    {
+      booking_id: string;
+      customer_id: string | null;
+      name: string | null;
+      email: string | null;
+      phone: string | null;
+      age: number | null;
+      guardian_name: string | null;
+      guardian_phone: string | null;
+      allergy_note: string | null;
+      instructor_name: string | null;
+      starts_at: string;
+      duration_hours: number;
+      status: string;
+      segments: string[] | null;
+    }[]
+  >(
+    () =>
+      neon
+        .from('kids_camp_roll')
+        .select('*')
+        .gte('starts_at', fromISO)
+        .lt('starts_at', toISO)
+        .order('starts_at', { ascending: false }),
+    'Çocuk kampı listesi yüklenemedi',
+  );
+  return rows.map((r) => ({
+    bookingId: r.booking_id,
+    customerId: r.customer_id,
+    name: r.name,
+    email: r.email,
+    phone: r.phone,
+    age: r.age === null ? null : Number(r.age),
+    guardianName: r.guardian_name,
+    guardianPhone: r.guardian_phone,
+    allergyNote: r.allergy_note,
+    instructorName: r.instructor_name,
+    startsAt: r.starts_at,
+    durationHours: r.duration_hours,
+    status: r.status as BookingStatus,
+    segments: (r.segments ?? []) as Segment[],
+  }));
+}
+
+/** One customer's whole history, for the customer drawer. */
+export async function listBookingsForCustomer(customerId: string): Promise<ManagedBooking[]> {
+  const rows = await read<ManagedRow[]>(
+    () =>
+      neon
+        .from('managed_bookings')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('starts_at', { ascending: false }),
+    'Rezervasyonlar yüklenemedi',
+  );
+  return rows.map(toManaged);
+}
+
+// ------------------------------------------------------------------ payments
+
+type AgreementRow = {
+  id: string;
+  customer_id: string;
+  customer_name: string;
+  customer_phone: string | null;
+  kind: string;
+  plan: string | null;
+  label: string | null;
+  note: string | null;
+  agreed_amount: string | number;
+  paid: string | number;
+  received: string | number;
+  written_off: string | number;
+  balance: string | number;
+  created_at: string;
+  camp_days: string | number | null;
+};
+
+/** Postgres `numeric` arrives as a string, because a double cannot hold it. */
+const money = (v: string | number | null | undefined): number => Number(v ?? 0);
+
+function toAgreement(r: AgreementRow): Agreement {
+  return {
+    id: r.id,
+    customerId: r.customer_id,
+    customerName: r.customer_name,
+    customerPhone: r.customer_phone,
+    kind: r.kind as AgreementKind,
+    plan: r.plan,
+    label: r.label,
+    note: r.note,
+    agreedAmount: money(r.agreed_amount),
+    paid: money(r.paid),
+    received: money(r.received),
+    writtenOff: money(r.written_off),
+    balance: money(r.balance),
+    createdAt: r.created_at,
+    campDays: r.camp_days === null ? null : Number(r.camp_days),
+  };
+}
+
+export async function listAgreements(): Promise<Agreement[]> {
+  const rows = await read<AgreementRow[]>(
+    () => neon.from('agreement_balances').select('*').order('created_at', { ascending: false }),
+    'Ödemeler yüklenemedi',
+  );
+  return rows.map(toAgreement);
+}
+
+export async function createAgreement(input: {
+  customerId: string;
+  kind: AgreementKind;
+  plan: string | null;
+  label?: string;
+  agreedAmount: number;
+  note?: string;
+}): Promise<string> {
+  const result = (await neon
+    .from('agreements')
+    .insert({
+      customer_id: input.customerId,
+      kind: input.kind,
+      plan: input.plan,
+      label: input.label?.trim() || null,
+      agreed_amount: input.agreedAmount,
+      note: input.note?.trim() || null,
+    })
+    .select('id')) as Result<{ id: string }[]>;
+  if (result.error) {
+    throw new Error(`${translate('Anlaşma kaydedilemedi')}: ${result.error.message}`);
+  }
+  return unwrap(result, 'Anlaşma kaydedilemedi')[0].id;
+}
+
+export async function updateAgreement(
+  id: string,
+  patch: { agreedAmount?: number; plan?: string | null; label?: string | null; note?: string | null },
+): Promise<void> {
+  const row: Record<string, unknown> = {};
+  if (patch.agreedAmount !== undefined) row.agreed_amount = patch.agreedAmount;
+  if (patch.plan !== undefined) row.plan = patch.plan;
+  if (patch.label !== undefined) row.label = patch.label?.trim() || null;
+  if (patch.note !== undefined) row.note = patch.note?.trim() || null;
+
+  const result = await neon.from('agreements').update(row).eq('id', id).select('id');
+  if (result.error) {
+    throw new Error(`${translate('Anlaşma kaydedilemedi')}: ${result.error.message}`);
+  }
+}
+
+/** Refused while payments still hang off it, which is the point. */
+export async function deleteAgreement(id: string): Promise<void> {
+  const result = await neon.from('agreements').delete().eq('id', id).select('id');
+  if (result.error) {
+    throw new Error(`${translate('Anlaşma silinemedi')}: ${result.error.message}`);
+  }
+  if (!result.data || result.data.length === 0) {
+    throw new Error(translate('Anlaşma silinemedi'));
+  }
+}
+
+export async function listPayments(agreementId: string): Promise<Payment[]> {
+  const rows = await read<
+    { id: string; agreement_id: string; amount: string | number; kind: string; paid_at: string; note: string | null }[]
+  >(
+    () =>
+      neon
+        .from('payments')
+        .select('id,agreement_id,amount,kind,paid_at,note')
+        .eq('agreement_id', agreementId)
+        .order('paid_at', { ascending: false }),
+    'Ödemeler yüklenemedi',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    agreementId: r.agreement_id,
+    amount: money(r.amount),
+    kind: r.kind as 'payment' | 'writeoff',
+    paidAt: r.paid_at,
+    note: r.note,
+  }));
+}
+
+/**
+ * Records money taken, or clears what is left.
+ *
+ * A write-off is a payment row rather than a flag on the agreement, so the
+ * history still shows what was agreed and what was let go — and the takings
+ * total can leave it out.
+ */
+export async function addPayment(input: {
+  agreementId: string;
+  amount: number;
+  kind?: 'payment' | 'writeoff';
+  note?: string;
+}): Promise<void> {
+  const result = await neon.from('payments').insert({
+    agreement_id: input.agreementId,
+    amount: input.amount,
+    kind: input.kind ?? 'payment',
+    note: input.note?.trim() || null,
+  });
+  if (result.error) {
+    throw new Error(`${translate('Ödeme kaydedilemedi')}: ${result.error.message}`);
+  }
+}
+
+export async function deletePayment(id: string): Promise<void> {
+  const result = await neon.from('payments').delete().eq('id', id).select('id');
+  if (result.error) {
+    throw new Error(`${translate('Ödeme silinemedi')}: ${result.error.message}`);
+  }
+}
+
+/**
+ * Lessons left on each of a customer's packages.
+ *
+ * Carries no money: an instructor choosing which pack a lesson comes off has no
+ * business seeing what it cost. `used` counts the bookings pointing at the
+ * package, so cancelling one gives the lesson straight back.
+ */
+export type OpenPackage = {
+  agreementId: string;
+  customerId: string;
+  plan: string | null;
+  label: string | null;
+  sold: number;
+  used: number;
+  remaining: number;
+};
+
+export async function listOpenPackages(customerId: string): Promise<OpenPackage[]> {
+  const rows = await read<
+    {
+      agreement_id: string;
+      customer_id: string;
+      plan: string | null;
+      label: string | null;
+      sold: number;
+      used: number;
+      remaining: number;
+    }[]
+  >(
+    () =>
+      neon
+        .from('open_packages')
+        .select('*')
+        .eq('customer_id', customerId)
+        .order('created_at'),
+    'Paketler yüklenemedi',
+  );
+  return rows.map((r) => ({
+    agreementId: r.agreement_id,
+    customerId: r.customer_id,
+    plan: r.plan,
+    label: r.label,
+    sold: Number(r.sold),
+    used: Number(r.used),
+    remaining: Number(r.remaining),
+  }));
+}
+
+/**
+ * Writes the same lesson several times over.
+ *
+ * A ten-lesson pack is usually ten mornings in a row, and writing that one
+ * dialog at a time is where an afternoon goes. Occupied hours are skipped
+ * rather than failing the whole run — the caller is told how many landed, so
+ * "8 of 10" is an answer instead of a silent hole in the week.
+ */
+export async function createBookingSeries(
+  base: Parameters<typeof createBooking>[0],
+  dates: Date[],
+): Promise<{ created: number; skipped: number }> {
+  let created = 0;
+  let skipped = 0;
+  for (const when of dates) {
+    try {
+      await createBooking({ ...base, startsAt: when.toISOString() });
+      created++;
+    } catch (err) {
+      // 23P01 reaches us as the translated overlap message; anything else is
+      // real and should stop the run rather than be counted as "skipped".
+      const message = err instanceof Error ? err.message : String(err);
+      if (message.includes(translate('Bu saatler az önce doldu. Lütfen başka bir saat seçin.'))) {
+        skipped++;
+      } else if (created === 0) {
+        throw err;
+      } else {
+        skipped++;
+      }
+    }
+  }
+  return { created, skipped };
 }

@@ -5,14 +5,13 @@ import { auth } from '../neon';
 type Props = {
   name: string;
   email: string;
-  onOpenProfile: () => void;
 };
 
 /**
  * Our own account menu rather than Neon's UserButton, whose dropdown never
  * opened here and which would not have been wired to our profile dialog anyway.
  */
-export default function AccountMenu({ name, email, onOpenProfile }: Props) {
+export default function AccountMenu({ name, email }: Props) {
   const { t } = useT();
   const [open, setOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
@@ -58,15 +57,6 @@ export default function AccountMenu({ name, email, onOpenProfile }: Props) {
             <strong>{name || '—'}</strong>
             <span>{email}</span>
           </div>
-          <button
-            role="menuitem"
-            onClick={() => {
-              setOpen(false);
-              onOpenProfile();
-            }}
-          >
-            {t('Profil')}
-          </button>
           <button
             role="menuitem"
             onClick={() => {

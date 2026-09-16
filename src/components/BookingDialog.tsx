@@ -1,64 +1,93 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useT } from '../lib/i18n';
-import { AuthView } from '@neondatabase/auth-ui';
 import type { CustomerRef, Instructor, LessonType, Sport } from '../types';
 import { formatDayLabel, formatTime, toDateKey } from '../lib/date';
-import { DURATIONS, OPEN_UNTIL_HOUR } from '../lib/hours';
+import { durationChoices, repeatDates, OPEN_UNTIL_HOUR, type Repeat } from '../lib/hours';
 import { SPORT_LABEL } from '../lib/lessons';
+import * as api from '../api/client';
+import { planLabel } from '../lib/agreements';
+import { SEGMENTS, SEGMENT_LABEL, segmentTone } from '../lib/segments';
+import type { Segment } from '../types';
 
 export type NewBooking = {
   lessonType: LessonType;
   sport: Sport | null;
   groupSize: number | null;
   durationHours: number;
-  /** Staff only: the customer the lesson is for. */
-  userId?: string;
+  /** The customer record the lesson is for. */
+  customerId: string;
+  /** The package it comes off, when one was chosen. */
+  agreementId: string | null;
+  /** An enquiry that is not settled yet. */
+  tentative: boolean;
+  /** Every date this lesson should be written on, the first included. */
+  dates: Date[];
 };
 
 type Props = {
   instructor: Instructor;
   startsAt: Date;
-  /** Consecutive free hours from startsAt, capped at 3. */
+  /** Consecutive free hours from startsAt. */
   freeHours: number;
   /** Staff open this with a lesson type already chosen from the cell menu. */
   initialLessonType: LessonType;
-  /** True for an instructor or admin: they pick who it is for. */
-  staff: boolean;
+  /** Hours dragged out on the grid, when that is how this was opened. */
+  initialDuration?: number;
   customers: CustomerRef[];
-  signedIn: boolean;
-  hasProfile: boolean;
-  authView: 'SIGN_IN' | 'SIGN_UP' | 'FORGOT_PASSWORD';
   submitting: boolean;
   error: string | null;
   onConfirm: (booking: NewBooking) => void;
-  onCompleteProfile: () => void;
+  /** A customer was added from inside the dialog; the list needs reloading. */
+  onCustomerAdded: () => void;
   onClose: () => void;
 };
 
 const GROUP_SIZES = [2, 3, 4];
 
+/**
+ * Writing a lesson onto the calendar.
+ *
+ * Only staff ever see this. The customer is picked from the school's records or
+ * typed in here — somebody who has just walked in has no record yet, and making
+ * whoever is on the desk leave the dialog to create one is how a booking gets
+ * lost.
+ */
 export default function BookingDialog({
   instructor,
   startsAt,
   freeHours,
   initialLessonType,
-  staff,
+  initialDuration,
   customers,
-  signedIn,
-  hasProfile,
-  authView,
   submitting,
   error,
   onConfirm,
-  onCompleteProfile,
+  onCustomerAdded,
   onClose,
 }: Props) {
   const { t } = useT();
   const [lessonType, setLessonType] = useState<LessonType>(initialLessonType);
   const [sport, setSport] = useState<Sport>(instructor.sports[0] ?? 'windsurf');
   const [groupSize, setGroupSize] = useState(2);
-  const [duration, setDuration] = useState(1);
-  const [userId, setUserId] = useState('');
+  const [duration, setDuration] = useState(Math.max(1, initialDuration ?? 1));
+  const [tentative, setTentative] = useState(false);
+
+  /**
+   * One field for the customer: type a name, or pick one already there.
+   *
+   * The two-step "add a customer, then choose them" was a step too many at a
+   * desk with somebody waiting. Whatever is typed is matched against the list
+   * when saving; no match means a new record, with the phone only if given.
+   */
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [packages, setPackages] = useState<api.OpenPackage[]>([]);
+  const [agreementId, setAgreementId] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [segments, setSegments] = useState<Segment[]>([]);
+  const [repeat, setRepeat] = useState<Repeat>('none');
+  const [times, setTimes] = useState(10);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -69,9 +98,39 @@ export default function BookingDialog({
   }, [onClose]);
 
   const sorted = useMemo(
-    () => [...customers].sort((a, b) => (a.name ?? a.email).localeCompare(b.name ?? b.email, 'tr')),
+    () => [...customers].sort((a, b) => a.name.localeCompare(b.name, 'tr')),
     [customers],
   );
+
+  /** The record this name already refers to, if any. Matching ignores case. */
+  const matched = useMemo(() => {
+    const q = name.trim().toLocaleLowerCase('tr');
+    if (!q) return null;
+    return customers.find((c) => c.name.trim().toLocaleLowerCase('tr') === q) ?? null;
+  }, [customers, name]);
+
+  // an existing customer may have packages to spend
+  useEffect(() => {
+    if (!matched) {
+      setPackages([]);
+      setAgreementId('');
+      return;
+    }
+    let cancelled = false;
+    api
+      .listOpenPackages(matched.customerId)
+      .then((p) => !cancelled && setPackages(p.filter((x) => x.remaining > 0)))
+      .catch(() => {
+        // no packages visible is not a reason to block a booking
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [matched]);
+
+  useEffect(() => {
+    setSegments([lessonType === 'kids_camp' ? 'kids_camp' : 'lesson']);
+  }, [lessonType]);
 
   const dayKey = toDateKey(startsAt);
   const endsAt = new Date(startsAt.getTime() + duration * 60 * 60 * 1000);
@@ -81,27 +140,40 @@ export default function BookingDialog({
   const allowed = (hours: number) =>
     hours <= freeHours && startsAt.getHours() + hours <= OPEN_UNTIL_HOUR;
 
-  const needsCustomer = staff && userId === '';
-  const canSubmit = !submitting && allowed(duration) && !needsCustomer;
+  const choices = useMemo(
+    () => durationChoices(Math.min(freeHours, OPEN_UNTIL_HOUR - startsAt.getHours())),
+    [freeHours, startsAt],
+  );
 
-  const title = !signedIn
-    ? 'Ayırtmak için giriş yapın'
-    : !staff && !hasProfile
-      ? 'Önce profilinizi tamamlayın'
-      : isCamp
-        ? 'Çocuk kampı'
-        : staff
-          ? 'Ders oluştur'
-          : 'Ders talebi';
+  const canSubmit =
+    !submitting && !saving && allowed(duration) && name.trim().length >= 2;
 
-  function submit() {
-    onConfirm({
-      lessonType,
-      sport: isCamp ? null : sport,
-      groupSize: lessonType === 'group' ? groupSize : null,
-      durationHours: duration,
-      userId: staff ? userId : undefined,
-    });
+  async function submit() {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      // A name that is not on the list becomes a record. The phone is optional:
+      // for a kids camp especially, the name is all anyone has at that moment.
+      let customerId = matched?.customerId;
+      if (!customerId) {
+        customerId = await api.createCustomer({ fullName: name, phone, segments });
+        onCustomerAdded();
+      }
+      onConfirm({
+        lessonType,
+        sport: isCamp ? null : sport,
+        groupSize: lessonType === 'group' ? groupSize : null,
+        durationHours: duration,
+        customerId,
+        agreementId: agreementId || null,
+        tentative,
+        dates: repeatDates(startsAt, repeat, times),
+      });
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
@@ -113,7 +185,7 @@ export default function BookingDialog({
         aria-labelledby="booking-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 id="booking-title">{t(title)}</h3>
+        <h3 id="booking-title">{t(isCamp ? 'Çocuk kampı' : 'Ders oluştur')}</h3>
 
         <div className="dialog-summary">
           <p className="dialog-instructor">{instructor.name}</p>
@@ -123,145 +195,239 @@ export default function BookingDialog({
           </p>
         </div>
 
-        {error && <p className="dialog-error">{error}</p>}
+        {(error || saveError) && <p className="dialog-error">{error ?? saveError}</p>}
 
-        {!signedIn ? (
-          <div className="dialog-auth">
-            <AuthView view={authView} />
-          </div>
-        ) : !staff && !hasProfile ? (
+        <label className="field">
+          <span>{t('Kimin adına?')}</span>
+          <input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            list="customer-names"
+            placeholder={t('İsim soyisim — yazın ya da listeden seçin')}
+            autoFocus
+          />
+          <datalist id="customer-names">
+            {sorted.map((c) => (
+              <option key={c.customerId} value={c.name} />
+            ))}
+          </datalist>
+          <small className="field-hint">
+            {matched ? t('Kayıtlı müşteri') : name.trim().length >= 2 ? t('Yeni kayıt açılacak') : ''}
+          </small>
+        </label>
+
+        {!matched && name.trim().length >= 2 && (
           <>
-            <p className="admin-hint">
-              {t('Eğitmenin size ulaşabilmesi için telefon numaranıza ihtiyacımız var.')}
-            </p>
-            <div className="dialog-actions">
-              <button type="button" className="btn btn--ghost" onClick={onClose}>
-                {t('Vazgeç')}
-              </button>
-              <button type="button" className="btn" onClick={onCompleteProfile}>
-                {t('Profili tamamla')}
-              </button>
-            </div>
+            <label className="field">
+              <span>
+                {t('Telefon')} ({t('opsiyonel')})
+              </span>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" />
+            </label>
+
+            <fieldset className="field">
+              <span>{t('Neyle ilgileniyor?')}</span>
+              <div className="chipset">
+                {SEGMENTS.map((sg) => {
+                  const on = segments.includes(sg);
+                  const tone = segmentTone(sg);
+                  return (
+                    <button
+                      key={sg}
+                      type="button"
+                      className={`chip${on ? ' is-on' : ''}${tone ? ` chip--${tone}` : ''}`}
+                      onClick={() =>
+                        setSegments((prev) =>
+                          prev.includes(sg) ? prev.filter((x) => x !== sg) : [...prev, sg],
+                        )
+                      }
+                      aria-pressed={on}
+                    >
+                      {t(SEGMENT_LABEL[sg])}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
           </>
-        ) : (
+        )}
+
+        {!isCamp && packages.length > 0 && (
+          <label className="field">
+            <span>{t('Hangi paketten düşsün?')}</span>
+            <select value={agreementId} onChange={(e) => setAgreementId(e.target.value)}>
+              <option value="">{t('Pakete bağlama')}</option>
+              {packages.map((p) => (
+                <option key={p.agreementId} value={p.agreementId}>
+                  {t(planLabel('lesson', p.plan) ?? '—')} · {p.remaining}/{p.sold} {t('kaldı')}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
+
+        {/* a kids camp is only ever a kids camp: no sport, no head count */}
+        {!isCamp && (
           <>
-            {staff && (
-              <label className="field">
-                <span>{t('Kimin adına?')}</span>
-                <select value={userId} onChange={(e) => setUserId(e.target.value)}>
-                  <option value="">{t('— kullanıcı seçin —')}</option>
-                  {sorted.map((c) => (
-                    <option key={c.userId} value={c.userId}>
-                      {c.name ?? c.email}
-                      {c.phone ? ` · ${c.phone}` : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            )}
-
-            {/* a kids camp is only ever a kids camp: no sport, no head count */}
-            {!isCamp && (
-              <>
-                <div className="field">
-                  <span>{t('Ders tipi')}</span>
-                  <div className="segmented segmented--block" role="group" aria-label={t('Ders tipi')}>
-                    {(['individual', 'group'] as LessonType[]).map((lt) => (
-                      <button
-                        key={lt}
-                        type="button"
-                        className={`segment${lessonType === lt ? ' is-active' : ''}`}
-                        onClick={() => setLessonType(lt)}
-                        aria-pressed={lessonType === lt}
-                      >
-                        {lt === 'individual' ? t('Bireysel') : t('Grup')}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {lessonType === 'group' && (
-                  <div className="field">
-                    <span>{t('Kaç kişi?')}</span>
-                    <div className="segmented segmented--block" role="group" aria-label={t('Kişi sayısı')}>
-                      {GROUP_SIZES.map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          className={`segment${groupSize === n ? ' is-active' : ''}`}
-                          onClick={() => setGroupSize(n)}
-                          aria-pressed={groupSize === n}
-                        >
-                          {n} {t('kişi')}
-                        </button>
-                      ))}
-                    </div>
-                    <small className="field-hint">{t('En fazla 4 kişi.')}</small>
-                  </div>
-                )}
-
-                {instructor.sports.length > 1 && (
-                  <div className="field">
-                    <span>{t('Hangi ders?')}</span>
-                    <div className="segmented segmented--block" role="group" aria-label={t('Spor seçin')}>
-                      {instructor.sports.map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          className={`segment${sport === s ? ' is-active' : ''}`}
-                          onClick={() => setSport(s)}
-                          aria-pressed={sport === s}
-                        >
-                          {SPORT_LABEL[s]}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-
             <div className="field">
-              <span>{t('Süre')}</span>
-              <div className="segmented segmented--block" role="group" aria-label={t('Süre seçin')}>
-                {DURATIONS.map((h) => (
+              <span>{t('Ders tipi')}</span>
+              <div className="segmented segmented--block" role="group" aria-label={t('Ders tipi')}>
+                {(['individual', 'group'] as LessonType[]).map((lt) => (
                   <button
-                    key={h}
+                    key={lt}
                     type="button"
-                    className={`segment${duration === h ? ' is-active' : ''}`}
-                    onClick={() => setDuration(h)}
-                    disabled={!allowed(h)}
-                    aria-pressed={duration === h}
+                    className={`segment${lessonType === lt ? ' is-active' : ''}`}
+                    onClick={() => setLessonType(lt)}
+                    aria-pressed={lessonType === lt}
                   >
-                    {h} {t('saat')}
+                    {lt === 'individual' ? t('Bireysel') : t('Grup')}
                   </button>
                 ))}
               </div>
-              {freeHours < 3 && (
-                <small className="field-hint">
-                  {t('Bu saatten sonra {n} saat müsait.').replace('{n}', String(freeHours))}
-                </small>
-              )}
             </div>
 
-            <div className="dialog-actions">
-              <button type="button" className="btn btn--ghost" onClick={onClose}>
-                {t('Vazgeç')}
-              </button>
-              <button type="button" className="btn" onClick={submit} disabled={!canSubmit}>
-                {submitting ? t('Kaydediliyor…') : staff ? t('Kaydet') : t('Talep gönder')}
-              </button>
-            </div>
+            {lessonType === 'group' && (
+              <div className="field">
+                <span>{t('Kaç kişi?')}</span>
+                <div
+                  className="segmented segmented--block"
+                  role="group"
+                  aria-label={t('Kişi sayısı')}
+                >
+                  {GROUP_SIZES.map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      className={`segment${groupSize === n ? ' is-active' : ''}`}
+                      onClick={() => setGroupSize(n)}
+                      aria-pressed={groupSize === n}
+                    >
+                      {n} {t('kişi')}
+                    </button>
+                  ))}
+                </div>
+                <small className="field-hint">{t('En fazla 4 kişi.')}</small>
+              </div>
+            )}
 
-            <p className="admin-hint dialog-foot">
-              {t(
-                staff
-                  ? 'Personelin girdiği ders doğrudan onaylı kaydedilir.'
-                  : 'Talebiniz eğitmen onayına gider. Onaya kadar bu saatler size kilitli kalır.',
-              )}
-            </p>
+            {instructor.sports.length > 1 && (
+              <div className="field">
+                <span>{t('Hangi ders?')}</span>
+                <div
+                  className="segmented segmented--block"
+                  role="group"
+                  aria-label={t('Spor seçin')}
+                >
+                  {instructor.sports.map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className={`segment${sport === s ? ' is-active' : ''}`}
+                      onClick={() => setSport(s)}
+                      aria-pressed={sport === s}
+                    >
+                      {SPORT_LABEL[s]}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
+
+        <div className="field">
+          <span>{t('Süre')}</span>
+          {choices.length > 4 ? (
+            <select value={duration} onChange={(e) => setDuration(Number(e.target.value))}>
+              {choices.map((h) => (
+                <option key={h} value={h} disabled={!allowed(h)}>
+                  {h} {t('saat')}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="segmented segmented--block" role="group" aria-label={t('Süre seçin')}>
+              {choices.map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  className={`segment${duration === h ? ' is-active' : ''}`}
+                  onClick={() => setDuration(h)}
+                  disabled={!allowed(h)}
+                  aria-pressed={duration === h}
+                >
+                  {h} {t('saat')}
+                </button>
+              ))}
+            </div>
+          )}
+          <small className="field-hint">
+            {t('Bu saatten sonra {n} saat müsait.').replace('{n}', String(freeHours))}
+          </small>
+        </div>
+
+        <div className="field">
+          <span>{t('Tekrar')}</span>
+          <div className="segmented segmented--block" role="group" aria-label={t('Tekrar')}>
+            {(
+              [
+                ['none', 'Tek sefer'],
+                ['daily', 'Her gün'],
+                ['weekdays', 'Hafta içi'],
+                ['weekly', 'Haftada bir'],
+              ] as [Repeat, string][]
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`segment${repeat === value ? ' is-active' : ''}`}
+                onClick={() => setRepeat(value)}
+                aria-pressed={repeat === value}
+              >
+                {t(label)}
+              </button>
+            ))}
+          </div>
+          {repeat !== 'none' && (
+            <>
+              <label className="field">
+                <span>{t('Kaç ders?')}</span>
+                <input
+                  type="number"
+                  min={2}
+                  max={40}
+                  value={times}
+                  onChange={(e) => setTimes(Math.min(40, Math.max(2, Number(e.target.value) || 2)))}
+                />
+              </label>
+              <small className="field-hint">
+                {t('Dolu olan saatler atlanır; kaçının yazıldığı söylenir.')}
+              </small>
+            </>
+          )}
+        </div>
+
+        <label className="check check--inline">
+          <input
+            type="checkbox"
+            checked={tentative}
+            onChange={(e) => setTentative(e.target.checked)}
+          />
+          {t('Ön rezervasyon (henüz kesin değil)')}
+        </label>
+
+        <div className="dialog-actions">
+          <button type="button" className="btn btn--ghost" onClick={onClose}>
+            {t('Vazgeç')}
+          </button>
+          <button type="button" className="btn" onClick={submit} disabled={!canSubmit}>
+            {submitting || saving ? t('Kaydediliyor…') : t('Kaydet')}
+          </button>
+        </div>
+
+        <p className="admin-hint dialog-foot">
+          {t('Ön rezervasyon saati yine kapatır, ama takvimde beklemede görünür.')}
+        </p>
       </div>
     </div>
   );

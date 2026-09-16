@@ -1,3 +1,4 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { Instructor, LessonType, ManagedBooking, Viewer } from '../types';
 import { locale, useT } from '../lib/i18n';
 import { GRID_START_HOUR, gridHours, hourKey, isOpenHour, type HourState } from '../lib/hours';
@@ -7,10 +8,8 @@ const STATE_LABEL: Record<HourState, string> = {
   closed: '',
   past: 'Geçmiş',
   blocked: 'Bloke',
-  pending: 'Beklemede',
+  pending: 'Ön rezervasyon',
   taken: 'Dolu',
-  'mine-pending': 'Talebiniz',
-  mine: '✓ Rezerve',
   free: 'Müsait',
 };
 
@@ -35,10 +34,10 @@ type Props = {
   /** Bookings on a calendar the viewer manages, keyed by hourKey. */
   ownBookings: Map<string, ManagedBooking>;
   busyKey: string | null;
-  onBook: (instructor: Instructor, startsAt: Date) => void;
-  onCancel: (bookingId: string) => void;
   /** Staff clicked a free or blocked hour — App opens the little action menu. */
   onManageHour: (instructor: Instructor, cell: HourCell) => void;
+  /** Staff dragged across several free hours: straight to a lesson of that length. */
+  onSelectRange: (instructor: Instructor, startsAt: Date, hours: number) => void;
 };
 
 export default function DayCalendar({
@@ -49,11 +48,56 @@ export default function DayCalendar({
   viewer,
   ownBookings,
   busyKey,
-  onBook,
-  onCancel,
   onManageHour,
+  onSelectRange,
 }: Props) {
   const { t } = useT();
+
+  /**
+   * Dragging down a column to book several hours at once.
+   *
+   * Mouse and pen only: on a touch screen a vertical drag is how the grid is
+   * scrolled, and stealing that to draw a selection makes the calendar
+   * unusable on a phone. A tap there still opens the hour menu.
+   */
+  const [drag, setDrag] = useState<{
+    instructorId: string;
+    from: number;
+    to: number;
+  } | null>(null);
+
+  /**
+   * A finished drag releases the pointer over a cell, and that cell's button
+   * fires its click straight afterwards — which would open the hour menu on top
+   * of the dialog the drag just asked for. This swallows exactly that one click.
+   */
+  const justDragged = useRef(false);
+
+  const finish = useCallback(() => {
+    setDrag((d) => {
+      if (d && d.to !== d.from) {
+        const ins = instructors.find((i) => i.id === d.instructorId);
+        const lo = Math.min(d.from, d.to);
+        const hi = Math.max(d.from, d.to);
+        if (ins) {
+          justDragged.current = true;
+          onSelectRange(ins, new Date(lo), (hi - lo) / 3600000 + 1);
+        }
+      }
+      return null;
+    });
+  }, [instructors, onSelectRange]);
+
+  // The pointer is very often released outside the cell it started in.
+  useEffect(() => {
+    if (!drag) return;
+    window.addEventListener('pointerup', finish);
+    window.addEventListener('pointercancel', finish);
+    return () => {
+      window.removeEventListener('pointerup', finish);
+      window.removeEventListener('pointercancel', finish);
+    };
+  }, [drag, finish]);
   if (loading) {
     return <div className="cal-skeleton" aria-busy="true" />;
   }
@@ -109,33 +153,47 @@ export default function DayCalendar({
                 const booking = manages ? ownBookings.get(key) : undefined;
                 const busy = busyKey === key;
 
-                const clickable =
-                  !busy &&
-                  (manages
-                    ? state === 'free' || state === 'blocked'
-                    : state === 'free' || state === 'mine' || state === 'mine-pending');
+                // Nobody outside the school can act on the calendar, so for
+                // everyone else every cell is just text.
+                const clickable = !busy && manages && state !== 'past' && state !== 'closed';
 
                 const onClick = () => {
-                  if (manages) {
-                    onManageHour(ins, cell ?? { instructorId: ins.id, startsAt: hour, state });
-                  } else if ((state === 'mine' || state === 'mine-pending') && cell?.bookingId) {
-                    onCancel(cell.bookingId);
-                  } else {
-                    onBook(ins, hour);
+                  if (justDragged.current) {
+                    justDragged.current = false;
+                    return;
                   }
+                  onManageHour(ins, cell ?? { instructorId: ins.id, startsAt: hour, state });
                 };
 
                 // a busy hour says what it is; a free one says what you can do
                 const text =
                   cell?.lessonLabel ??
                   (manages && state === 'free' ? 'Müsait · düzenle' : STATE_LABEL[state]);
+                const who = booking?.customerName;
 
                 const tone = cell?.lessonClass ? ` is-${cell.lessonClass}` : '';
+
+                const inDrag =
+                  drag !== null &&
+                  drag.instructorId === ins.id &&
+                  hour.getTime() >= Math.min(drag.from, drag.to) &&
+                  hour.getTime() <= Math.max(drag.from, drag.to);
+
+                // only a run of free hours can be dragged out
+                const draggable = manages && state === 'free';
 
                 return (
                   <div
                     key={key}
-                    className={`cal-cell is-${state}${tone}${manages ? ' is-own' : ''}${busy ? ' is-busy' : ''}`}
+                    className={`cal-cell is-${state}${tone}${manages ? ' is-own' : ''}${busy ? ' is-busy' : ''}${inDrag ? ' is-selecting' : ''}`}
+                    onPointerDown={(e) => {
+                      if (!draggable || e.pointerType === 'touch' || e.button !== 0) return;
+                      setDrag({ instructorId: ins.id, from: hour.getTime(), to: hour.getTime() });
+                    }}
+                    onPointerEnter={() => {
+                      if (!drag || drag.instructorId !== ins.id || state !== 'free') return;
+                      setDrag({ ...drag, to: hour.getTime() });
+                    }}
                   >
                     {clickable ? (
                       <button className="cal-hit" onClick={onClick} disabled={busy}>
@@ -145,9 +203,9 @@ export default function DayCalendar({
                       <span className="cal-state">{t(text)}</span>
                     )}
 
-                    {booking && (
-                      <span className="cal-customer" title={booking.customerPhone ?? undefined}>
-                        {booking.customerName ?? booking.customerEmail}
+                    {who && (
+                      <span className="cal-customer" title={booking?.customerPhone ?? undefined}>
+                        {who}
                       </span>
                     )}
                   </div>

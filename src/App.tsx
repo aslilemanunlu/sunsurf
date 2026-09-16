@@ -2,39 +2,33 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { useT } from './lib/i18n';
 import { AuthView, NeonAuthUIProvider, SignedIn, SignedOut } from '@neondatabase/auth-ui';
 import type {
-  Booking,
+  AuthViewName,
   CustomerRef,
   Instructor,
-  Interest,
   LessonType,
   ManagedBooking,
-  Profile,
   Viewer,
 } from './types';
 import * as api from './api/client';
 import { auth } from './neon';
-import { isPast, todayKey } from './lib/date';
-import { gridHours, hourKey, isOpenHour, type HourState } from './lib/hours';
+import { todayKey } from './lib/date';
+import { gridHours, hourKey, isOpenHour, MAX_DURATION, type HourState } from './lib/hours';
 import { lessonClass, shortLesson } from './lib/lessons';
 import DayNav from './components/DayNav';
 import SportFilter, { type SportFilterValue } from './components/SportFilter';
 import DayCalendar, { type HourCell } from './components/DayCalendar';
 import BookingDialog, { type NewBooking } from './components/BookingDialog';
-import MyBookings from './components/MyBookings';
-import ProfileDialog from './components/ProfileDialog';
-import RequestsPanel from './components/RequestsPanel';
 import AdminShell from './components/admin/AdminShell';
 import AccountMenu from './components/AccountMenu';
 import LangToggle from './components/LangToggle';
 import HourActions from './components/HourActions';
+import LeaveDialog from './components/LeaveDialog';
 
 const HOUR = 60 * 60 * 1000;
 
 function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
-
-type AuthViewName = 'SIGN_IN' | 'SIGN_UP' | 'FORGOT_PASSWORD';
 
 /**
  * Neon's auth UI navigates between sign-in, sign-up and forgot-password by
@@ -46,9 +40,27 @@ function viewForHref(href: string): AuthViewName {
   const last = href.split('?')[0].split('/').filter(Boolean).pop() ?? '';
   if (last === 'sign-up') return 'SIGN_UP';
   if (last === 'forgot-password') return 'FORGOT_PASSWORD';
+  if (last === 'reset-password') return 'RESET_PASSWORD';
   return 'SIGN_IN';
 }
 
+/**
+ * The reset link in the password email points at /auth/reset-password?token=…
+ * on this origin. The app has no router, so that path used to render the plain
+ * calendar and the token was never read — which is what "forgot password does
+ * nothing" looked like. Anything that lands on an auth path opens the dialog on
+ * that view instead; the reset form reads the token from the query itself.
+ */
+function authViewFromLocation(): AuthViewName | null {
+  const last = window.location.pathname.split('/').filter(Boolean).pop() ?? '';
+  if (last === 'reset-password') return 'RESET_PASSWORD';
+  if (last === 'forgot-password') return 'FORGOT_PASSWORD';
+  if (last === 'sign-up') return 'SIGN_UP';
+  if (last === 'sign-in') return 'SIGN_IN';
+  return null;
+}
+
+/** A visitor, or an account nobody has given a job to yet. Reads, nothing else. */
 const GUEST: Viewer = { role: 'customer', instructorId: null };
 
 export default function App() {
@@ -58,66 +70,58 @@ export default function App() {
   const accountName = session.data?.user?.name ?? '';
   const accountEmail = session.data?.user?.email ?? '';
 
-
   const [dateKey, setDateKey] = useState(todayKey());
   const [sport, setSport] = useState<SportFilterValue>('all');
   const [viewer, setViewer] = useState<Viewer>(GUEST);
-  const [profile, setProfile] = useState<Profile | null>(null);
 
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [busy, setBusy] = useState<Map<string, api.BusyRow>>(new Map());
   const [blocks, setBlocks] = useState<Map<string, string>>(new Map());
   const [ownBookings, setOwnBookings] = useState<Map<string, ManagedBooking>>(new Map());
-  const [requests, setRequests] = useState<ManagedBooking[]>([]);
   const [customers, setCustomers] = useState<CustomerRef[]>([]);
-  const [myBookings, setMyBookings] = useState<Booking[]>([]);
 
   const [loadingDay, setLoadingDay] = useState(true);
   const [dayError, setDayError] = useState<string | null>(null);
   const [reloadToken, setReloadToken] = useState(0);
 
-  const [dialog, setDialog] = useState<
-    { instructor: Instructor; startsAt: Date; lessonType: LessonType } | null
-  >(null);
+  const [dialog, setDialog] = useState<{
+    instructor: Instructor;
+    startsAt: Date;
+    lessonType: LessonType;
+    /** Hours dragged out on the grid, when that is how it was opened. */
+    duration?: number;
+  } | null>(null);
   const [hourMenu, setHourMenu] = useState<{ instructor: Instructor; cell: HourCell } | null>(null);
-  const [authOpen, setAuthOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(() => authViewFromLocation() !== null);
   const [screen, setScreen] = useState<'calendar' | 'admin'>('calendar');
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [authView, setAuthView] = useState<AuthViewName>('SIGN_IN');
+  const [authView, setAuthView] = useState<AuthViewName>(() => authViewFromLocation() ?? 'SIGN_IN');
   const [submitting, setSubmitting] = useState(false);
-  const [savingProfile, setSavingProfile] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
-  const [profileError, setProfileError] = useState<string | null>(null);
-  const [busyBookingId, setBusyBookingId] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   const [busyCellKey, setBusyCellKey] = useState<string | null>(null);
-  const [decidingId, setDecidingId] = useState<string | null>(null);
 
   const reload = useCallback(() => setReloadToken((n) => n + 1), []);
   const manages = viewer.role === 'admin' || viewer.role === 'instructor';
 
-  // Who is looking, and whether they have finished signing up.
+  // What this account may do. Nothing, until an admin says otherwise.
   useEffect(() => {
     let cancelled = false;
     if (!signedIn) {
       setViewer(GUEST);
-      setProfile(null);
       return;
     }
-    Promise.all([api.getViewer(), api.getProfile()])
-      .then(([v, p]) => {
-        if (cancelled) return;
-        setViewer(v);
-        setProfile(p);
-        // straight out of sign-up: ask for the missing half
-        if (!p) setProfileOpen(true);
-      })
+    api
+      .getViewer()
+      .then((v) => !cancelled && setViewer(v))
       .catch(() => !cancelled && setViewer(GUEST));
     return () => {
       cancelled = true;
     };
   }, [signedIn, reloadToken]);
 
-  // The day: instructors, which hours are taken, which the instructor closed.
+  // The day, as anyone may see it: instructors, which hours are taken, and
+  // which the instructor closed. None of this needs an account.
   useEffect(() => {
     let cancelled = false;
     setLoadingDay(true);
@@ -143,34 +147,18 @@ export default function App() {
     };
   }, [dateKey, reloadToken]);
 
-  // Your own bookings — RLS makes this your rows and nobody else's.
-  useEffect(() => {
-    let cancelled = false;
-    if (!signedIn) {
-      setMyBookings([]);
-      return;
-    }
-    api
-      .listMyBookings()
-      .then((rows) => !cancelled && setMyBookings(rows))
-      .catch((err) => !cancelled && setDayError(message(err)));
-    return () => {
-      cancelled = true;
-    };
-  }, [signedIn, reloadToken]);
-
-  // What an instructor or admin may act on: this day's detail, and every
-  // outstanding request. The view decides the scope, not this code.
+  // What staff may act on: this day's bookings with the customer attached, and
+  // the list of customers they can book. The view decides the scope, not this.
   useEffect(() => {
     let cancelled = false;
     if (!manages) {
       setOwnBookings(new Map());
-      setRequests([]);
       setCustomers([]);
       return;
     }
-    Promise.all([api.listManagedBookings(dateKey), api.listPendingRequests()])
-      .then(([day, pending]) => {
+    api
+      .listManagedBookings(dateKey)
+      .then((day) => {
         if (cancelled) return;
         const byHour = new Map<string, ManagedBooking>();
         for (const b of day) {
@@ -181,24 +169,38 @@ export default function App() {
           }
         }
         setOwnBookings(byHour);
-        setRequests(pending);
-        api.listCustomers().then((c) => !cancelled && setCustomers(c)).catch(() => {});
       })
-      .catch(() => {
-        if (cancelled) return;
-        setOwnBookings(new Map());
-        setRequests([]);
+      .catch(() => !cancelled && setOwnBookings(new Map()));
+
+    api
+      .listCustomers()
+      .then((c) => !cancelled && setCustomers(c))
+      .catch((err) => {
+        // Usually a Data API schema cache that has not been refreshed since the
+        // customers table was added. Booking still works — a name typed in
+        // creates a record — so this warns rather than blocking the screen.
+        console.warn('customer list unavailable:', err);
       });
+
     return () => {
       cancelled = true;
     };
   }, [manages, dateKey, reloadToken]);
 
   useEffect(() => {
-    if (signedIn) setAuthOpen(false);
-  }, [signedIn]);
+    if (signedIn && authView !== 'RESET_PASSWORD') setAuthOpen(false);
+  }, [signedIn, authView]);
 
-  const navigateAuth = useCallback((href: string) => setAuthView(viewForHref(href)), []);
+  const navigateAuth = useCallback((href: string) => {
+    const next = viewForHref(href);
+    setAuthView(next);
+    // The reset form reads its token from the query string, so the URL may only
+    // be tidied once we have left that view — otherwise a refresh mid-reset
+    // loses the token and the form silently has nothing to submit.
+    if (next !== 'RESET_PASSWORD' && window.location.pathname !== '/') {
+      window.history.replaceState(null, '', '/');
+    }
+  }, []);
 
   const AuthLink = useCallback(
     ({ href, className, children }: { href: string; className?: string; children: ReactNode }) => (
@@ -216,7 +218,7 @@ export default function App() {
     [navigateAuth],
   );
 
-  /** An instructor only ever sees their own column. */
+  /** An instructor sees their own column and nobody else's. */
   const visibleInstructors = useMemo(() => {
     const bySport =
       sport === 'all' ? instructors : instructors.filter((i) => i.sports.includes(sport));
@@ -226,25 +228,10 @@ export default function App() {
     return bySport;
   }, [instructors, sport, viewer]);
 
-  const instructorsById = useMemo(() => new Map(instructors.map((i) => [i.id, i])), [instructors]);
-
-  /** A booking occupies every hour it spans, not just the first. */
-  const myBookingByHour = useMemo(() => {
-    const out = new Map<string, Booking>();
-    for (const b of myBookings) {
-      if (b.status === 'rejected') continue;
-      const start = new Date(b.startsAt).getTime();
-      for (let i = 0; i < b.durationHours; i++) {
-        out.set(hourKey(b.instructorId, new Date(start + i * HOUR)), b);
-      }
-    }
-    return out;
-  }, [myBookings]);
-
   /**
    * Availability is derived, never stored. An hour starts free inside working
    * hours and is downgraded only by something the database actually knows: a
-   * booking (pending counts — it holds the slot) or a block.
+   * booking, or a block.
    */
   const cells = useMemo(() => {
     const now = Date.now();
@@ -253,46 +240,44 @@ export default function App() {
     for (const instructor of visibleInstructors) {
       for (const hour of gridHours(dateKey)) {
         const key = hourKey(instructor.id, hour);
-        const mine = myBookingByHour.get(key);
         const blockId = blocks.get(key);
-        const taken = busy.get(key);
-
         const occupant = busy.get(key);
 
         let state: HourState;
         if (!isOpenHour(hour.getHours())) state = 'closed';
         else if (hour.getTime() + HOUR <= now) state = 'past';
-        else if (mine) state = mine.status === 'pending' ? 'mine-pending' : 'mine';
-        else if (taken) state = taken.status === 'pending' ? 'pending' : 'taken';
+        else if (occupant) state = occupant.status === 'pending' ? 'pending' : 'taken';
         else if (blockId) state = 'blocked';
         else state = 'free';
 
-        const shape = mine
-          ? { lessonType: mine.lessonType, sport: mine.sport, groupSize: mine.groupSize }
-          : occupant
-            ? { lessonType: occupant.lesson_type, groupSize: occupant.group_size }
-            : null;
+        // Outside the school a booked hour is just booked. A camp is the one
+        // exception: it is the thing people ring up to ask about.
+        const label =
+          occupant && (manages || occupant.lesson_type === 'kids_camp')
+            ? shortLesson({ lessonType: occupant.lesson_type, groupSize: null })
+            : undefined;
 
         out.set(key, {
           instructorId: instructor.id,
           startsAt: hour,
           state,
-          bookingId: mine?.id,
           blockId,
-          lessonType: shape?.lessonType,
-          lessonLabel: shape ? shortLesson(shape) : undefined,
-          lessonClass: shape ? lessonClass(shape) : undefined,
+          lessonType: occupant?.lesson_type,
+          lessonLabel: label,
+          lessonClass: occupant
+            ? lessonClass({ lessonType: occupant.lesson_type, groupSize: null })
+            : undefined,
         });
       }
     }
     return out;
-  }, [visibleInstructors, dateKey, busy, blocks, myBookingByHour]);
+  }, [visibleInstructors, dateKey, busy, blocks, manages]);
 
-  /** How many consecutive hours are bookable from here, capped at three. */
+  /** How many consecutive hours are bookable from here. */
   const freeHoursFrom = useCallback(
     (instructorId: string, start: Date): number => {
       let n = 0;
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < MAX_DURATION; i++) {
         const cell = cells.get(hourKey(instructorId, new Date(start.getTime() + i * HOUR)));
         if (!cell || cell.state !== 'free') break;
         n++;
@@ -302,25 +287,33 @@ export default function App() {
     [cells],
   );
 
-  const upcoming = useMemo(
-    () => myBookings.filter((b) => !isPast(b.startsAt.slice(0, 10))),
-    [myBookings],
-  );
-
   async function confirmBooking(input: NewBooking) {
     if (!dialog) return;
     setSubmitting(true);
     setBookingError(null);
     try {
-      await api.createBooking({
+      const base = {
         instructorId: dialog.instructor.id,
         startsAt: dialog.startsAt.toISOString(),
         durationHours: input.durationHours,
         lessonType: input.lessonType,
         sport: input.sport,
         groupSize: input.groupSize,
-        userId: input.userId,
-      });
+        customerId: input.customerId,
+        agreementId: input.agreementId,
+        tentative: input.tentative,
+      };
+
+      if (input.dates.length > 1) {
+        const { created, skipped } = await api.createBookingSeries(base, input.dates);
+        setNotice(
+          t('{a} ders yazıldı, {b} saat dolu olduğu için atlandı.')
+            .replace('{a}', String(created))
+            .replace('{b}', String(skipped)),
+        );
+      } else {
+        await api.createBooking(base);
+      }
       reload();
       setDialog(null);
     } catch (err) {
@@ -330,45 +323,25 @@ export default function App() {
     }
   }
 
-  async function saveProfile(input: { fullName: string; phone: string; interests: Interest[] }) {
-    setSavingProfile(true);
-    setProfileError(null);
-    try {
-      await api.saveProfile(input);
-      setProfile(await api.getProfile());
-      setProfileOpen(false);
-    } catch (err) {
-      setProfileError(message(err));
-    } finally {
-      setSavingProfile(false);
-    }
-  }
+  /** A stray tap should not destroy a lesson, so the grid asks first. */
+  async function cancelFromCalendar(bookingId: string) {
+    const booking = [...ownBookings.values()].find((b) => b.id === bookingId);
+    const soon = booking && new Date(booking.startsAt).getTime() - Date.now() < 12 * HOUR;
+    const question = soon
+      ? t('Bu ders 12 saatten yakın. Yine de silinsin mi?')
+      : t('Bu dersi iptal etmek istediğinize emin misiniz?');
+    if (!window.confirm(question)) return;
 
-  async function decide(bookingId: string, status: 'approved' | 'rejected') {
-    setDecidingId(bookingId);
-    try {
-      await api.decideBooking(bookingId, status);
-      reload();
-    } catch (err) {
-      setDayError(message(err));
-    } finally {
-      setDecidingId(null);
-    }
-  }
-
-  async function cancelBooking(bookingId: string) {
-    setBusyBookingId(bookingId);
+    setBusyCellKey(null);
     try {
       await api.cancelBooking(bookingId);
       reload();
     } catch (err) {
       setDayError(message(err));
-    } finally {
-      setBusyBookingId(null);
     }
   }
 
-  /** Instructors close and reopen their own hours. */
+  /** Staff close and reopen hours. An admin may do it on any calendar. */
   async function toggleBlock(cell: HourCell) {
     const key = hourKey(cell.instructorId, cell.startsAt);
     setBusyCellKey(key);
@@ -385,6 +358,26 @@ export default function App() {
 
   const roleLabel =
     viewer.role === 'admin' ? 'Yönetici' : viewer.role === 'instructor' ? 'Eğitmen' : null;
+
+  const account = (
+    <div className="account">
+      <LangToggle />
+      {roleLabel && <span className="role-badge">{t(roleLabel)}</span>}
+      {viewer.role === 'admin' && screen === 'calendar' && (
+        <button className="btn btn--ghost" onClick={() => setScreen('admin')}>
+          {t('Yönetim')}
+        </button>
+      )}
+      <SignedIn>
+        <AccountMenu name={accountName} email={accountEmail} />
+      </SignedIn>
+      <SignedOut>
+        <button className="btn btn--ghost" onClick={() => setAuthOpen(true)}>
+          {t('Giriş yap')}
+        </button>
+      </SignedOut>
+    </div>
+  );
 
   // The admin panel is its own screen rather than a route: there is no router,
   // and it shares nothing with the calendar but the header.
@@ -405,16 +398,7 @@ export default function App() {
                 <p>Sun Surf Alaçatı</p>
               </div>
             </div>
-            <div className="account">
-              <LangToggle />
-              <SignedIn>
-                <AccountMenu
-                  name={accountName}
-                  email={accountEmail}
-                  onOpenProfile={() => setProfileOpen(true)}
-                />
-              </SignedIn>
-            </div>
+            {account}
           </header>
 
           <AdminShell
@@ -422,17 +406,6 @@ export default function App() {
             onBackToCalendar={() => setScreen('calendar')}
             onChanged={reload}
           />
-
-          {profileOpen && signedIn && (
-            <ProfileDialog
-              profile={profile}
-              accountName={accountName}
-              saving={savingProfile}
-              error={profileError}
-              onSave={saveProfile}
-              onClose={() => setProfileOpen(false)}
-            />
-          )}
         </div>
       </NeonAuthUIProvider>
     );
@@ -451,31 +424,9 @@ export default function App() {
             <img className="brand-mark" src="/logo.jpg" alt="Sun Surf Alaçatı" />
             <div>
               <h1>Sun Surf Alaçatı</h1>
-              <p>{t('Yerel eğitmenlerle windsurf & wingfoil dersleri')}</p>
             </div>
           </div>
-
-          <div className="account">
-            <LangToggle />
-            {roleLabel && <span className="role-badge">{t(roleLabel)}</span>}
-            {viewer.role === 'admin' && (
-              <button className="btn btn--ghost" onClick={() => setScreen('admin')}>
-                {t('Yönetim')}
-              </button>
-            )}
-            <SignedIn>
-              <AccountMenu
-                name={accountName}
-                email={accountEmail}
-                onOpenProfile={() => setProfileOpen(true)}
-              />
-            </SignedIn>
-            <SignedOut>
-              <button className="btn btn--ghost" onClick={() => setAuthOpen(true)}>
-                {t('Giriş yap')}
-              </button>
-            </SignedOut>
-          </div>
+          {account}
         </header>
 
         <main>
@@ -483,26 +434,20 @@ export default function App() {
 
           <div className="toolbar">
             <SportFilter value={sport} onChange={setSport} />
+            {manages && (
+              <button className="btn btn--ghost btn--small" onClick={() => setLeaveOpen(true)}>
+                {t('İzin / gün kapat')}
+              </button>
+            )}
             <span className="count">{t('08:00 – 20:00 arası ders alınabilir')}</span>
           </div>
 
-          {manages && (
-            <RequestsPanel
-              requests={requests}
-              role={viewer.role}
-              busyId={decidingId}
-              onDecide={decide}
-              onGoToDay={setDateKey}
-            />
-          )}
-
           <div className="cal-bar">
             <h3 className="section-title">
-              {t(viewer.role === 'instructor' ? 'Takvimim' : 'Müsait saatler')}
+              {t(viewer.role === 'instructor' ? 'Takvimim' : 'Ders programı')}
             </h3>
             <ul className="legend">
               <li className="legend-item legend-item--open">{t('Müsait')}</li>
-              <li className="legend-item legend-item--pending">{t('Beklemede')}</li>
               <li className="legend-item legend-item--booked">{t('Dolu')}</li>
               <li className="legend-item legend-item--past">{t('Kapalı')}</li>
             </ul>
@@ -516,13 +461,19 @@ export default function App() {
             </p>
           )}
 
-          {((viewer.role === 'instructor' && viewer.instructorId) || viewer.role === 'admin') && (
+          {manages && (
             <p className="notice">
               {t(
                 viewer.role === 'admin'
-                  ? 'Yönetici olarak herhangi bir hocanın saatine tıklayıp kapatabilir, kapalı bir saate tıklayıp açabilirsiniz.'
-                  : 'Bir saate tıklayarak kapatabilir, kapalı bir saate tıklayarak yeniden açabilirsiniz.',
+                  ? 'Bir saate tıklayarak ders yazabilir, çocuk kampı açabilir ya da saati bloke edebilirsiniz — her hocanın takviminde.'
+                  : 'Kendi takviminizde bir saate tıklayarak ders yazabilir ya da saati bloke edebilirsiniz.',
               )}
+            </p>
+          )}
+
+          {notice && (
+            <p className="notice notice--done" onClick={() => setNotice(null)}>
+              {notice}
             </p>
           )}
 
@@ -543,31 +494,14 @@ export default function App() {
               viewer={viewer}
               ownBookings={ownBookings}
               busyKey={busyCellKey}
-              onBook={(instructor, startsAt) => {
-                setBookingError(null);
-                setDialog({ instructor, startsAt, lessonType: 'individual' });
-              }}
-              onCancel={cancelBooking}
               onManageHour={(instructor, cell) => setHourMenu({ instructor, cell })}
+              onSelectRange={(instructor, startsAt, hours) => {
+                setBookingError(null);
+                setDialog({ instructor, startsAt, lessonType: 'individual', duration: hours });
+              }}
             />
           )}
-
-          <SignedIn>
-            <MyBookings
-              bookings={upcoming}
-              instructors={instructorsById}
-              busyBookingId={busyBookingId}
-              onGoToDay={setDateKey}
-              onCancel={cancelBooking}
-            />
-          </SignedIn>
         </main>
-
-        <footer className="footer">
-          {t(
-            'Müsaitlik ayrı bir tabloda tutulmaz — bir saat yalnızca rezervasyon varsa ya da eğitmen kapattıysa dolu görünür.',
-          )}
-        </footer>
 
         {dialog && (
           <BookingDialog
@@ -575,30 +509,31 @@ export default function App() {
             startsAt={dialog.startsAt}
             freeHours={freeHoursFrom(dialog.instructor.id, dialog.startsAt)}
             initialLessonType={dialog.lessonType}
-            staff={manages}
+            initialDuration={dialog.duration}
             customers={customers}
-            signedIn={signedIn}
-            hasProfile={profile !== null}
-            authView={authView}
             submitting={submitting}
             error={bookingError}
             onConfirm={confirmBooking}
-            onCompleteProfile={() => {
-              setDialog(null);
-              setProfileOpen(true);
+            onCustomerAdded={() => {
+              api
+                .listCustomers()
+                .then(setCustomers)
+                .catch(() => {});
             }}
             onClose={() => setDialog(null)}
           />
         )}
 
-        {profileOpen && signedIn && (
-          <ProfileDialog
-            profile={profile}
-            accountName={accountName}
-            saving={savingProfile}
-            error={profileError}
-            onSave={saveProfile}
-            onClose={() => setProfileOpen(false)}
+        {leaveOpen && (
+          <LeaveDialog
+            instructors={instructors}
+            viewer={viewer}
+            onClose={() => setLeaveOpen(false)}
+            onDone={(message) => {
+              setLeaveOpen(false);
+              setNotice(message);
+              reload();
+            }}
           />
         )}
 
@@ -616,6 +551,11 @@ export default function App() {
               const cell = hourMenu.cell;
               setHourMenu(null);
               await toggleBlock(cell);
+            }}
+            onCancelBooking={async () => {
+              const id = hourMenu.cell.bookingId;
+              setHourMenu(null);
+              if (id) await cancelFromCalendar(id);
             }}
             onCreateLesson={() => {
               setBookingError(null);
@@ -639,7 +579,7 @@ export default function App() {
           />
         )}
 
-        {authOpen && !signedIn && (
+        {authOpen && (!signedIn || authView === 'RESET_PASSWORD') && (
           <div className="overlay" onClick={() => setAuthOpen(false)}>
             <div
               className="dialog dialog--auth"

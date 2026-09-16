@@ -1,12 +1,20 @@
-# Windfoil
+# Sun Surf Alaçatı
 
-A day-by-day booking app for windsurf and wingfoil classes with local instructors.
+The tool a windsurf and wingfoil school is run from: a day-by-day calendar, the customer records
+behind it, and what everybody owes.
 
 Backed by [Neon](https://neon.com): Postgres through the **Data API** (PostgREST over HTTPS) and
 accounts through **Managed Better Auth**. There is no server of our own — the browser talks to Neon
 directly, and Postgres row-level security decides who may read and write what.
 
-Anyone can browse the schedule signed out. Booking and cancelling need an account.
+**Nobody outside the school books anything.** The schedule is public and readable by anyone,
+signed out included, but it is a thing to look at: lessons are written by staff. A customer is a
+record somebody at the desk typed in — no password, no login, no way into the system.
+
+Only instructors and admins sign in. A new account can do nothing at all until an admin gives it a
+role.
+
+The interface is in Turkish and English, switchable in the header.
 
 There is no pricing anywhere, by design.
 
@@ -113,17 +121,57 @@ no longer need it.
 
 ## What it does
 
+**The calendar** — public, read-only
+
 - **One day at a time.** Arrows, a 7-day strip, and a jump back to today. No week or month view.
 - **Every instructor is a column**, every hour from 07:00 to 21:00 is a row.
 - **Availability is not stored.** Each instructor is open 08:00–20:00 every day. An hour is
-  unavailable only because a booking exists for it, or because the instructor closed it.
-- **Booking** a free hour takes one click; if the instructor teaches both sports you pick which.
-  One booking per instructor per hour.
-- **Roles**: `admin`, `instructor`, `customer`. Signing up makes you a customer. An admin promotes
-  people from the Kullanıcılar panel and links an instructor account to an instructor row.
-- **Instructors** see only their own column, can close an hour and reopen it, and see who booked.
+  unavailable only because a booking exists for it, or because staff closed it.
+- A visitor sees the state of an hour and nothing else: free, booked, blocked, past — and kids
+  camp, because that is the thing people ring up about. No name, no sport, no head count: the
+  public view does not carry them at all.
 
-The interface is in Turkish.
+**The calendar** — signed in as staff
+
+- An **admin** sees every instructor's column with who each lesson is for; an **instructor** sees
+  their own column and nobody else's.
+- Click an hour to write a lesson, open a kids camp, block it, or delete what is there.
+- **Drag down a column** to write a lesson across several hours at once. Mouse and pen only — on a
+  phone that gesture scrolls the grid, and taking it over would make the calendar unusable there.
+- **Repeat** a lesson daily, on weekdays, or weekly. Hours already taken are skipped and you are
+  told how many landed.
+- **Leave** closes a date range for an instructor in one go. Lessons already in the range are
+  counted and left alone: closing an hour and cancelling a lesson are different decisions.
+
+**Management**
+
+- **Dashboard** — the business totals plus charts over a date range: hours per instructor, lessons
+  over time, lesson-type mix, and a per-instructor table.
+- **Bookings** — status, instructor and date filters.
+- **Customers** — the CRM. Name is the only required field; the rest (phone, birth date, how they
+  found us, injuries, allergies, two emergency contacts, a guardian for a child) is optional and
+  filled in when there is time. Plus staff-only notes and the whole lesson history.
+- **Payments** — one list for everything sold. A lesson pack, a month of storage and a week's
+  rental are the same question (agreed, paid, left) and one customer can hold all three.
+- **Kids camp** — one row per child with the guardian's number and any allergy, and the camp
+  bookings behind it.
+- **Instructors** — instructor records, which accounts are linked to them, a monthly worked-hours
+  breakdown down to the day, and who has which role.
+
+**Lesson packages.** An agreement can be worth a number of lessons. When a lesson is written, staff
+pick which package it comes off — **one booking spends one lesson, however many hours it runs**.
+Nothing counts "used" into a column: it is the number of bookings pointing at the package, so
+cancelling a lesson gives it straight back.
+
+**Clearing a balance is a record, not a flag.** It writes the remainder as a `writeoff` payment, so
+the account closes without the money ever being counted as collected.
+
+**Segments** (`lesson`, `storage`, `rental`, `kids_camp`) are how the office classifies a customer.
+Staff are asked at the moment a record is created — the lesson being written is the first guess.
+
+**Roles**: `admin`, `instructor`, `customer`. `customer` is what an account has before anybody has
+given it a job: it can read the public schedule and nothing else. An admin sets roles and links an
+instructor account to an instructor profile from the Instructors page.
 
 ## Structure
 
@@ -132,12 +180,18 @@ db/*.sql              tables, views, grants, RLS policies — applied in order
 scripts/migrate.mjs   applies db/*.sql (npm run migrate)
 scripts/seed.mjs      the starter instructors (npm run seed) — nothing else to seed
 src/
-  types.ts            Sport, Role, Instructor, Viewer, Booking, Block
-  lib/date.ts         local-date helpers (YYYY-MM-DD keys, Turkish formatting)
-  lib/hours.ts        the working-hours rules the whole calendar derives from
+  types.ts            the shapes every screen shares
+  lib/date.ts         local-date helpers (YYYY-MM-DD keys, locale-aware formatting)
+  lib/hours.ts        working hours, repeat dates, how long a lesson may run
+  lib/lessons.ts      how a lesson is described and coloured
+  lib/segments.ts     the CRM vocabulary
+  lib/agreements.ts   what is sold, and money formatting
+  lib/i18n.tsx        Turkish/English, keyed by the Turkish sentence
   neon.ts             the Neon client — auth + Data API, anonymous reads allowed
   api/client.ts       ← all data access goes through here
-  components/         DayNav, SportFilter, DayCalendar, BookingDialog, MyBookings, AdminPanel
+  components/         calendar, booking dialog, leave, account menu
+  components/admin/   dashboard and charts, bookings, customers, payments,
+                      kids camp, instructors
   App.tsx             state + wiring
 ```
 
@@ -145,25 +199,37 @@ src/
 
 Authorisation lives in the database, not in the client.
 
-| table | select | insert / delete |
+| table | select | insert / update / delete |
 | --- | --- | --- |
-| `instructors` | everyone, signed out included | nobody |
-| `instructor_blocks` | everyone — customers must see closed hours | only `instructor_id = my_instructor_id()` |
-| `bookings` | only the owner | only as yourself |
+| `instructors` | name, sports and bio to everyone; email and phone to nobody | admin |
+| `instructor_blocks` | everyone — a closed hour must be visible on the public calendar | own calendar, or admin |
+| `bookings` | own calendar, or everything if admin | own calendar, or admin anywhere |
+| `customers` | admin | admin, and an instructor may add one to book them |
+| `agreements`, `payments` | admin | admin |
 | `user_roles` | your own row, or everything if admin | admin only |
+| `customer_notes` | admin only | admin only |
 
-`bookings.user_id` and `user_roles` are never sent by the client: `user_id` defaults to
-`auth.user_id()`, which comes from the JWT. An instructor cannot touch another instructor's calendar
-because `my_instructor_id()` also derives from the JWT, so it cannot be spoofed.
+`user_roles` is never written by the client. An instructor cannot touch another instructor's
+calendar because `my_instructor_id()` derives from the session JWT and cannot be spoofed; the same
+function is what makes `managed_bookings` return their own rows and nobody else's.
 
-Three `security definer` views expose exactly as much as each caller needs and no more:
+Triggers that run alongside the policies decide trust from `current_user` (the Postgres role), not
+from whether a JWT could be read. An earlier version asked `auth.user_id()` and treated its failure
+as "trusted", which made a guard inert for every caller that actually came through the API — a
+mistake worth not repeating.
 
-- **`busy_hours`** — which hours are taken, across all instructors, *without* saying by whom. Booking
-  rows stay private to their owner, so this is how the calendar can grey out a taken hour.
-- **`instructor_bookings`** — an instructor's own bookings with the customer's name and email.
-  Returns nothing for anyone who is not that instructor.
-- **`admin_users`** — the user directory, empty unless `app_role() = 'admin'`. Lets the admin panel
-  work without granting anyone access to the `neon_auth` schema.
+The guard that stopped an instructor rewriting a customer's booking while approving it is gone with
+the customer: both parties to a booking are staff now, and an instructor rearranging their own day
+is the job.
+
+`security definer` views expose exactly as much as each caller needs and no more:
+
+- **`busy_hours`** — which hours are taken, across all instructors, *without* saying by whom.
+- **`instructor_bookings`** / **`managed_bookings`** — bookings with the customer's details,
+  empty for anyone who is neither that instructor nor an admin.
+- **`admin_users`**, **`crm_customers`**, **`instructor_admin`**, **`kids_camp_roll`** — the
+  management screens, each empty unless `app_role() = 'admin'`. They let those screens work
+  without granting anyone access to the `neon_auth` schema.
 
 **Roles are deliberately not stored in `neon_auth."user".role`.** That column exists, but the Data
 API switches to a Postgres role named by the JWT's `role` claim — writing `admin` there could try to
@@ -184,7 +250,19 @@ the `neon_auth` schema is never written to.
   tables and views.
 - Hours are stored as `timestamptz` and rendered in the browser's timezone. Everyone involved being
   in the same timezone is an assumption, not something the schema enforces.
-- Capacity is one person per instructor per hour, enforced by `unique (instructor_id, starts_at)`.
+- A lesson may not overlap another on the same instructor's calendar. That is an exclusion
+  constraint on `(instructor_id, span)` with `btree_gist`, not a unique key on the start hour —
+  a lesson can run up to twelve. A rejected booking is exempt, so rejecting frees the hours.
+- **A group lesson records a head count and one customer, not four names.** The other three are not
+  in the system at all: no history, no balance, no packages. That is a deliberate choice, not an
+  oversight — say so before anybody builds a report on "how many people came".
+- `bookings.user_id` and `app_settings` are dead. They cannot be dropped because the migration
+  files are re-run from the top every time and the earlier ones still mention them.
+- Money is `numeric`, and balances are computed on read. A stored balance is a number that can
+  disagree with the payments underneath it.
 - Closing an hour and booking it are independent: an instructor can close an hour that is already
   booked, and it does not cancel the booking.
-- Still out of scope: multi-hour lessons, waitlists, payments, weather.
+- Notes on a customer live in their own table rather than on the customer record. They were split
+  out when customers could still sign in and read their own row; keeping them separate is still
+  right, because "always late" is not something to hand back to anybody.
+- Still out of scope: waitlists, payments, weather, notifications of any kind.

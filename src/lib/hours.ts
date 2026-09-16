@@ -36,17 +36,42 @@ export function hourKey(instructorId: string, at: string | Date): string {
   return `${instructorId}|${ms}`;
 }
 
-/** A lesson may run one, two or three consecutive hours. */
-export const DURATIONS = [1, 2, 3] as const;
+/**
+ * How long before a lesson a customer may still cancel it.
+ *
+ * The database holds the same number in `cancellation_window_hours()`
+ * (db/007) and that is the copy that decides — this one only greys the button
+ * out and explains why. Change one and change the other.
+ */
+export const CANCEL_WINDOW_HOURS = 12;
+
+/**
+ * A pending request can always be withdrawn: nobody has accepted it yet, and
+ * leaving it in place would hold the hour against everyone else.
+ */
+export function canCancel(b: { startsAt: string; status: string }, now = Date.now()): boolean {
+  if (b.status === 'pending') return true;
+  return Date.parse(b.startsAt) - now >= CANCEL_WINDOW_HOURS * 60 * 60 * 1000;
+}
+
+/**
+ * The longest a lesson may run. Matches the CHECK in db/012 — the database is
+ * the one that refuses, this only stops the interface offering it.
+ */
+export const MAX_DURATION = 12;
+
+/** The lengths on offer from an hour with `free` consecutive hours after it. */
+export function durationChoices(free: number): number[] {
+  const n = Math.min(Math.max(free, 1), MAX_DURATION);
+  return Array.from({ length: n }, (_, i) => i + 1);
+}
 
 export type HourState =
   | 'closed' // outside working hours
   | 'past' // already gone
-  | 'blocked' // the instructor closed it
-  | 'pending' // someone is waiting on approval — still locked
-  | 'taken' // someone else's approved booking
-  | 'mine-pending' // your request, not decided yet
-  | 'mine' // your approved booking
+  | 'blocked' // staff closed it
+  | 'pending' // booked, but not settled yet
+  | 'taken' // booked
   | 'free';
 
 /**
@@ -66,6 +91,34 @@ export function openHoursBetween(fromKey: string, toKey: string): Date[] {
       out.push(new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate(), h, 0, 0, 0));
     }
     cursor.setDate(cursor.getDate() + 1);
+  }
+  return out;
+}
+
+/** How a lesson repeats. */
+export type Repeat = 'none' | 'daily' | 'weekdays' | 'weekly';
+
+/**
+ * The dates a repeating lesson falls on, the first one included.
+ *
+ * `weekdays` skips Saturday and Sunday but still counts up to `times` lessons —
+ * asking for ten weekday lessons and getting eight because two fell on a
+ * weekend is not what anybody meant.
+ */
+export function repeatDates(start: Date, repeat: Repeat, times: number): Date[] {
+  if (repeat === 'none' || times <= 1) return [start];
+
+  const out: Date[] = [];
+  const cursor = new Date(start);
+  let guard = 0;
+
+  while (out.length < times && guard < times * 10 + 30) {
+    guard++;
+    const day = cursor.getDay();
+    if (repeat !== 'weekdays' || (day !== 0 && day !== 6)) {
+      out.push(new Date(cursor));
+    }
+    cursor.setDate(cursor.getDate() + (repeat === 'weekly' ? 7 : 1));
   }
   return out;
 }

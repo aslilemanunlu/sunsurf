@@ -10,6 +10,7 @@ type Props = {
   busy: boolean;
   onBlock: () => void;
   onUnblock: () => void;
+  onCancelBooking: () => void;
   onCreateLesson: () => void;
   onCreateCamp: () => void;
   onClose: () => void;
@@ -25,6 +26,7 @@ export default function HourActions({
   busy,
   onBlock,
   onUnblock,
+  onCancelBooking,
   onCreateLesson,
   onCreateCamp,
   onClose,
@@ -39,6 +41,7 @@ export default function HourActions({
   }, [onClose]);
 
   const blocked = cell.state === 'blocked';
+  const booked = cell.state === 'taken' || cell.state === 'pending';
   const endsAt = new Date(cell.startsAt.getTime() + 60 * 60 * 1000);
 
   return (
@@ -64,6 +67,10 @@ export default function HourActions({
           {blocked ? (
             <button className="btn" onClick={onUnblock} disabled={busy}>
               {t('Bloğu kaldır')}
+            </button>
+          ) : booked ? (
+            <button className="btn btn--ghost danger" onClick={onCancelBooking} disabled={busy}>
+              {t('Dersi sil')}
             </button>
           ) : (
             <>

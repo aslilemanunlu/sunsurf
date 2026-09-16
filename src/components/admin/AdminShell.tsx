@@ -2,15 +2,21 @@ import { useState } from 'react';
 import { useT } from '../../lib/i18n';
 import type { Instructor } from '../../types';
 import Dashboard from './Dashboard';
-import UsersPage from './UsersPage';
+import CustomersPage from './CustomersPage';
 import BookingsPage from './BookingsPage';
+import KidsCampPage from './KidsCampPage';
+import StaffPage from './StaffPage';
+import PaymentsPage from './PaymentsPage';
 
-type Page = 'dashboard' | 'users' | 'bookings';
+type Page = 'dashboard' | 'bookings' | 'customers' | 'payments' | 'kids' | 'staff';
 
 const NAV: { key: Page; label: string; icon: string }[] = [
   { key: 'dashboard', label: 'Ana Sayfa', icon: '▦' },
-  { key: 'users', label: 'Kullanıcılar', icon: '👥' },
   { key: 'bookings', label: 'Rezervasyonlar', icon: '📋' },
+  { key: 'customers', label: 'Müşteriler', icon: '👥' },
+  { key: 'payments', label: 'Ödemeler', icon: '₺' },
+  { key: 'kids', label: 'Çocuk Kampı', icon: '🪁' },
+  { key: 'staff', label: 'Hocalar', icon: '🏄' },
 ];
 
 type Props = {
@@ -47,8 +53,11 @@ export default function AdminShell({ instructors, onBackToCalendar, onChanged }:
 
       <div className="admin-content">
         {page === 'dashboard' && <Dashboard />}
-        {page === 'users' && <UsersPage instructors={instructors} onChanged={onChanged} />}
         {page === 'bookings' && <BookingsPage instructors={instructors} onChanged={onChanged} />}
+        {page === 'customers' && <CustomersPage onChanged={onChanged} />}
+        {page === 'payments' && <PaymentsPage onChanged={onChanged} />}
+        {page === 'kids' && <KidsCampPage onChanged={onChanged} />}
+        {page === 'staff' && <StaffPage onChanged={onChanged} />}
       </div>
     </div>
   );

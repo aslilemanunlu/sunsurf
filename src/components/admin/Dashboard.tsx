@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
-import { useT } from '../../lib/i18n';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import type { Instructor, ManagedBooking } from '../../types';
+import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
-import { locale } from '../../lib/i18n';
+import { addDays, fromDateKey, toDateKey, todayKey } from '../../lib/date';
+import { BarRows, Columns, Split, type Slice } from './Charts';
 
 type Card = {
   key: keyof api.DashboardStats;
@@ -12,17 +14,48 @@ type Card = {
 };
 
 const CARDS: Card[] = [
-  { key: 'users', title: 'Toplam Kullanıcı', icon: '👥', tone: 'accent' },
+  { key: 'students', title: 'Toplam Müşteri', icon: '👥', tone: 'accent' },
   { key: 'instructors', title: 'Toplam Hoca', icon: '🏄', tone: 'individual' },
-  { key: 'students', title: 'Toplam Öğrenci', icon: '🎓', tone: 'group' },
+  { key: 'users', title: 'Hesap', icon: '🔑', tone: 'group' },
   { key: 'bookings', title: 'Toplam Rezervasyon', icon: '📋', tone: 'kids' },
   { key: 'hoursThisMonth', title: 'Bu Ay Verilen Ders', icon: '⏱', tone: 'accent', suffix: 'saat' },
 ];
 
+type RangeKey = 'week' | 'month' | 'quarter' | 'custom';
+
+function startOfMonth(): string {
+  const d = new Date();
+  return toDateKey(new Date(d.getFullYear(), d.getMonth(), 1));
+}
+
+function rangeFor(key: RangeKey, from: string, to: string): [string, string] {
+  if (key === 'week') return [addDays(todayKey(), -6), todayKey()];
+  if (key === 'month') return [startOfMonth(), todayKey()];
+  if (key === 'quarter') return [addDays(todayKey(), -89), todayKey()];
+  return [from, to];
+}
+
+/** Days between two keys, inclusive. */
+function daysBetween(from: string, to: string): number {
+  return Math.round((fromDateKey(to).getTime() - fromDateKey(from).getTime()) / 86_400_000) + 1;
+}
+
 export default function Dashboard() {
   const { t } = useT();
   const [stats, setStats] = useState<api.DashboardStats | null>(null);
+  const [instructors, setInstructors] = useState<Instructor[]>([]);
+  const [rows, setRows] = useState<ManagedBooking[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const [rangeKey, setRangeKey] = useState<RangeKey>('month');
+  const [from, setFrom] = useState(startOfMonth());
+  const [to, setTo] = useState(todayKey());
+  const [instructorId, setInstructorId] = useState('all');
+  /** Rejected lessons never happened, so they are out of the numbers by default. */
+  const [countRejected, setCountRejected] = useState(false);
+
+  const [rangeFrom, rangeTo] = rangeFor(rangeKey, from, to);
 
   useEffect(() => {
     let cancelled = false;
@@ -30,10 +63,137 @@ export default function Dashboard() {
       .getDashboardStats()
       .then((s) => !cancelled && setStats(s))
       .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)));
+    api
+      .listInstructors()
+      .then((i) => !cancelled && setInstructors(i))
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
   }, []);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const end = fromDateKey(rangeTo);
+      end.setDate(end.getDate() + 1);
+      setRows(
+        await api.listBookingsBetween(fromDateKey(rangeFrom).toISOString(), end.toISOString()),
+      );
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setLoading(false);
+    }
+  }, [rangeFrom, rangeTo]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const counted = useMemo(
+    () =>
+      rows.filter(
+        (r) =>
+          (countRejected || r.status !== 'rejected') &&
+          (instructorId === 'all' || r.instructorId === instructorId),
+      ),
+    [rows, countRejected, instructorId],
+  );
+
+  const totals = useMemo(() => {
+    const hours = counted.reduce((s, r) => s + r.durationHours, 0);
+    const people = counted.reduce((s, r) => s + (r.groupSize ?? 1), 0);
+    const pending = counted.filter((r) => r.status === 'pending').length;
+    return { lessons: counted.length, hours, people, pending };
+  }, [counted]);
+
+  /** Hours per instructor, busiest first. */
+  const byInstructor = useMemo<Slice[]>(() => {
+    const map = new Map<string, number>();
+    for (const r of counted) {
+      map.set(r.instructorName, (map.get(r.instructorName) ?? 0) + r.durationHours);
+    }
+    return [...map.entries()]
+      .map(([label, value]) => ({ label, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [counted]);
+
+  /**
+   * Lessons over time. A long range is bucketed by week, otherwise the columns
+   * become slivers and the labels a smear.
+   */
+  const overTime = useMemo<Slice[]>(() => {
+    const span = daysBetween(rangeFrom, rangeTo);
+    const weekly = span > 45;
+    const buckets = new Map<string, number>();
+    const label = (key: string) =>
+      fromDateKey(key).toLocaleDateString(locale(), { day: 'numeric', month: 'short' });
+
+    for (let i = 0; i < span; i++) {
+      const key = addDays(rangeFrom, i);
+      const bucket = weekly ? addDays(rangeFrom, Math.floor(i / 7) * 7) : key;
+      if (!buckets.has(bucket)) buckets.set(bucket, 0);
+    }
+    for (const r of counted) {
+      const key = toDateKey(new Date(r.startsAt));
+      const offset = Math.round(
+        (fromDateKey(key).getTime() - fromDateKey(rangeFrom).getTime()) / 86_400_000,
+      );
+      if (offset < 0 || offset >= span) continue;
+      const bucket = weekly ? addDays(rangeFrom, Math.floor(offset / 7) * 7) : key;
+      buckets.set(bucket, (buckets.get(bucket) ?? 0) + 1);
+    }
+    return [...buckets.entries()].map(([key, value]) => ({ label: label(key), value }));
+  }, [counted, rangeFrom, rangeTo]);
+
+  const byType = useMemo<Slice[]>(() => {
+    const count = (type: string) => counted.filter((r) => r.lessonType === type).length;
+    return [
+      { label: t('Bireysel'), value: count('individual'), tone: 'individual' },
+      { label: t('Grup'), value: count('group'), tone: 'group' },
+      { label: t('Çocuk kampı'), value: count('kids_camp'), tone: 'kids' },
+    ];
+  }, [counted, t]);
+
+  const byStatus = useMemo<Slice[]>(() => {
+    const count = (s: string) => rows.filter((r) => r.status === s).length;
+    return [
+      { label: t('Onaylı'), value: count('approved'), tone: 'approved' },
+      { label: t('Beklemede'), value: count('pending'), tone: 'pending' },
+      { label: t('Reddedildi'), value: count('rejected'), tone: 'rejected' },
+    ];
+  }, [rows, t]);
+
+  /** The per-instructor table behind the bars. */
+  const table = useMemo(() => {
+    const map = new Map<
+      string,
+      { name: string; lessons: number; hours: number; individual: number; group: number; kids: number }
+    >();
+    for (const r of counted) {
+      const row = map.get(r.instructorId) ?? {
+        name: r.instructorName,
+        lessons: 0,
+        hours: 0,
+        individual: 0,
+        group: 0,
+        kids: 0,
+      };
+      row.lessons += 1;
+      row.hours += r.durationHours;
+      if (r.lessonType === 'individual') row.individual += 1;
+      else if (r.lessonType === 'group') row.group += 1;
+      else row.kids += 1;
+      map.set(r.instructorId, row);
+    }
+    return [...map.values()].sort((a, b) => b.hours - a.hours);
+  }, [counted]);
+
+  const rangeLabel = `${fromDateKey(rangeFrom).toLocaleDateString(locale())} – ${fromDateKey(
+    rangeTo,
+  ).toLocaleDateString(locale())}`;
 
   return (
     <section>
@@ -58,9 +218,172 @@ export default function Dashboard() {
         ))}
       </div>
 
+      <h3 className="admin-subtitle">{t('Raporlama')}</h3>
+
+      <div className="filters">
+        <div className="segmented" role="group" aria-label={t('Dönem')}>
+          {(
+            [
+              ['week', 'Son 7 gün'],
+              ['month', 'Bu ay'],
+              ['quarter', 'Son 90 gün'],
+              ['custom', 'Özel'],
+            ] as [RangeKey, string][]
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              className={`segment${rangeKey === key ? ' is-active' : ''}`}
+              onClick={() => setRangeKey(key)}
+              aria-pressed={rangeKey === key}
+            >
+              {t(label)}
+            </button>
+          ))}
+        </div>
+
+        {rangeKey === 'custom' && (
+          <label className="range">
+            <input
+              type="date"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              aria-label={t('Başlangıç')}
+            />
+            <span>–</span>
+            <input
+              type="date"
+              value={to}
+              min={from}
+              onChange={(e) => setTo(e.target.value)}
+              aria-label={t('Bitiş')}
+            />
+          </label>
+        )}
+
+        <select
+          value={instructorId}
+          onChange={(e) => setInstructorId(e.target.value)}
+          aria-label={t('Hoca')}
+        >
+          <option value="all">{t('Tüm hocalar')}</option>
+          {instructors.map((i) => (
+            <option key={i.id} value={i.id}>
+              {i.name}
+            </option>
+          ))}
+        </select>
+
+        <label className="check check--inline">
+          <input
+            type="checkbox"
+            checked={countRejected}
+            onChange={(e) => setCountRejected(e.target.checked)}
+          />
+          {t('Reddedilenleri de say')}
+        </label>
+      </div>
+
+      <p className="admin-hint">{rangeLabel}</p>
+
+      {loading ? (
+        <p className="admin-hint">{t('Yükleniyor…')}</p>
+      ) : (
+        <>
+          <div className="stat-grid stat-grid--compact">
+            <article className="stat stat--accent">
+              <header className="stat-head">
+                <span className="stat-title">{t('Dönemdeki ders')}</span>
+              </header>
+              <p className="stat-value">{totals.lessons.toLocaleString(locale())}</p>
+            </article>
+            <article className="stat stat--individual">
+              <header className="stat-head">
+                <span className="stat-title">{t('Toplam saat')}</span>
+              </header>
+              <p className="stat-value">
+                {totals.hours.toLocaleString(locale())}
+                <span className="stat-suffix"> {t('saat')}</span>
+              </p>
+            </article>
+            <article className="stat stat--group">
+              <header className="stat-head">
+                <span className="stat-title">{t('Toplam katılımcı')}</span>
+              </header>
+              <p className="stat-value">{totals.people.toLocaleString(locale())}</p>
+            </article>
+            <article className="stat stat--kids">
+              <header className="stat-head">
+                <span className="stat-title">{t('Onay bekleyen')}</span>
+              </header>
+              <p className="stat-value">{totals.pending.toLocaleString(locale())}</p>
+            </article>
+          </div>
+
+          <div className="chart-grid">
+            <section className="panel">
+              <h4 className="panel-title">{t('Hoca başına verilen saat')}</h4>
+              <BarRows
+                data={byInstructor}
+                suffix={` ${t('saat')}`}
+                empty={t('Bu dönemde ders yok.')}
+              />
+            </section>
+
+            <section className="panel">
+              <h4 className="panel-title">{t('Zaman içinde ders sayısı')}</h4>
+              <Columns data={overTime} empty={t('Bu dönemde ders yok.')} />
+            </section>
+
+            <section className="panel">
+              <h4 className="panel-title">{t('Ders tipi dağılımı')}</h4>
+              <Split data={byType} empty={t('Bu dönemde ders yok.')} />
+            </section>
+
+            <section className="panel">
+              <h4 className="panel-title">{t('Talep durumu')}</h4>
+              <Split data={byStatus} empty={t('Bu dönemde ders yok.')} />
+            </section>
+          </div>
+
+          <section className="panel">
+            <h4 className="panel-title">{t('Hoca bazında özet')}</h4>
+            {table.length === 0 ? (
+              <p className="chart-empty">{t('Bu dönemde ders yok.')}</p>
+            ) : (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>{t('Hoca')}</th>
+                      <th>{t('Ders')}</th>
+                      <th>{t('Saat')}</th>
+                      <th>{t('Bireysel')}</th>
+                      <th>{t('Grup')}</th>
+                      <th>{t('Çocuk kampı')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {table.map((r) => (
+                      <tr key={r.name}>
+                        <td>{r.name}</td>
+                        <td>{r.lessons}</td>
+                        <td>{r.hours}</td>
+                        <td>{r.individual}</td>
+                        <td>{r.group}</td>
+                        <td>{r.kids}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </>
+      )}
+
       <p className="admin-hint">
         {t(
-          'Öğrenci sayısı, rolü eğitmen ya da yönetici olmayan kullanıcıları sayar. Bu ay verilen ders, bu ay başlayan onaylı rezervasyonların toplam saatidir.',
+          'Hesap sayısı giriş yapabilen kişileri gösterir — müşterilerin hesabı yoktur. Bu ay verilen ders, bu ay başlayan onaylı rezervasyonların toplam saatidir.',
         )}
       </p>
     </section>
