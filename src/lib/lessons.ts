@@ -43,3 +43,20 @@ export function lessonClass(b: LessonShape): string {
   if (b.lessonType === 'group') return 'group';
   return 'individual';
 }
+
+/**
+ * The label staff see in a calendar cell.
+ *
+ * Differs from `shortLesson` in one way that matters: a group lesson says which
+ * sport it is too. `shortLesson` drops it to stay short, which is fine for the
+ * public view where the sport is not shown at all, but the person teaching it
+ * needs to know whether to carry a board or a wing.
+ */
+export function staffLesson(b: LessonShape): string {
+  if (b.lessonType === 'kids_camp') return translate('Çocuk kampı');
+  if (b.lessonType === 'group') {
+    const head = `${translate('Grup')} (${b.groupSize ?? '?'})`;
+    return b.sport ? `${head} · ${SPORT_LABEL[b.sport]}` : head;
+  }
+  return b.sport ? SPORT_LABEL[b.sport] : translate('Bireysel');
+}

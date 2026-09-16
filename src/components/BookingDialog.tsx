@@ -318,28 +318,30 @@ export default function BookingDialog({
               </div>
             )}
 
-            {instructor.sports.length > 1 && (
-              <div className="field">
-                <span>{t('Hangi ders?')}</span>
-                <div
-                  className="segmented segmented--block"
-                  role="group"
-                  aria-label={t('Spor seçin')}
-                >
-                  {instructor.sports.map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      className={`segment${sport === s ? ' is-active' : ''}`}
-                      onClick={() => setSport(s)}
-                      aria-pressed={sport === s}
-                    >
-                      {SPORT_LABEL[s]}
-                    </button>
-                  ))}
-                </div>
+            <div className="field">
+              <span>{t('Hangi ders?')}</span>
+              <div className="segmented segmented--block" role="group" aria-label={t('Spor seçin')}>
+                {(['windsurf', 'wingfoil'] as Sport[]).map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    className={`segment${sport === s ? ' is-active' : ''}`}
+                    onClick={() => setSport(s)}
+                    aria-pressed={sport === s}
+                  >
+                    {SPORT_LABEL[s]}
+                  </button>
+                ))}
               </div>
-            )}
+              {!instructor.sports.includes(sport) && (
+                <small className="field-hint">
+                  {t('{n} bu hocanın uzmanlık alanlarında yazılı değil.').replace(
+                    '{n}',
+                    SPORT_LABEL[sport],
+                  )}
+                </small>
+              )}
+            </div>
           </>
         )}
 

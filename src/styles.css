@@ -1481,11 +1481,6 @@ ol {
   color: var(--text-dim);
 }
 
-.stat-icon {
-  font-size: 16px;
-  opacity: 0.8;
-}
-
 .stat-value {
   margin: 6px 0 0;
   font-size: 30px;

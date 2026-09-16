@@ -8,32 +8,35 @@ import { BarRows, Columns, Split, type Slice } from './Charts';
 type Card = {
   key: keyof api.DashboardStats;
   title: string;
-  icon: string;
   tone: string;
   suffix?: string;
 };
 
 const CARDS: Card[] = [
-  { key: 'students', title: 'Toplam Müşteri', icon: '👥', tone: 'accent' },
-  { key: 'instructors', title: 'Toplam Hoca', icon: '🏄', tone: 'individual' },
-  { key: 'users', title: 'Hesap', icon: '🔑', tone: 'group' },
-  { key: 'bookings', title: 'Toplam Rezervasyon', icon: '📋', tone: 'kids' },
-  { key: 'hoursThisMonth', title: 'Bu Ay Verilen Ders', icon: '⏱', tone: 'accent', suffix: 'saat' },
+  { key: 'students', title: 'Toplam Müşteri', tone: 'accent' },
+  { key: 'instructors', title: 'Toplam Hoca', tone: 'individual' },
+  { key: 'users', title: 'Hesap', tone: 'group' },
+  { key: 'bookings', title: 'Toplam Rezervasyon', tone: 'kids' },
+  { key: 'hoursThisMonth', title: 'Bu Ay Verilen Ders', tone: 'accent', suffix: 'saat' },
 ];
-
-type RangeKey = 'week' | 'month' | 'quarter' | 'custom';
 
 function startOfMonth(): string {
   const d = new Date();
   return toDateKey(new Date(d.getFullYear(), d.getMonth(), 1));
 }
 
-function rangeFor(key: RangeKey, from: string, to: string): [string, string] {
-  if (key === 'week') return [addDays(todayKey(), -6), todayKey()];
-  if (key === 'month') return [startOfMonth(), todayKey()];
-  if (key === 'quarter') return [addDays(todayKey(), -89), todayKey()];
-  return [from, to];
-}
+/**
+ * The shortcuts, as the dates they stand for.
+ *
+ * They write into the same two date fields the reader can edit, rather than
+ * being a mode of their own — so "this month, but starting on the 3rd" is one
+ * click and one edit instead of a different control.
+ */
+const PRESETS: { label: string; range: () => [string, string] }[] = [
+  { label: 'Son 7 gün', range: () => [addDays(todayKey(), -6), todayKey()] },
+  { label: 'Bu ay', range: () => [startOfMonth(), todayKey()] },
+  { label: 'Son 90 gün', range: () => [addDays(todayKey(), -89), todayKey()] },
+];
 
 /** Days between two keys, inclusive. */
 function daysBetween(from: string, to: string): number {
@@ -48,14 +51,13 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [rangeKey, setRangeKey] = useState<RangeKey>('month');
   const [from, setFrom] = useState(startOfMonth());
   const [to, setTo] = useState(todayKey());
   const [instructorId, setInstructorId] = useState('all');
   /** Rejected lessons never happened, so they are out of the numbers by default. */
   const [countRejected, setCountRejected] = useState(false);
 
-  const [rangeFrom, rangeTo] = rangeFor(rangeKey, from, to);
+  const [rangeFrom, rangeTo] = [from, to];
 
   useEffect(() => {
     let cancelled = false;
@@ -206,9 +208,6 @@ export default function Dashboard() {
           <article key={c.key} className={`stat stat--${c.tone}`}>
             <header className="stat-head">
               <span className="stat-title">{t(c.title)}</span>
-              <span className="stat-icon" aria-hidden="true">
-                {c.icon}
-              </span>
             </header>
             <p className="stat-value">
               {stats ? stats[c.key].toLocaleString(locale()) : '—'}
@@ -222,43 +221,42 @@ export default function Dashboard() {
 
       <div className="filters">
         <div className="segmented" role="group" aria-label={t('Dönem')}>
-          {(
-            [
-              ['week', 'Son 7 gün'],
-              ['month', 'Bu ay'],
-              ['quarter', 'Son 90 gün'],
-              ['custom', 'Özel'],
-            ] as [RangeKey, string][]
-          ).map(([key, label]) => (
-            <button
-              key={key}
-              className={`segment${rangeKey === key ? ' is-active' : ''}`}
-              onClick={() => setRangeKey(key)}
-              aria-pressed={rangeKey === key}
-            >
-              {t(label)}
-            </button>
-          ))}
+          {PRESETS.map((p) => {
+            const [pf, pt] = p.range();
+            const active = from === pf && to === pt;
+            return (
+              <button
+                key={p.label}
+                className={`segment${active ? ' is-active' : ''}`}
+                onClick={() => {
+                  setFrom(pf);
+                  setTo(pt);
+                }}
+                aria-pressed={active}
+              >
+                {t(p.label)}
+              </button>
+            );
+          })}
         </div>
 
-        {rangeKey === 'custom' && (
-          <label className="range">
-            <input
-              type="date"
-              value={from}
-              onChange={(e) => setFrom(e.target.value)}
-              aria-label={t('Başlangıç')}
-            />
-            <span>–</span>
-            <input
-              type="date"
-              value={to}
-              min={from}
-              onChange={(e) => setTo(e.target.value)}
-              aria-label={t('Bitiş')}
-            />
-          </label>
-        )}
+        <label className="range">
+          <input
+            type="date"
+            value={from}
+            max={to}
+            onChange={(e) => setFrom(e.target.value)}
+            aria-label={t('Başlangıç')}
+          />
+          <span>–</span>
+          <input
+            type="date"
+            value={to}
+            min={from}
+            onChange={(e) => setTo(e.target.value)}
+            aria-label={t('Bitiş')}
+          />
+        </label>
 
         <select
           value={instructorId}

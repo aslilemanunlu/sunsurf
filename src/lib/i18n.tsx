@@ -221,6 +221,9 @@ const EN: Record<string, string> = {
   'Bu saatteki ders bulunamadı; sayfayı yenileyip tekrar deneyin.':
     'Could not find the lesson in that hour; reload the page and try again.',
 
+  '{n} bu hocanın uzmanlık alanlarında yazılı değil.':
+    '{n} is not listed among this instructor’s specialities.',
+
   // camp registrations
   'Sezon kayıtları': 'Season registrations',
   Sezon: 'Season',

@@ -10,13 +10,13 @@ import PaymentsPage from './PaymentsPage';
 
 type Page = 'dashboard' | 'bookings' | 'customers' | 'payments' | 'kids' | 'staff';
 
-const NAV: { key: Page; label: string; icon: string }[] = [
-  { key: 'dashboard', label: 'Ana Sayfa', icon: '▦' },
-  { key: 'bookings', label: 'Rezervasyonlar', icon: '📋' },
-  { key: 'customers', label: 'Müşteriler', icon: '👥' },
-  { key: 'payments', label: 'Ödemeler', icon: '₺' },
-  { key: 'kids', label: 'Çocuk Kampı', icon: '🪁' },
-  { key: 'staff', label: 'Hocalar', icon: '🏄' },
+const NAV: { key: Page; label: string }[] = [
+  { key: 'dashboard', label: 'Ana Sayfa' },
+  { key: 'bookings', label: 'Rezervasyonlar' },
+  { key: 'customers', label: 'Müşteriler' },
+  { key: 'payments', label: 'Ödemeler' },
+  { key: 'kids', label: 'Çocuk Kampı' },
+  { key: 'staff', label: 'Hocalar' },
 ];
 
 type Props = {
@@ -44,7 +44,6 @@ export default function AdminShell({ viewer, instructors, onBackToCalendar, onCh
                 onClick={() => setPage(n.key)}
                 aria-current={page === n.key ? 'page' : undefined}
               >
-                <span aria-hidden="true">{n.icon}</span>
                 {t(n.label)}
               </button>
             </li>

@@ -13,7 +13,7 @@ import * as api from './api/client';
 import { auth } from './neon';
 import { todayKey } from './lib/date';
 import { gridHours, hourKey, isOpenHour, MAX_DURATION, type HourState } from './lib/hours';
-import { lessonClass, shortLesson } from './lib/lessons';
+import { lessonClass, shortLesson, staffLesson } from './lib/lessons';
 import DayNav from './components/DayNav';
 import SportFilter, { type SportFilterValue } from './components/SportFilter';
 import DayCalendar, { type HourCell } from './components/DayCalendar';
@@ -275,9 +275,12 @@ export default function App() {
         else state = 'free';
 
         // Outside the school a booked hour is just booked. A camp is the one
-        // exception: it is the thing people ring up to ask about.
-        const label =
-          occupant && (manages || occupant.lesson_type === 'kids_camp')
+        // exception: it is the thing people ring up to ask about. Staff see
+        // what it actually is, sport included — which only the managed
+        // bookings can tell them: busy_hours deliberately does not carry it.
+        const label = own
+          ? staffLesson(own)
+          : occupant && occupant.lesson_type === 'kids_camp'
             ? shortLesson({ lessonType: occupant.lesson_type, groupSize: null })
             : undefined;
 
@@ -287,7 +290,7 @@ export default function App() {
           state,
           blockId,
           bookingId: own?.id,
-          lessonType: occupant?.lesson_type,
+          lessonType: own?.lessonType ?? occupant?.lesson_type,
           lessonLabel: label,
           lessonClass: occupant
             ? lessonClass({ lessonType: occupant.lesson_type, groupSize: null })
