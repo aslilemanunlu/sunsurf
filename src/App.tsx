@@ -342,6 +342,7 @@ export default function App() {
         sport: input.sport,
         groupSize: input.groupSize,
         customerId: input.customerId,
+        isGuest: input.isGuest,
         agreementId: input.agreementId,
         tentative: input.tentative,
       };
@@ -349,6 +350,7 @@ export default function App() {
       if (dialog.existing) {
         await api.updateBooking(dialog.existing.id, {
           customerId: input.customerId,
+          isGuest: input.isGuest,
           lessonType: input.lessonType,
           sport: input.sport,
           groupSize: input.groupSize,
@@ -578,6 +580,7 @@ export default function App() {
               dialog.existing && {
                 id: dialog.existing.id,
                 customerName: dialog.existing.customerName,
+                isGuest: dialog.existing.isGuest,
                 lessonType: dialog.existing.lessonType,
                 sport: dialog.existing.sport,
                 groupSize: dialog.existing.groupSize,

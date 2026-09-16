@@ -252,6 +252,10 @@ const EN: Record<string, string> = {
   'Ne yaptığı, yazdığınız dersten anlaşılıyor; ayrıca sormuyoruz.':
     'What they are here for comes from the lesson you are writing; we do not ask twice.',
 
+  Misafir: 'Guest',
+  'Misafir — kayıt açma': 'Guest — do not create a record',
+  'Misafir derslerini dahil et': 'Include guest lessons',
+
   // accounts and access
   'Kullanıcı Ekle': 'Add user',
   'Davet et': 'Invite',

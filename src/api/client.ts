@@ -186,8 +186,10 @@ export async function createBooking(input: {
   lessonType: LessonType;
   sport?: Sport | null;
   groupSize?: number | null;
-  /** Null for a kids camp booked before anybody is named. */
+  /** Null for a guest, and for a kids camp booked before anybody is named. */
   customerId: string | null;
+  /** A one-off nobody is writing down. */
+  isGuest?: boolean;
   /** The package this lesson comes off, when there is one. */
   agreementId?: string | null;
   /** An enquiry that is not settled yet. */
@@ -201,6 +203,7 @@ export async function createBooking(input: {
     sport: input.lessonType === 'kids_camp' ? null : (input.sport ?? null),
     group_size: input.lessonType === 'group' ? (input.groupSize ?? null) : null,
     customer_id: input.customerId ?? null,
+    is_guest: input.isGuest ?? false,
     agreement_id: input.agreementId ?? null,
     status: input.tentative ? 'pending' : 'approved',
   };
@@ -250,6 +253,7 @@ export async function unblockHour(blockId: string): Promise<void> {
 type ManagedRow = {
   id: string;
   customer_id: string | null;
+  is_guest: boolean | null;
   instructor_id: string;
   instructor_name: string;
   starts_at: string;
@@ -268,6 +272,7 @@ function toManaged(r: ManagedRow): ManagedBooking {
   return {
     id: r.id,
     customerId: r.customer_id,
+    isGuest: r.is_guest ?? false,
     instructorId: r.instructor_id,
     instructorName: r.instructor_name.trim(),
     startsAt: r.starts_at,
@@ -1354,6 +1359,7 @@ export async function updateBooking(
   bookingId: string,
   patch: {
     customerId?: string | null;
+    isGuest?: boolean;
     lessonType?: LessonType;
     sport?: Sport | null;
     groupSize?: number | null;
@@ -1364,6 +1370,7 @@ export async function updateBooking(
 ): Promise<void> {
   const row: Record<string, unknown> = {};
   if (patch.customerId !== undefined) row.customer_id = patch.customerId;
+  if (patch.isGuest !== undefined) row.is_guest = patch.isGuest;
   if (patch.lessonType !== undefined) row.lesson_type = patch.lessonType;
   if (patch.sport !== undefined) row.sport = patch.sport;
   if (patch.groupSize !== undefined) row.group_size = patch.groupSize;

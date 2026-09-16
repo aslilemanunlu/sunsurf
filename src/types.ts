@@ -64,6 +64,8 @@ export type Segment = 'lesson' | 'storage' | 'rental' | 'kids_camp' | 'windsurf'
 export type ManagedBooking = {
   id: string;
   customerId: string | null;
+  /** A one-off nobody is writing down — deliberately not a customer record. */
+  isGuest: boolean;
   instructorId: string;
   instructorName: string;
   startsAt: string;

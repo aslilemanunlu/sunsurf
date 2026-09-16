@@ -12,8 +12,10 @@ export type NewBooking = {
   sport: Sport | null;
   groupSize: number | null;
   durationHours: number;
-  /** The customer the lesson is for. Null for an unnamed kids camp. */
+  /** The customer the lesson is for. Null for a guest or an unnamed camp. */
   customerId: string | null;
+  /** A one-off nobody is writing down. */
+  isGuest: boolean;
   /** The package it comes off, when one was chosen. */
   agreementId: string | null;
   /** An enquiry that is not settled yet. */
@@ -27,6 +29,7 @@ type Props = {
   existing?: {
     id: string;
     customerName: string | null;
+    isGuest: boolean;
     lessonType: LessonType;
     sport: Sport | null;
     groupSize: number | null;
@@ -95,6 +98,12 @@ export default function BookingDialog({
    * when saving; no match means a new record, with the phone only if given.
    */
   const [name, setName] = useState(existing?.customerName ?? '');
+  /**
+   * A hotel guest who turns up once. Writing them into the customer list fills
+   * it with names that mean nothing, so the lesson says "nobody" outright
+   * instead of being left to look like an unfinished one.
+   */
+  const [guest, setGuest] = useState(existing?.isGuest ?? false);
   const [phone, setPhone] = useState('');
   const [packages, setPackages] = useState<api.OpenPackage[]>([]);
   const [agreementId, setAgreementId] = useState('');
@@ -163,7 +172,7 @@ export default function BookingDialog({
   // before anybody knows which children are coming, and the children are named
   // on the season's registration list instead.
   const canSubmit =
-    !submitting && !saving && allowed(duration) && (isCamp || name.trim().length >= 2);
+    !submitting && !saving && allowed(duration) && (isCamp || guest || name.trim().length >= 2);
 
   async function submit() {
     setSaving(true);
@@ -171,8 +180,8 @@ export default function BookingDialog({
     try {
       // A name that is not on the list becomes a record. The phone is optional:
       // for a kids camp especially, the name is all anyone has at that moment.
-      let customerId: string | null = matched?.customerId ?? null;
-      if (!customerId && name.trim().length >= 2) {
+      let customerId: string | null = guest ? null : (matched?.customerId ?? null);
+      if (!guest && !customerId && name.trim().length >= 2) {
         customerId = await api.createCustomer({
           fullName: name,
           phone,
@@ -187,6 +196,7 @@ export default function BookingDialog({
         groupSize: lessonType === 'group' ? groupSize : null,
         durationHours: duration,
         customerId,
+        isGuest: guest,
         agreementId: agreementId || null,
         tentative,
         dates: repeatDates(startsAt, repeat, times),
@@ -222,6 +232,13 @@ export default function BookingDialog({
         {(error || saveError) && <p className="dialog-error">{error ?? saveError}</p>}
 
         {!isCamp && (
+          <label className="check check--inline">
+            <input type="checkbox" checked={guest} onChange={(e) => setGuest(e.target.checked)} />
+            {t('Misafir — kayıt açma')}
+          </label>
+        )}
+
+        {!isCamp && !guest && (
         <label className="field">
           <span>{t('Kimin adına?')}</span>
           <input
@@ -248,7 +265,7 @@ export default function BookingDialog({
           </p>
         )}
 
-        {!matched && name.trim().length >= 2 && (
+        {!guest && !matched && name.trim().length >= 2 && (
           <label className="field">
             <span>
               {t('Telefon')} ({t('opsiyonel')})
@@ -260,7 +277,7 @@ export default function BookingDialog({
           </label>
         )}
 
-        {!isCamp && packages.length > 0 && (
+        {!isCamp && !guest && packages.length > 0 && (
           <label className="field">
             <span>{t('Hangi paketten düşsün?')}</span>
             <select value={agreementId} onChange={(e) => setAgreementId(e.target.value)}>

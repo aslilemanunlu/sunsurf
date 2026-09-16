@@ -153,7 +153,11 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
                       {r.id.slice(0, 8)}
                     </td>
                     <td>
-                      {r.customerName ?? r.customerEmail ?? '—'}
+                      {r.isGuest ? (
+                        <span className="cell-dim">{t('Misafir')}</span>
+                      ) : (
+                        (r.customerName ?? r.customerEmail ?? '—')
+                      )}
                       {r.customerPhone && <div className="cell-dim">{r.customerPhone}</div>}
                     </td>
                     <td>{r.instructorName}</td>

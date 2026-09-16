@@ -54,6 +54,12 @@ export default function Dashboard() {
   const [to, setTo] = useState(todayKey());
   const [pickedInstructors, setPickedInstructors] = useState<string[]>([]);
   const [pickedTypes, setPickedTypes] = useState<LessonType[]>([]);
+  /**
+   * Guest lessons are real hours the school taught, but a guest is not a
+   * customer — counting them in by default would flatter every number about
+   * how busy the school is with people who come back.
+   */
+  const [withGuests, setWithGuests] = useState(false);
 
 
   const [rangeFrom, rangeTo] = [from, to];
@@ -99,10 +105,11 @@ export default function Dashboard() {
       rows.filter(
         (r) =>
             r.status !== 'rejected' &&
+          (withGuests || !r.isGuest) &&
           (pickedInstructors.length === 0 || pickedInstructors.includes(r.instructorId)) &&
           (pickedTypes.length === 0 || pickedTypes.includes(r.lessonType)),
       ),
-    [rows, pickedInstructors, pickedTypes],
+    [rows, withGuests, pickedInstructors, pickedTypes],
   );
 
   const totals = useMemo(() => {
@@ -194,6 +201,11 @@ export default function Dashboard() {
     return [...map.values()].sort((a, b) => b.hours - a.hours);
   }, [counted]);
 
+  const guestCount = useMemo(
+    () => rows.filter((r) => r.isGuest && r.status !== 'rejected').length,
+    [rows],
+  );
+
   const rangeLabel = `${fromDateKey(rangeFrom).toLocaleDateString(locale())} – ${fromDateKey(
     rangeTo,
   ).toLocaleDateString(locale())}`;
@@ -240,6 +252,16 @@ export default function Dashboard() {
             );
           })}
         </div>
+
+        <label className="check check--inline">
+          <input
+            type="checkbox"
+            checked={withGuests}
+            onChange={(e) => setWithGuests(e.target.checked)}
+          />
+          {t('Misafir derslerini dahil et')}
+          {guestCount > 0 && <span className="cell-dim"> ({guestCount})</span>}
+        </label>
 
         <label className="range">
           <input

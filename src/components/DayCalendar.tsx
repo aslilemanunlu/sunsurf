@@ -191,7 +191,7 @@ export default function DayCalendar({
                 const text =
                   cell?.lessonLabel ??
                   (manages && state === 'free' ? 'Müsait · düzenle' : STATE_LABEL[state]);
-                const who = booking?.customerName;
+                const who = booking?.isGuest ? t('Misafir') : booking?.customerName;
 
                 const tone = cell?.lessonClass ? ` is-${cell.lessonClass}` : '';
 
