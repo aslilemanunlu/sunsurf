@@ -36,7 +36,7 @@ type Props = {
   busyKey: string | null;
   /** Staff clicked a free or blocked hour — App opens the little action menu. */
   onManageHour: (instructor: Instructor, cell: HourCell) => void;
-  /** Staff dragged across several free hours: straight to a lesson of that length. */
+  /** Staff dragged across several free hours; they still choose what goes in it. */
   onSelectRange: (instructor: Instructor, startsAt: Date, hours: number) => void;
 };
 
@@ -198,14 +198,12 @@ export default function DayCalendar({
                     {clickable ? (
                       <button className="cal-hit" onClick={onClick} disabled={busy}>
                         <span className="cal-state">{busy ? '…' : t(text)}</span>
+                        {who && <span className="cal-customer">{who}</span>}
                       </button>
                     ) : (
-                      <span className="cal-state">{t(text)}</span>
-                    )}
-
-                    {who && (
-                      <span className="cal-customer" title={booking?.customerPhone ?? undefined}>
-                        {who}
+                      <span className="cal-hit cal-hit--static">
+                        <span className="cal-state">{t(text)}</span>
+                        {who && <span className="cal-customer">{who}</span>}
                       </span>
                     )}
                   </div>

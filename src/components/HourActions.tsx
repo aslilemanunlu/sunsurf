@@ -7,6 +7,8 @@ import type { HourCell } from './DayCalendar';
 type Props = {
   instructor: Instructor;
   cell: HourCell;
+  /** How many hours were dragged out, when the menu came from a drag. */
+  hours?: number;
   busy: boolean;
   onBlock: () => void;
   onUnblock: () => void;
@@ -23,6 +25,7 @@ type Props = {
 export default function HourActions({
   instructor,
   cell,
+  hours,
   busy,
   onBlock,
   onUnblock,
@@ -42,7 +45,7 @@ export default function HourActions({
 
   const blocked = cell.state === 'blocked';
   const booked = cell.state === 'taken' || cell.state === 'pending';
-  const endsAt = new Date(cell.startsAt.getTime() + 60 * 60 * 1000);
+  const endsAt = new Date(cell.startsAt.getTime() + (hours ?? 1) * 60 * 60 * 1000);
 
   return (
     <div className="overlay" onClick={onClose}>

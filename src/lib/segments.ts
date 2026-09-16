@@ -4,10 +4,10 @@ import type { Segment } from '../types';
 export const SEGMENTS: Segment[] = ['lesson', 'storage', 'rental', 'kids_camp'];
 
 export const SEGMENT_LABEL: Record<Segment, string> = {
-  lesson: 'Ders alan',
-  storage: 'Storage',
-  rental: 'Kiralama',
-  kids_camp: 'Çocuk kampı',
+  lesson: 'Özel Ders Öğrencisi',
+  storage: 'Depolamacı',
+  rental: 'Kiralamacı',
+  kids_camp: 'Kids Camp',
 };
 
 /**

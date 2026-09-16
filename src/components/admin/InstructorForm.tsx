@@ -1,11 +1,17 @@
 import { useState } from 'react';
 import { useT } from '../../lib/i18n';
-import type { Sport } from '../../types';
+import type { Employment, Sport } from '../../types';
 import * as api from '../../api/client';
 
 const SPORTS: { value: Sport; label: string }[] = [
   { value: 'windsurf', label: 'Windsurf' },
   { value: 'wingfoil', label: 'Wingfoil' },
+];
+
+const EMPLOYMENT: { value: Employment; label: string }[] = [
+  { value: 'salaried', label: 'Maaşlı' },
+  { value: 'freelance', label: 'Freelance' },
+  { value: 'other', label: 'Diğer' },
 ];
 
 type Props = {
@@ -25,6 +31,8 @@ export default function InstructorForm({ onClose, onSaved }: Props) {
   const [phone, setPhone] = useState('');
   const [bio, setBio] = useState('');
   const [sports, setSports] = useState<Sport[]>(['windsurf']);
+  const [employment, setEmployment] = useState<Employment>('freelance');
+  const [employmentNote, setEmploymentNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +47,7 @@ export default function InstructorForm({ onClose, onSaved }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await api.createInstructor({ name, email, sports, phone, bio });
+      await api.createInstructor({ name, email, sports, phone, bio, employment, employmentNote });
       onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -98,6 +106,30 @@ export default function InstructorForm({ onClose, onSaved }: Props) {
             </label>
           ))}
         </fieldset>
+
+        <div className="field">
+          <span>{t('Çalışma şekli')}</span>
+          <div className="segmented segmented--block" role="group" aria-label={t('Çalışma şekli')}>
+            {EMPLOYMENT.map((e) => (
+              <button
+                key={e.value}
+                type="button"
+                className={`segment${employment === e.value ? ' is-active' : ''}`}
+                onClick={() => setEmployment(e.value)}
+                aria-pressed={employment === e.value}
+              >
+                {t(e.label)}
+              </button>
+            ))}
+          </div>
+          {employment === 'other' && (
+            <input
+              value={employmentNote}
+              onChange={(e) => setEmploymentNote(e.target.value)}
+              placeholder={t('Nasıl çalışıyor?')}
+            />
+          )}
+        </div>
 
         <label className="field">
           <span>{t('Telefon (opsiyonel)')}</span>

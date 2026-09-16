@@ -215,6 +215,65 @@ const EN: Record<string, string> = {
     'There are {n} lessons in this range. Closing it does not delete them — deal with those separately.',
   'Yeniden aç': 'Reopen',
 
+  'Boş bırakabilirsiniz — kampı sonra isimlendirirsiniz.':
+    'You can leave this empty — name the camp later.',
+
+  'Bu saatteki ders bulunamadı; sayfayı yenileyip tekrar deneyin.':
+    'Could not find the lesson in that hour; reload the page and try again.',
+
+  // camp registrations
+  'Sezon kayıtları': 'Season registrations',
+  Sezon: 'Season',
+  'Kamp Kaydı Ekle': 'Add registration',
+  'Kamp kaydı': 'Registration',
+  'Bu sezonda kayıtlı çocuk yok.': 'No children registered for this season.',
+  Çocuk: 'Child',
+  'Çocuğun adı soyadı': 'Child’s full name',
+  'Veli adı soyadı': 'Guardian’s full name',
+  'Veli ile aynı': 'Same as guardian',
+  Form: 'Form',
+  Yok: 'None',
+  'Formun fotoğrafını ekle': 'Add a photo of the form',
+  'Henüz form eklenmemiş.': 'No form added yet.',
+  'Kaydı oluşturduktan sonra formun fotoğrafını ekleyin.':
+    'Save the registration first, then add a photo of the form.',
+  'Bu form silinsin mi?': 'Delete this form?',
+  'Bu çocuk bu sezona zaten kayıtlı.': 'This child is already registered for this season.',
+  'Kamp kayıtları yüklenemedi': 'Could not load registrations',
+  'Kamp kaydı oluşturulamadı': 'Could not create the registration',
+  'Kamp kaydı silinemedi': 'Could not delete the registration',
+  'Form yüklenemedi': 'Could not load the form',
+  'Form eklenemedi': 'Could not add the form',
+  'Form silinemedi': 'Could not delete the form',
+  'Görsel çok büyük. Daha küçük bir fotoğraf deneyin.':
+    'That image is too large. Try a smaller photo.',
+
+  // catalogue and roles
+  'Özel ders': 'Private lesson',
+  Depolama: 'Storage',
+  Sigorta: 'Insurance',
+  'Kids Camp': 'Kids camp',
+  'Özel Ders Öğrencisi': 'Private lesson student',
+  Kiralamacı: 'Rental customer',
+  Depolamacı: 'Storage customer',
+  'Ekipman seviyesi': 'Equipment level',
+  Seans: 'Sessions',
+  Kredi: 'Credit',
+  Yıllık: 'Yearly',
+  Yelken: 'Sail',
+  'Board + Yelken': 'Board + sail',
+  Adet: 'Count',
+  Birim: 'Unit',
+  seans: 'sessions',
+  gün: 'days',
+  kredi: 'credits',
+  'Çalışma şekli': 'Engagement',
+  Maaşlı: 'Salaried',
+  Freelance: 'Freelance',
+  'Nasıl çalışıyor?': 'How are they engaged?',
+  Admin: 'Admin',
+  'Yetki güncellenemedi': 'Could not update access',
+
   // customer record
   'Doğum tarihi': 'Date of birth',
   'Nereden geldi?': 'How did they find us?',

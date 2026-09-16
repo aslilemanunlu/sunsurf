@@ -17,6 +17,9 @@ import type {
   Block,
   Booking,
   BookingStatus,
+  CampDocument,
+  CampRegistration,
+  Employment,
   CrmCustomer,
   CustomerDetails,
   CustomerNote,
@@ -182,7 +185,8 @@ export async function createBooking(input: {
   lessonType: LessonType;
   sport?: Sport | null;
   groupSize?: number | null;
-  customerId: string;
+  /** Null for a kids camp booked before anybody is named. */
+  customerId: string | null;
   /** The package this lesson comes off, when there is one. */
   agreementId?: string | null;
   /** An enquiry that is not settled yet. */
@@ -195,7 +199,7 @@ export async function createBooking(input: {
     lesson_type: input.lessonType,
     sport: input.lessonType === 'kids_camp' ? null : (input.sport ?? null),
     group_size: input.lessonType === 'group' ? (input.groupSize ?? null) : null,
-    customer_id: input.customerId,
+    customer_id: input.customerId ?? null,
     agreement_id: input.agreementId ?? null,
     status: input.tentative ? 'pending' : 'approved',
   };
@@ -320,6 +324,7 @@ export async function decideBooking(
 type RoleRow = {
   user_id: string;
   role: string;
+  is_owner: boolean | null;
   instructor_id: string | null;
 };
 
@@ -330,11 +335,15 @@ type RoleRow = {
  */
 export async function getViewer(): Promise<Viewer> {
   const rows = await read<RoleRow[]>(
-    () => neon.from('user_roles').select('user_id,role,instructor_id').limit(1),
+    () => neon.from('user_roles').select('user_id,role,is_owner,instructor_id').limit(1),
     'Rolünüz okunamadı',
   );
-  if (rows.length === 0) return { role: 'customer', instructorId: null };
-  return { role: rows[0].role as Role, instructorId: rows[0].instructor_id };
+  if (rows.length === 0) return { role: 'customer', isOwner: false, instructorId: null };
+  return {
+    role: rows[0].role as Role,
+    isOwner: rows[0].is_owner ?? false,
+    instructorId: rows[0].instructor_id,
+  };
 }
 
 type DirectoryRow = {
@@ -342,6 +351,7 @@ type DirectoryRow = {
   email: string;
   name: string | null;
   role: string;
+  is_owner: boolean | null;
   instructor_id: string | null;
   email_verified: boolean | null;
   created_at: string | null;
@@ -358,6 +368,7 @@ export async function listUsers(): Promise<DirectoryUser[]> {
     email: r.email,
     name: r.name,
     role: r.role as Role,
+    isOwner: r.is_owner ?? false,
     instructorId: r.instructor_id,
     emailVerified: r.email_verified ?? false,
     createdAt: r.created_at,
@@ -618,6 +629,8 @@ export type InstructorAdmin = {
   bio: string;
   email: string | null;
   phone: string | null;
+  employment: Employment | null;
+  employmentNote: string | null;
   linkedUserId: string | null;
   createdAt: string | null;
 };
@@ -630,6 +643,8 @@ export async function listInstructorsAdmin(): Promise<InstructorAdmin[]> {
     bio: string;
     email: string | null;
     phone: string | null;
+    employment: string | null;
+    employment_note: string | null;
     created_at: string | null;
     linked_user_id: string | null;
   }[]>(() => neon.from('instructor_admin').select('*').order('name'), 'Eğitmenler yüklenemedi');
@@ -641,6 +656,8 @@ export async function listInstructorsAdmin(): Promise<InstructorAdmin[]> {
     bio: r.bio,
     email: r.email,
     phone: r.phone,
+    employment: (r.employment as Employment | null) ?? null,
+    employmentNote: r.employment_note,
     createdAt: r.created_at,
     linkedUserId: r.linked_user_id,
   }));
@@ -656,6 +673,8 @@ export async function createInstructor(input: {
   sports: Sport[];
   phone?: string;
   bio?: string;
+  employment?: Employment | null;
+  employmentNote?: string;
 }): Promise<void> {
   const id = `ins-${input.email.split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase()}-${Date.now()
     .toString(36)
@@ -668,6 +687,8 @@ export async function createInstructor(input: {
     sports: input.sports,
     phone: input.phone?.trim() || null,
     bio: input.bio?.trim() || '',
+    employment: input.employment ?? null,
+    employment_note: input.employmentNote?.trim() || null,
   });
 
   if (result.error?.code === '23505') {
@@ -861,6 +882,8 @@ type AgreementRow = {
   plan: string | null;
   label: string | null;
   note: string | null;
+  equipment_level: string | null;
+  units: number | null;
   agreed_amount: string | number;
   paid: string | number;
   received: string | number;
@@ -881,6 +904,8 @@ function toAgreement(r: AgreementRow): Agreement {
     customerPhone: r.customer_phone,
     kind: r.kind as AgreementKind,
     plan: r.plan,
+    equipmentLevel: (r.equipment_level as Agreement['equipmentLevel']) ?? null,
+    units: r.units === null ? null : Number(r.units),
     label: r.label,
     note: r.note,
     agreedAmount: money(r.agreed_amount),
@@ -905,6 +930,8 @@ export async function createAgreement(input: {
   customerId: string;
   kind: AgreementKind;
   plan: string | null;
+  equipmentLevel?: string | null;
+  units?: number | null;
   label?: string;
   agreedAmount: number;
   note?: string;
@@ -915,6 +942,9 @@ export async function createAgreement(input: {
       customer_id: input.customerId,
       kind: input.kind,
       plan: input.plan,
+      equipment_level: input.equipmentLevel ?? null,
+      units: input.units ?? null,
+      lesson_count: input.kind === 'lesson' ? (input.units ?? null) : null,
       label: input.label?.trim() || null,
       agreed_amount: input.agreedAmount,
       note: input.note?.trim() || null,
@@ -1086,4 +1116,161 @@ export async function createBookingSeries(
     }
   }
   return { created, skipped };
+}
+
+/**
+ * Appoints or removes a yönetici.
+ *
+ * Refused for anyone who is not one already — by a trigger in db/015, not by
+ * this function: an admin who could promote themselves past their own ceiling
+ * would make the ceiling decorative.
+ */
+export async function setOwner(userId: string, owner: boolean): Promise<void> {
+  const result = await neon
+    .from('user_roles')
+    .update({ is_owner: owner })
+    .eq('user_id', userId)
+    .select('user_id');
+  if (result.error) throw new Error(`${translate('Yetki güncellenemedi')}: ${result.error.message}`);
+  if (!result.data || result.data.length === 0) {
+    throw new Error(translate('Yetki güncellenemedi'));
+  }
+}
+
+// ------------------------------------------------------------ camp registrations
+
+type CampRow = {
+  registration_id: string;
+  customer_id: string;
+  season: number;
+  child_name: string;
+  birth_date: string | null;
+  age: number | null;
+  allergy_note: string | null;
+  guardian_name: string | null;
+  guardian_phone: string | null;
+  emergency1_name: string | null;
+  emergency1_phone: string | null;
+  emergency2_name: string | null;
+  emergency2_phone: string | null;
+  note: string | null;
+  documents: number;
+  days: number;
+  hours: number;
+  created_at: string;
+};
+
+export async function listCampRegistrations(season: number): Promise<CampRegistration[]> {
+  const rows = await read<CampRow[]>(
+    () => neon.from('camp_season_roll').select('*').eq('season', season).order('child_name'),
+    'Kamp kayıtları yüklenemedi',
+  );
+  return rows.map((r) => ({
+    registrationId: r.registration_id,
+    customerId: r.customer_id,
+    season: Number(r.season),
+    childName: r.child_name,
+    birthDate: r.birth_date,
+    age: r.age === null ? null : Number(r.age),
+    allergyNote: r.allergy_note,
+    guardianName: r.guardian_name,
+    guardianPhone: r.guardian_phone,
+    emergency1Name: r.emergency1_name,
+    emergency1Phone: r.emergency1_phone,
+    emergency2Name: r.emergency2_name,
+    emergency2Phone: r.emergency2_phone,
+    note: r.note,
+    documents: Number(r.documents ?? 0),
+    days: Number(r.days ?? 0),
+    hours: Number(r.hours ?? 0),
+    createdAt: r.created_at,
+  }));
+}
+
+/**
+ * Registers a child for a season.
+ *
+ * The child is a customer record, so this creates or updates one and then signs
+ * it up. Everything about the child — allergy, guardian, who to ring — lives
+ * there; this table only holds what is about the season.
+ */
+export async function registerForCamp(input: {
+  /** Omit to create a new child record. */
+  customerId?: string;
+  childName: string;
+  season: number;
+  details: CustomerDetails;
+  note?: string;
+}): Promise<string> {
+  let customerId = input.customerId;
+  if (customerId) {
+    await updateCustomer(customerId, { fullName: input.childName, ...input.details });
+  } else {
+    customerId = await createCustomer({
+      fullName: input.childName,
+      ...input.details,
+      segments: [...new Set([...(input.details.segments ?? []), 'kids_camp' as Segment])],
+    });
+  }
+
+  const result = (await neon
+    .from('camp_registrations')
+    .insert({ customer_id: customerId, season: input.season, note: input.note?.trim() || null })
+    .select('id')) as Result<{ id: string }[]>;
+
+  if (result.error?.code === '23505') {
+    throw new Error(translate('Bu çocuk bu sezona zaten kayıtlı.'));
+  }
+  if (result.error) {
+    throw new Error(`${translate('Kamp kaydı oluşturulamadı')}: ${result.error.message}`);
+  }
+  return unwrap(result, 'Kamp kaydı oluşturulamadı')[0].id;
+}
+
+export async function deleteCampRegistration(id: string): Promise<void> {
+  const result = await neon.from('camp_registrations').delete().eq('id', id).select('id');
+  if (result.error) {
+    throw new Error(`${translate('Kamp kaydı silinemedi')}: ${result.error.message}`);
+  }
+}
+
+export async function listCampDocuments(registrationId: string): Promise<CampDocument[]> {
+  const rows = await read<{ id: string; filename: string | null; data: string; created_at: string }[]>(
+    () =>
+      neon
+        .from('camp_documents')
+        .select('id,filename,data,created_at')
+        .eq('registration_id', registrationId)
+        .order('created_at'),
+    'Form yüklenemedi',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    filename: r.filename,
+    data: r.data,
+    createdAt: r.created_at,
+  }));
+}
+
+export async function addCampDocument(
+  registrationId: string,
+  data: string,
+  filename?: string,
+): Promise<void> {
+  const result = await neon
+    .from('camp_documents')
+    .insert({ registration_id: registrationId, data, filename: filename ?? null });
+  if (result.error?.code === '23514') {
+    throw new Error(translate('Görsel çok büyük. Daha küçük bir fotoğraf deneyin.'));
+  }
+  if (result.error) {
+    throw new Error(`${translate('Form eklenemedi')}: ${result.error.message}`);
+  }
+}
+
+export async function deleteCampDocument(id: string): Promise<void> {
+  const result = await neon.from('camp_documents').delete().eq('id', id).select('id');
+  if (result.error) {
+    throw new Error(`${translate('Form silinemedi')}: ${result.error.message}`);
+  }
 }

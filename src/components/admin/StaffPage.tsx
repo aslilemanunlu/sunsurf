@@ -1,17 +1,23 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { DirectoryUser, ManagedBooking, Role } from '../../types';
+import type { DirectoryUser, Employment, ManagedBooking, Role, Viewer } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
 import { SPORT_LABEL } from '../../lib/lessons';
 import InstructorForm from './InstructorForm';
 
 const ROLE_LABEL: Record<Role, string> = {
-  admin: 'Yönetici',
+  admin: 'Admin',
   instructor: 'Hoca',
   customer: 'Erişimi yok',
 };
 
-type Props = { onChanged: () => void };
+const EMPLOYMENT_LABEL: Record<Employment, string> = {
+  salaried: 'Maaşlı',
+  freelance: 'Freelance',
+  other: 'Diğer',
+};
+
+type Props = { viewer: Viewer; onChanged: () => void };
 
 /** "2026-09" — the month a month picker gives back. */
 function thisMonthKey(): string {
@@ -31,7 +37,7 @@ function monthBounds(key: string): [string, string] {
  * that person has an account, and until the two are joined they appear on the
  * calendar but cannot sign in and manage their own hours.
  */
-export default function StaffPage({ onChanged }: Props) {
+export default function StaffPage({ viewer, onChanged }: Props) {
   const { t } = useT();
   const [rows, setRows] = useState<api.InstructorAdmin[]>([]);
   const [accounts, setAccounts] = useState<DirectoryUser[]>([]);
@@ -105,6 +111,21 @@ export default function StaffPage({ onChanged }: Props) {
     [worksheet],
   );
 
+  /** Only a yönetici may appoint one; a trigger in db/015 enforces it too. */
+  async function setOwner(u: DirectoryUser, owner: boolean) {
+    setBusyId(u.userId);
+    setError(null);
+    try {
+      await api.setOwner(u.userId, owner);
+      await load();
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function changeRole(u: DirectoryUser, role: Role, instructorId: string | null) {
     setBusyId(u.userId);
     setError(null);
@@ -141,6 +162,7 @@ export default function StaffPage({ onChanged }: Props) {
               <tr>
                 <th>{t('İsim')}</th>
                 <th>{t('Uzmanlık alanı')}</th>
+                <th>{t('Çalışma şekli')}</th>
                 <th>{t('İletişim')}</th>
                 <th>{t('Hesap')}</th>
                 <th>{t('Bu ay')}</th>
@@ -159,6 +181,10 @@ export default function StaffPage({ onChanged }: Props) {
                         </span>
                       ))}
                     </span>
+                  </td>
+                  <td>
+                    {i.employment ? t(EMPLOYMENT_LABEL[i.employment]) : '—'}
+                    {i.employmentNote && <div className="cell-dim">{i.employmentNote}</div>}
                   </td>
                   <td className="cell-dim">
                     {i.email ?? '—'}
@@ -279,6 +305,7 @@ export default function StaffPage({ onChanged }: Props) {
                   <th>{t('İsim')}</th>
                   <th>{t('E-posta')}</th>
                   <th>{t('Yetki')}</th>
+                  <th>{t('Yönetici')}</th>
                   <th>{t('Hoca profili')}</th>
                   <th>{t('Kayıt')}</th>
                 </tr>
@@ -305,6 +332,27 @@ export default function StaffPage({ onChanged }: Props) {
                           </option>
                         ))}
                       </select>
+                    </td>
+                    <td>
+                      {u.role === 'admin' ? (
+                        viewer.isOwner ? (
+                          <label className="check check--inline">
+                            <input
+                              type="checkbox"
+                              checked={u.isOwner}
+                              disabled={busyId === u.userId}
+                              onChange={(e) => setOwner(u, e.target.checked)}
+                            />
+                            {t('Yönetici')}
+                          </label>
+                        ) : u.isOwner ? (
+                          <span className="status status--approved">{t('Yönetici')}</span>
+                        ) : (
+                          <span className="cell-dim">—</span>
+                        )
+                      ) : (
+                        <span className="cell-dim">—</span>
+                      )}
                     </td>
                     <td>
                       {u.role === 'instructor' ? (

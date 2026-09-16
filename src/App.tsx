@@ -61,7 +61,7 @@ function authViewFromLocation(): AuthViewName | null {
 }
 
 /** A visitor, or an account nobody has given a job to yet. Reads, nothing else. */
-const GUEST: Viewer = { role: 'customer', instructorId: null };
+const GUEST: Viewer = { role: 'customer', isOwner: false, instructorId: null };
 
 export default function App() {
   const { t } = useT();
@@ -91,7 +91,12 @@ export default function App() {
     /** Hours dragged out on the grid, when that is how it was opened. */
     duration?: number;
   } | null>(null);
-  const [hourMenu, setHourMenu] = useState<{ instructor: Instructor; cell: HourCell } | null>(null);
+  const [hourMenu, setHourMenu] = useState<{
+    instructor: Instructor;
+    cell: HourCell;
+    /** Hours dragged out on the grid, when that is how the menu was opened. */
+    hours?: number;
+  } | null>(null);
   const [authOpen, setAuthOpen] = useState(() => authViewFromLocation() !== null);
   const [screen, setScreen] = useState<'calendar' | 'admin'>('calendar');
   const [authView, setAuthView] = useState<AuthViewName>(() => authViewFromLocation() ?? 'SIGN_IN');
@@ -218,15 +223,15 @@ export default function App() {
     [navigateAuth],
   );
 
-  /** An instructor sees their own column and nobody else's. */
-  const visibleInstructors = useMemo(() => {
-    const bySport =
-      sport === 'all' ? instructors : instructors.filter((i) => i.sports.includes(sport));
-    if (viewer.role === 'instructor' && viewer.instructorId) {
-      return bySport.filter((i) => i.id === viewer.instructorId);
-    }
-    return bySport;
-  }, [instructors, sport, viewer]);
+  /**
+   * Everybody sees every column. What differs is the detail: an instructor's
+   * own column shows who each lesson is for, and the rest show only whether the
+   * hour is taken — which is what `busy_hours` gives anyone anyway.
+   */
+  const visibleInstructors = useMemo(
+    () => (sport === 'all' ? instructors : instructors.filter((i) => i.sports.includes(sport))),
+    [instructors, sport],
+  );
 
   /**
    * Availability is derived, never stored. An hour starts free inside working
@@ -242,6 +247,7 @@ export default function App() {
         const key = hourKey(instructor.id, hour);
         const blockId = blocks.get(key);
         const occupant = busy.get(key);
+        const own = ownBookings.get(key);
 
         let state: HourState;
         if (!isOpenHour(hour.getHours())) state = 'closed';
@@ -262,6 +268,7 @@ export default function App() {
           startsAt: hour,
           state,
           blockId,
+          bookingId: own?.id,
           lessonType: occupant?.lesson_type,
           lessonLabel: label,
           lessonClass: occupant
@@ -271,7 +278,7 @@ export default function App() {
       }
     }
     return out;
-  }, [visibleInstructors, dateKey, busy, blocks, manages]);
+  }, [visibleInstructors, dateKey, busy, blocks, ownBookings, manages]);
 
   /** How many consecutive hours are bookable from here. */
   const freeHoursFrom = useCallback(
@@ -341,6 +348,22 @@ export default function App() {
     }
   }
 
+  /** Closing a whole dragged run, rather than one hour at a time. */
+  async function blockSpan(instructorId: string, start: Date, hours: number) {
+    setBusyCellKey(hourKey(instructorId, start));
+    try {
+      const all = Array.from({ length: hours }, (_, i) =>
+        new Date(start.getTime() + i * HOUR).toISOString(),
+      );
+      await api.blockRange(instructorId, all);
+      reload();
+    } catch (err) {
+      setDayError(message(err));
+    } finally {
+      setBusyCellKey(null);
+    }
+  }
+
   /** Staff close and reopen hours. An admin may do it on any calendar. */
   async function toggleBlock(cell: HourCell) {
     const key = hourKey(cell.instructorId, cell.startsAt);
@@ -357,7 +380,13 @@ export default function App() {
   }
 
   const roleLabel =
-    viewer.role === 'admin' ? 'Yönetici' : viewer.role === 'instructor' ? 'Eğitmen' : null;
+    viewer.isOwner
+      ? 'Yönetici'
+      : viewer.role === 'admin'
+        ? 'Admin'
+        : viewer.role === 'instructor'
+          ? 'Eğitmen'
+          : null;
 
   const account = (
     <div className="account">
@@ -402,6 +431,7 @@ export default function App() {
           </header>
 
           <AdminShell
+            viewer={viewer}
             instructors={instructors}
             onBackToCalendar={() => setScreen('calendar')}
             onChanged={reload}
@@ -444,7 +474,7 @@ export default function App() {
 
           <div className="cal-bar">
             <h3 className="section-title">
-              {t(viewer.role === 'instructor' ? 'Takvimim' : 'Ders programı')}
+              {t('Ders programı')}
             </h3>
             <ul className="legend">
               <li className="legend-item legend-item--open">{t('Müsait')}</li>
@@ -497,7 +527,11 @@ export default function App() {
               onManageHour={(instructor, cell) => setHourMenu({ instructor, cell })}
               onSelectRange={(instructor, startsAt, hours) => {
                 setBookingError(null);
-                setDialog({ instructor, startsAt, lessonType: 'individual', duration: hours });
+                setHourMenu({
+                  instructor,
+                  cell: { instructorId: instructor.id, startsAt, state: 'free' },
+                  hours,
+                });
               }}
             />
           )}
@@ -541,11 +575,16 @@ export default function App() {
           <HourActions
             instructor={hourMenu.instructor}
             cell={hourMenu.cell}
+            hours={hourMenu.hours}
             busy={busyCellKey !== null}
             onBlock={async () => {
-              const cell = hourMenu.cell;
+              const { cell, instructor, hours } = hourMenu;
               setHourMenu(null);
-              await toggleBlock(cell);
+              if (hours && hours > 1) {
+                await blockSpan(instructor.id, cell.startsAt, hours);
+              } else {
+                await toggleBlock(cell);
+              }
             }}
             onUnblock={async () => {
               const cell = hourMenu.cell;
@@ -553,9 +592,15 @@ export default function App() {
               await toggleBlock(cell);
             }}
             onCancelBooking={async () => {
-              const id = hourMenu.cell.bookingId;
+              const { cell, instructor } = hourMenu;
+              const id =
+                cell.bookingId ?? ownBookings.get(hourKey(instructor.id, cell.startsAt))?.id;
               setHourMenu(null);
-              if (id) await cancelFromCalendar(id);
+              if (id) {
+                await cancelFromCalendar(id);
+              } else {
+                setDayError(t('Bu saatteki ders bulunamadı; sayfayı yenileyip tekrar deneyin.'));
+              }
             }}
             onCreateLesson={() => {
               setBookingError(null);
@@ -563,6 +608,7 @@ export default function App() {
                 instructor: hourMenu.instructor,
                 startsAt: hourMenu.cell.startsAt,
                 lessonType: 'individual',
+                duration: hourMenu.hours,
               });
               setHourMenu(null);
             }}
@@ -572,6 +618,7 @@ export default function App() {
                 instructor: hourMenu.instructor,
                 startsAt: hourMenu.cell.startsAt,
                 lessonType: 'kids_camp',
+                duration: hourMenu.hours,
               });
               setHourMenu(null);
             }}

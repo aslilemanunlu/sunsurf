@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useT } from '../../lib/i18n';
-import type { Instructor } from '../../types';
+import type { Instructor, Viewer } from '../../types';
 import Dashboard from './Dashboard';
 import CustomersPage from './CustomersPage';
 import BookingsPage from './BookingsPage';
@@ -20,12 +20,13 @@ const NAV: { key: Page; label: string; icon: string }[] = [
 ];
 
 type Props = {
+  viewer: Viewer;
   instructors: Instructor[];
   onBackToCalendar: () => void;
   onChanged: () => void;
 };
 
-export default function AdminShell({ instructors, onBackToCalendar, onChanged }: Props) {
+export default function AdminShell({ viewer, instructors, onBackToCalendar, onChanged }: Props) {
   const { t } = useT();
   const [page, setPage] = useState<Page>('dashboard');
 
@@ -57,7 +58,7 @@ export default function AdminShell({ instructors, onBackToCalendar, onChanged }:
         {page === 'customers' && <CustomersPage onChanged={onChanged} />}
         {page === 'payments' && <PaymentsPage onChanged={onChanged} />}
         {page === 'kids' && <KidsCampPage onChanged={onChanged} />}
-        {page === 'staff' && <StaffPage onChanged={onChanged} />}
+        {page === 'staff' && <StaffPage viewer={viewer} onChanged={onChanged} />}
       </div>
     </div>
   );

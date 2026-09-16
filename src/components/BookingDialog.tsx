@@ -14,8 +14,8 @@ export type NewBooking = {
   sport: Sport | null;
   groupSize: number | null;
   durationHours: number;
-  /** The customer record the lesson is for. */
-  customerId: string;
+  /** The customer the lesson is for. Null for an unnamed kids camp. */
+  customerId: string | null;
   /** The package it comes off, when one was chosen. */
   agreementId: string | null;
   /** An enquiry that is not settled yet. */
@@ -145,8 +145,10 @@ export default function BookingDialog({
     [freeHours, startsAt],
   );
 
+  // A camp can go on the calendar before anybody is named; everything else
+  // needs to be for somebody.
   const canSubmit =
-    !submitting && !saving && allowed(duration) && name.trim().length >= 2;
+    !submitting && !saving && allowed(duration) && (isCamp || name.trim().length >= 2);
 
   async function submit() {
     setSaving(true);
@@ -154,8 +156,8 @@ export default function BookingDialog({
     try {
       // A name that is not on the list becomes a record. The phone is optional:
       // for a kids camp especially, the name is all anyone has at that moment.
-      let customerId = matched?.customerId;
-      if (!customerId) {
+      let customerId: string | null = matched?.customerId ?? null;
+      if (!customerId && name.trim().length >= 2) {
         customerId = await api.createCustomer({ fullName: name, phone, segments });
         onCustomerAdded();
       }
@@ -198,7 +200,7 @@ export default function BookingDialog({
         {(error || saveError) && <p className="dialog-error">{error ?? saveError}</p>}
 
         <label className="field">
-          <span>{t('Kimin adına?')}</span>
+          <span>{isCamp ? `${t('Çocuğun ismi')} (${t('opsiyonel')})` : t('Kimin adına?')}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -212,7 +214,13 @@ export default function BookingDialog({
             ))}
           </datalist>
           <small className="field-hint">
-            {matched ? t('Kayıtlı müşteri') : name.trim().length >= 2 ? t('Yeni kayıt açılacak') : ''}
+            {matched
+              ? t('Kayıtlı müşteri')
+              : name.trim().length >= 2
+                ? t('Yeni kayıt açılacak')
+                : isCamp
+                  ? t('Boş bırakabilirsiniz — kampı sonra isimlendirirsiniz.')
+                  : ''}
           </small>
         </label>
 

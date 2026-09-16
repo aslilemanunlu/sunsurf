@@ -2,7 +2,16 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Agreement, AgreementKind, CustomerRef } from '../../types';
 import { useT } from '../../lib/i18n';
 import * as api from '../../api/client';
-import { KINDS, KIND_LABEL, PLANS, formatMoney, planLabel } from '../../lib/agreements';
+import {
+  EQUIPMENT_LABEL,
+  KINDS,
+  KIND_LABEL,
+  PLANS,
+  UNIT_LABEL,
+  formatMoney,
+  planLabel,
+  planOf,
+} from '../../lib/agreements';
 import AgreementForm from './AgreementForm';
 import PaymentDialog from './PaymentDialog';
 
@@ -209,12 +218,28 @@ export default function PaymentsPage({ onChanged }: Props) {
                     {a.customerPhone && <div className="cell-dim">{a.customerPhone}</div>}
                   </td>
                   <td>
-                    <span className={`tag tag--${a.kind === 'kids_camp' ? 'kids' : 'individual'}`}>
+                    <span
+                      className={`tag tag--${
+                        a.kind === 'kids_camp' ? 'kids' : a.kind === 'rental' ? 'group' : 'individual'
+                      }`}
+                    >
                       {t(KIND_LABEL[a.kind])}
                     </span>
                   </td>
                   <td>
                     {t(planLabel(a.kind, a.plan) ?? '—')}
+                    {a.units !== null && (
+                      <>
+                        {' · '}
+                        {a.units}
+                        {planOf(a.kind, a.plan)?.unit
+                          ? ` ${t(UNIT_LABEL[planOf(a.kind, a.plan)!.unit!])}`
+                          : ''}
+                      </>
+                    )}
+                    {a.equipmentLevel && (
+                      <div className="cell-dim">{EQUIPMENT_LABEL[a.equipmentLevel]}</div>
+                    )}
                     {a.label && <div className="cell-dim">{a.label}</div>}
                     {a.kind === 'kids_camp' && a.campDays !== null && (
                       <div className="cell-dim">

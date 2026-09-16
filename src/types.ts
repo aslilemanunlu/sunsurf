@@ -26,6 +26,11 @@ export type Instructor = {
 /** Who is looking. An account with no user_roles row can only read. */
 export type Viewer = {
   role: Role;
+  /**
+   * Yönetici: an admin who may also see and set what instructors are paid.
+   * The only thing that separates the two.
+   */
+  isOwner: boolean;
   /** Set only when this account is linked to an instructor. */
   instructorId: string | null;
 };
@@ -79,6 +84,7 @@ export type DirectoryUser = {
   email: string;
   name: string | null;
   role: Role;
+  isOwner: boolean;
   instructorId: string | null;
   emailVerified: boolean;
   createdAt: string | null;
@@ -158,7 +164,13 @@ export type KidsCampEntry = {
 };
 
 /** What was sold. Each has the same money shape; only the detail differs. */
-export type AgreementKind = 'lesson' | 'rental' | 'kids_camp' | 'storage';
+export type AgreementKind = 'lesson' | 'rental' | 'kids_camp' | 'storage' | 'insurance';
+
+/** Rental is a level of kit for a period; the two are chosen together. */
+export type EquipmentLevel = 'beginner' | 'freeride' | 'advanced';
+
+/** How an instructor is engaged. */
+export type Employment = 'salaried' | 'freelance' | 'other';
 
 /** An agreement with its balance worked out. Admin only. */
 export type Agreement = {
@@ -169,6 +181,10 @@ export type Agreement = {
   kind: AgreementKind;
   /** Which package or period; 'other' means read `label`. */
   plan: string | null;
+  /** Rentals only. */
+  equipmentLevel: EquipmentLevel | null;
+  /** How many of whatever the plan counts: sessions, hours, days, credits. */
+  units: number | null;
   /** Free text: what "other" was, or the child's name for a camp. */
   label: string | null;
   note: string | null;
@@ -191,4 +207,36 @@ export type Payment = {
   kind: 'payment' | 'writeoff';
   paidAt: string;
   note: string | null;
+};
+
+/** A child signed up for a camp season. Admin only. */
+export type CampRegistration = {
+  registrationId: string;
+  customerId: string;
+  season: number;
+  childName: string;
+  birthDate: string | null;
+  age: number | null;
+  allergyNote: string | null;
+  guardianName: string | null;
+  guardianPhone: string | null;
+  emergency1Name: string | null;
+  emergency1Phone: string | null;
+  emergency2Name: string | null;
+  emergency2Phone: string | null;
+  note: string | null;
+  /** How many form pages are attached; the images are fetched separately. */
+  documents: number;
+  /** Camp days and hours actually booked, which is a different question. */
+  days: number;
+  hours: number;
+  createdAt: string;
+};
+
+export type CampDocument = {
+  id: string;
+  filename: string | null;
+  /** A data URL. */
+  data: string;
+  createdAt: string;
 };

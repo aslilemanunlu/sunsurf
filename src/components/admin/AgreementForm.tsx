@@ -1,12 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { AgreementKind, CustomerRef } from '../../types';
+import type { AgreementKind, CustomerRef, EquipmentLevel } from '../../types';
 import { useT } from '../../lib/i18n';
 import * as api from '../../api/client';
-import { KINDS, KIND_LABEL } from '../../lib/agreements';
+import {
+  EQUIPMENT_LABEL,
+  EQUIPMENT_LEVELS,
+  KINDS,
+  KIND_LABEL,
+  UNIT_LABEL,
+  planOf,
+  type Plan,
+} from '../../lib/agreements';
 
 type Props = {
   customers: CustomerRef[];
-  plans: Record<AgreementKind, { value: string; label: string }[]>;
+  plans: Record<AgreementKind, Plan[]>;
   onClose: () => void;
   onSaved: () => void;
 };
@@ -22,6 +30,8 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
   const [kind, setKind] = useState<AgreementKind>('lesson');
   const [plan, setPlan] = useState(plans.lesson[0].value);
   const [label, setLabel] = useState('');
+  const [level, setLevel] = useState<EquipmentLevel>('beginner');
+  const [units, setUnits] = useState('');
   const [amount, setAmount] = useState('');
   const [prepaid, setPrepaid] = useState('');
   const [note, setNote] = useState('');
@@ -43,6 +53,14 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
     setPlan(plans[kind][0].value);
   }, [kind, plans]);
 
+  const chosen = planOf(kind, plan);
+  const unit = chosen?.unit;
+
+  // and the default count follows the plan that gave it meaning
+  useEffect(() => {
+    setUnits(chosen?.options?.[0] !== undefined ? String(chosen.options[0]) : '');
+  }, [chosen]);
+
   const sorted = useMemo(
     () => [...customers].sort((a, b) => a.name.localeCompare(b.name, 'tr')),
     [customers],
@@ -53,8 +71,15 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
   const amountOk = amount.trim() !== '' && Number.isFinite(agreed) && agreed >= 0;
   const paidOk = Number.isFinite(paid) && paid >= 0 && paid <= (amountOk ? agreed : Infinity);
   const needsLabel = plan === 'other';
+  const unitValue = units.trim() === '' ? null : Number(units);
+  const unitsOk = !unit || (unitValue !== null && Number.isFinite(unitValue) && unitValue > 0);
   const canSave =
-    !saving && customerId !== '' && amountOk && paidOk && (!needsLabel || label.trim() !== '');
+    !saving &&
+    customerId !== '' &&
+    amountOk &&
+    paidOk &&
+    unitsOk &&
+    (!needsLabel || label.trim() !== '');
 
   async function addCustomer() {
     const name = newName.trim();
@@ -82,6 +107,8 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
         customerId,
         kind,
         plan,
+        equipmentLevel: kind === 'rental' ? level : null,
+        units: unit ? unitValue : null,
         label,
         agreedAmount: agreed,
         note,
@@ -175,8 +202,27 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
           </div>
         </div>
 
+        {kind === 'rental' && (
+          <div className="field">
+            <span>{t('Ekipman seviyesi')}</span>
+            <div className="segmented segmented--block" role="group" aria-label={t('Ekipman seviyesi')}>
+              {EQUIPMENT_LEVELS.map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  className={`segment${level === l ? ' is-active' : ''}`}
+                  onClick={() => setLevel(l)}
+                  aria-pressed={level === l}
+                >
+                  {EQUIPMENT_LABEL[l]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         <label className="field">
-          <span>{t('Detay')}</span>
+          <span>{kind === 'rental' ? t('Süre') : t('Detay')}</span>
           <select value={plan} onChange={(e) => setPlan(e.target.value)}>
             {plans[kind].map((p) => (
               <option key={p.value} value={p.value}>
@@ -185,6 +231,37 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
             ))}
           </select>
         </label>
+
+        {unit && (
+          <div className="field">
+            <span>{t('Adet')}</span>
+            <div className="unit-row">
+              {(chosen?.options ?? []).map((n) => (
+                <button
+                  key={n}
+                  type="button"
+                  className={`segment${units === String(n) ? ' is-active' : ''}`}
+                  onClick={() => setUnits(String(n))}
+                  aria-pressed={units === String(n)}
+                >
+                  {n}
+                </button>
+              ))}
+              {chosen?.free && (
+                <input
+                  type="number"
+                  min={1}
+                  value={units}
+                  onChange={(e) => setUnits(e.target.value)}
+                  aria-label={t('Adet')}
+                />
+              )}
+            </div>
+            <small className="field-hint">
+              {t('Birim')}: {t(UNIT_LABEL[unit])}
+            </small>
+          </div>
+        )}
 
         <label className="field">
           <span>
