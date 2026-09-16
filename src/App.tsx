@@ -30,18 +30,24 @@ function message(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
+const AUTH_VIEWS: Record<string, AuthViewName> = {
+  'sign-in': 'SIGN_IN',
+  'sign-up': 'SIGN_UP',
+  'forgot-password': 'FORGOT_PASSWORD',
+  'reset-password': 'RESET_PASSWORD',
+};
+
 /**
- * Neon's auth UI navigates between sign-in, sign-up and forgot-password by
- * changing the URL, which this app has no routes for — left alone it reloads
- * the page and throws the dialog away. Mapping its hrefs back to a view name
- * keeps the whole flow inside the dialog.
+ * Neon's auth UI navigates between its screens by changing the URL, which this
+ * app has no routes for — left alone it reloads the page and throws the dialog
+ * away. Mapping its hrefs back to a view name keeps the flow inside the dialog.
+ *
+ * Null means the href is not one of its screens, which is how it says the flow
+ * is over: after a successful sign-in it navigates to `/`.
  */
-function viewForHref(href: string): AuthViewName {
+function viewForHref(href: string): AuthViewName | null {
   const last = href.split('?')[0].split('/').filter(Boolean).pop() ?? '';
-  if (last === 'sign-up') return 'SIGN_UP';
-  if (last === 'forgot-password') return 'FORGOT_PASSWORD';
-  if (last === 'reset-password') return 'RESET_PASSWORD';
-  return 'SIGN_IN';
+  return AUTH_VIEWS[last] ?? null;
 }
 
 /**
@@ -198,6 +204,18 @@ export default function App() {
 
   const navigateAuth = useCallback((href: string) => {
     const next = viewForHref(href);
+
+    // Leaving its own screens is how the auth UI says the flow finished. This
+    // used to fall through to SIGN_IN, so a successful sign-in left the dialog
+    // sitting there looking like nothing had happened. The session is a cookie
+    // the session hook has already read once, so the page is reloaded rather
+    // than nudged: signing in happens rarely and being certain beats being
+    // smooth.
+    if (!next) {
+      window.location.replace('/');
+      return;
+    }
+
     setAuthView(next);
     // The reset form reads its token from the query string, so the URL may only
     // be tidied once we have left that view — otherwise a refresh mid-reset

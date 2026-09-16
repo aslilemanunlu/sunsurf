@@ -1,11 +1,28 @@
 import { createClient } from '@neondatabase/neon-js';
 import { BetterAuthReactAdapter } from '@neondatabase/neon-js/auth/react/adapters';
 
-const authUrl = import.meta.env.VITE_NEON_AUTH_URL;
+/**
+ * Neon's auth server lives on its own domain, so the session cookie it sets is
+ * a third-party cookie for this site — and Safari throws those away. Signing in
+ * then succeeds on the server while the browser keeps nothing, which looks
+ * exactly like a wrong password.
+ *
+ * Setting VITE_NEON_AUTH_PROXY_PATH (say `/neon-auth`) points the client at
+ * this origin instead; `vercel.json` forwards that path to Neon. The cookie
+ * then comes back from our own domain and is nobody's third party.
+ *
+ * Left unset, everything behaves as before — which is the point: if the proxy
+ * misbehaves, clearing one variable puts it back.
+ */
+const proxyPath = import.meta.env.VITE_NEON_AUTH_PROXY_PATH as string | undefined;
+
+const authUrl = proxyPath
+  ? new URL(proxyPath, window.location.origin).toString().replace(/\/$/, '')
+  : import.meta.env.VITE_NEON_AUTH_URL;
 const dataApiUrl = import.meta.env.VITE_NEON_DATA_API_URL;
 
 /** False until .env is filled in; `main.tsx` shows setup instructions instead of the app. */
-export const isConfigured = Boolean(authUrl && dataApiUrl);
+export const isConfigured = Boolean(import.meta.env.VITE_NEON_AUTH_URL && dataApiUrl);
 
 /**
  * One client for both halves of Neon: Managed Better Auth for sessions, and the
