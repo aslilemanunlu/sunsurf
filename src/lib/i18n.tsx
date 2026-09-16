@@ -256,6 +256,17 @@ const EN: Record<string, string> = {
   'Misafir — kayıt açma': 'Guest — do not create a record',
   'Misafir derslerini dahil et': 'Include guest lessons',
 
+  'Bu davet e-posta göndermez. Kişiye siz haber vereceksiniz: adresi kaydettikten sonra aşağıdaki mesajı kopyalayıp gönderin.':
+    'This invitation sends no email. You tell them: save the address, then copy the message below and send it.',
+  'Bu mesajı gönderin': 'Send them this',
+  Kopyala: 'Copy',
+  Kopyalandı: 'Copied',
+  'Sun Surf Alaçatı sistemine eklendiniz.': 'You have been added to Sun Surf Alaçatı.',
+  '“Giriş yap” → “Kayıt ol”': '“Sign in” → “Sign up”',
+  'Şifrenizi kendiniz belirleyin.': 'Choose your own password.',
+  'İlk girişinizde yetkiniz otomatik tanımlanacak.':
+    'Your access is set up automatically on first sign-in.',
+
   // accounts and access
   'Kullanıcı Ekle': 'Add user',
   'Davet et': 'Invite',

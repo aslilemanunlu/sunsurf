@@ -45,6 +45,19 @@ function levelOf(u: DirectoryUser): AccessLevel {
  */
 export default function AccountsPage({ viewer, onChanged }: Props) {
   const { t } = useT();
+
+  /** What the admin sends. No link to a token — there is no token. */
+  const message = (invitedEmail: string) =>
+    [
+      t('Sun Surf Alaçatı sistemine eklendiniz.'),
+      '',
+      `1. ${window.location.origin}`,
+      `2. ${t('“Giriş yap” → “Kayıt ol”')}`,
+      `3. ${t('E-posta')}: ${invitedEmail}`,
+      `4. ${t('Şifrenizi kendiniz belirleyin.')}`,
+      '',
+      t('İlk girişinizde yetkiniz otomatik tanımlanacak.'),
+    ].join('\n');
   const [rows, setRows] = useState<DirectoryUser[]>([]);
   const [instructors, setInstructors] = useState<api.InstructorAdmin[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,6 +76,9 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
    * selected when it closes.
    */
   const [makingProfile, setMakingProfile] = useState<null | { for: string | null }>(null);
+  /** The last address invited, so the panel can hand over what to send. */
+  const [justInvited, setJustInvited] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -116,9 +132,10 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
     setError(null);
     try {
       await api.inviteStaff({ email, level, instructorId });
+      setJustInvited(email.trim().toLowerCase());
+      setCopied(false);
       setEmail('');
       setInstructorId('');
-      setInviteOpen(false);
       await load();
       onChanged();
     } catch (e) {
@@ -159,6 +176,11 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
       {inviteOpen && (
         <section className="panel">
           <h4 className="panel-title">{t('Kullanıcı Ekle')}</h4>
+          <p className="alertline">
+            {t(
+              'Bu davet e-posta göndermez. Kişiye siz haber vereceksiniz: adresi kaydettikten sonra aşağıdaki mesajı kopyalayıp gönderin.',
+            )}
+          </p>
           <p className="admin-hint">
             {t(
               'Şifreyi siz belirlemiyorsunuz: davet ettiğiniz kişi bu e-posta ile kayıt olup kendi şifresini seçer, yetkisi ilk girişinde otomatik tanımlanır. Böylece kimse bir başkasının şifresini bilmek zorunda kalmaz.',
@@ -221,10 +243,32 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
             <button className="btn" onClick={invite} disabled={!emailOk || busy === 'invite'}>
               {busy === 'invite' ? t('Kaydediliyor…') : t('Davet et')}
             </button>
-            <button className="link-btn" onClick={() => setInviteOpen(false)}>
-              {t('Vazgeç')}
+            <button
+              className="link-btn"
+              onClick={() => {
+                setInviteOpen(false);
+                setJustInvited(null);
+              }}
+            >
+              {t('Kapat')}
             </button>
           </div>
+
+          {justInvited && (
+            <div className="handover">
+              <h4 className="panel-title">{t('Bu mesajı gönderin')}</h4>
+              <pre>{message(justInvited)}</pre>
+              <button
+                className="btn btn--small"
+                onClick={async () => {
+                  await navigator.clipboard.writeText(message(justInvited));
+                  setCopied(true);
+                }}
+              >
+                {copied ? t('Kopyalandı') : t('Kopyala')}
+              </button>
+            </div>
+          )}
         </section>
       )}
 

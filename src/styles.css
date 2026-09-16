@@ -2611,3 +2611,19 @@ ol {
   border-radius: 10px;
   background: var(--surface-2);
 }
+
+/* ---------- what to send an invited colleague ---------- */
+.handover {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-radius: var(--radius);
+}
+
+.handover pre {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.5;
+}
