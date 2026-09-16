@@ -4,6 +4,9 @@ import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
 import { addDays, fromDateKey, toDateKey, todayKey } from '../../lib/date';
 import { BarRows, Columns, Split, type Slice } from './Charts';
+import MultiSelect from './MultiSelect';
+import { downloadCsv } from '../../lib/csv';
+import { describeLesson } from '../../lib/lessons';
 
 type Card = {
   key: keyof api.DashboardStats;
@@ -18,6 +21,12 @@ const CARDS: Card[] = [
   { key: 'bookings', title: 'Toplam Rezervasyon', tone: 'kids' },
   { key: 'hoursThisMonth', title: 'Bu Ay Verilen Ders', tone: 'accent', suffix: 'saat' },
 ];
+
+const STATUS_TEXT: Record<string, string> = {
+  pending: 'Ön rezervasyon',
+  approved: 'Onaylı',
+  rejected: 'İptal edilen',
+};
 
 function startOfMonth(): string {
   const d = new Date();
@@ -281,26 +290,13 @@ export default function Dashboard() {
           />
         </label>
 
-        <div className="chipset">
-          {instructors.map((i) => {
-            const on = pickedInstructors.includes(i.id);
-            return (
-              <button
-                key={i.id}
-                type="button"
-                className={`chip${on ? ' is-on chip--individual' : ''}`}
-                onClick={() =>
-                  setPickedInstructors((prev) =>
-                    prev.includes(i.id) ? prev.filter((x) => x !== i.id) : [...prev, i.id],
-                  )
-                }
-                aria-pressed={on}
-              >
-                {i.name}
-              </button>
-            );
-          })}
-        </div>
+        <MultiSelect
+          label={t('Hoca')}
+          allLabel={t('Tüm hocalar')}
+          options={instructors.map((i) => ({ value: i.id, label: i.name }))}
+          picked={pickedInstructors}
+          onChange={setPickedInstructors}
+        />
 
         <div className="chipset">
           {(
@@ -333,7 +329,41 @@ export default function Dashboard() {
 
       </div>
 
-      <p className="admin-hint">{rangeLabel}</p>
+      <div className="admin-bar">
+        <p className="admin-hint">{rangeLabel}</p>
+        <button
+          className="btn btn--ghost btn--small"
+          onClick={() =>
+            downloadCsv(
+              `dersler-${rangeFrom}_${rangeTo}`,
+              [
+                t('Tarih'),
+                t('Saat'),
+                t('Hoca'),
+                t('Müşteri'),
+                t('Ders'),
+                t('Süre'),
+                t('Durum'),
+              ],
+              counted.map((r) => [
+                new Date(r.startsAt).toLocaleDateString(locale()),
+                new Date(r.startsAt).toLocaleTimeString(locale(), {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                }),
+                r.instructorName,
+                r.isGuest ? t('Misafir') : (r.customerName ?? ''),
+                describeLesson(r),
+                r.durationHours,
+                r.status === 'approved' ? t('Onaylı') : t(STATUS_TEXT[r.status]),
+              ]),
+            )
+          }
+          disabled={counted.length === 0}
+        >
+          {t('Excel’e aktar')}
+        </button>
+      </div>
 
       {loading ? (
         <p className="admin-hint">{t('Yükleniyor…')}</p>

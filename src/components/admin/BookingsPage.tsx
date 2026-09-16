@@ -4,7 +4,9 @@ import type { BookingStatus, Instructor, ManagedBooking } from '../../types';
 import * as api from '../../api/client';
 import { addDays, todayKey, fromDateKey, formatTime } from '../../lib/date';
 import { locale } from '../../lib/i18n';
-import { describeLesson, lessonClass } from '../../lib/lessons';
+import { describeLesson, lessonClass, SPORT_LABEL } from '../../lib/lessons';
+import { downloadCsv } from '../../lib/csv';
+import MultiSelect from './MultiSelect';
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
   pending: 'Ön rezervasyon',
@@ -31,7 +33,10 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<BookingStatus | 'all'>('approved');
-  const [instructorId, setInstructorId] = useState('all');
+  const [pickedInstructors, setPickedInstructors] = useState<string[]>([]);
+  const [sport, setSport] = useState<'all' | 'windsurf' | 'wingfoil'>('all');
+  /** A guest lesson is taught time that belongs to nobody; often asked apart. */
+  const [who, setWho] = useState<'all' | 'guest' | 'customer'>('all');
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -57,7 +62,10 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
     const q = search.trim().toLocaleLowerCase('tr');
     return rows.filter((r) => {
       if (status !== 'all' && r.status !== status) return false;
-      if (instructorId !== 'all' && r.instructorId !== instructorId) return false;
+      if (pickedInstructors.length > 0 && !pickedInstructors.includes(r.instructorId)) return false;
+      if (sport !== 'all' && r.sport !== sport) return false;
+      if (who === 'guest' && !r.isGuest) return false;
+      if (who === 'customer' && r.isGuest) return false;
       if (!q) return true;
       return (
         r.id.toLowerCase().includes(q) ||
@@ -65,7 +73,7 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
         (r.customerEmail ?? '').toLocaleLowerCase('tr').includes(q)
       );
     });
-  }, [rows, status, instructorId, search]);
+  }, [rows, status, pickedInstructors, sport, who, search]);
 
   async function decide(id: string, next: 'approved' | 'rejected') {
     setBusyId(id);
@@ -82,7 +90,43 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
 
   return (
     <section>
-      <h2 className="admin-title">{t('Rezervasyonlar')}</h2>
+      <div className="admin-bar">
+        <h2 className="admin-title">{t('Rezervasyonlar')}</h2>
+        <span className="admin-count">
+          {shown.length} / {rows.length}
+        </span>
+        <button
+          className="btn btn--ghost btn--small"
+          onClick={() =>
+            downloadCsv(
+              `rezervasyonlar-${from}_${to}`,
+              [
+                t('Tarih'),
+                t('Saat'),
+                t('Hoca'),
+                t('Müşteri'),
+                t('Telefon'),
+                t('Ders'),
+                t('Süre'),
+                t('Durum'),
+              ],
+              shown.map((r) => [
+                new Date(r.startsAt).toLocaleDateString(locale()),
+                formatTime(r.startsAt),
+                r.instructorName,
+                r.isGuest ? t('Misafir') : (r.customerName ?? ''),
+                r.isGuest ? '' : (r.customerPhone ?? ''),
+                describeLesson(r),
+                r.durationHours,
+                t(STATUS_LABEL[r.status]),
+              ]),
+            )
+          }
+          disabled={shown.length === 0}
+        >
+          {t('Excel’e aktar')}
+        </button>
+      </div>
 
       {error && <p className="dialog-error">{error}</p>}
 
@@ -100,13 +144,32 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
           ))}
         </div>
 
-        <select value={instructorId} onChange={(e) => setInstructorId(e.target.value)} aria-label={t('Hoca')}>
-          <option value="all">{t('Tüm hocalar')}</option>
-          {instructors.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.name}
-            </option>
-          ))}
+        <MultiSelect
+          label={t('Hoca')}
+          allLabel={t('Tüm hocalar')}
+          options={instructors.map((i) => ({ value: i.id, label: i.name }))}
+          picked={pickedInstructors}
+          onChange={setPickedInstructors}
+        />
+
+        <select
+          value={sport}
+          onChange={(e) => setSport(e.target.value as typeof sport)}
+          aria-label={t('Spor')}
+        >
+          <option value="all">{t('Tüm dersler')}</option>
+          <option value="windsurf">{SPORT_LABEL.windsurf}</option>
+          <option value="wingfoil">{SPORT_LABEL.wingfoil}</option>
+        </select>
+
+        <select
+          value={who}
+          onChange={(e) => setWho(e.target.value as typeof who)}
+          aria-label={t('Kim')}
+        >
+          <option value="all">{t('Tümü')}</option>
+          <option value="customer">{t('Müşteri dersleri')}</option>
+          <option value="guest">{t('Misafir dersleri')}</option>
         </select>
 
         <label className="range">

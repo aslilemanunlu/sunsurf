@@ -258,15 +258,28 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
             <div className="handover">
               <h4 className="panel-title">{t('Bu mesajı gönderin')}</h4>
               <pre>{message(justInvited)}</pre>
-              <button
-                className="btn btn--small"
-                onClick={async () => {
-                  await navigator.clipboard.writeText(message(justInvited));
-                  setCopied(true);
-                }}
-              >
-                {copied ? t('Kopyalandı') : t('Kopyala')}
-              </button>
+              <div className="row-actions">
+                <a
+                  className="btn btn--small"
+                  href={`mailto:${encodeURIComponent(justInvited)}?subject=${encodeURIComponent(
+                    t('Sun Surf Alaçatı — hesabınız hazır'),
+                  )}&body=${encodeURIComponent(message(justInvited))}`}
+                >
+                  {t('E-posta ile gönder')}
+                </a>
+                <button
+                  className="link-btn"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(message(justInvited));
+                    setCopied(true);
+                  }}
+                >
+                  {copied ? t('Kopyalandı') : t('Kopyala')}
+                </button>
+              </div>
+              <small className="field-hint">
+                {t('Kendi e-posta programınız açılır; gönderen siz olursunuz.')}
+              </small>
             </div>
           )}
         </section>

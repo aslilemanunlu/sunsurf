@@ -267,6 +267,20 @@ const EN: Record<string, string> = {
   'İlk girişinizde yetkiniz otomatik tanımlanacak.':
     'Your access is set up automatically on first sign-in.',
 
+  'Excel’e aktar': 'Export to Excel',
+  '{n} seçili': '{n} selected',
+  'Seçimi temizle': 'Clear selection',
+  'Tüm dersler': 'All sports',
+  'Müşteri dersleri': 'Customer lessons',
+  'Misafir dersleri': 'Guest lessons',
+  Spor: 'Sport',
+  Kim: 'Who',
+  Tarih: 'Date',
+  'E-posta ile gönder': 'Send by email',
+  'Sun Surf Alaçatı — hesabınız hazır': 'Sun Surf Alaçatı — your account is ready',
+  'Kendi e-posta programınız açılır; gönderen siz olursunuz.':
+    'Your own mail app opens; the message comes from you.',
+
   // accounts and access
   'Kullanıcı Ekle': 'Add user',
   'Davet et': 'Invite',

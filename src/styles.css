@@ -2627,3 +2627,57 @@ ol {
   font-size: 13px;
   line-height: 1.5;
 }
+
+/* ---------- a dropdown that takes several answers ---------- */
+.multi {
+  position: relative;
+}
+
+.multi-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.multi-trigger:hover {
+  border-color: var(--accent);
+}
+
+.multi-pop {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  max-height: 280px;
+  overflow-y: auto;
+  padding: 8px;
+  display: grid;
+  gap: 2px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+
+.multi-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.multi-item:hover {
+  background: var(--surface-2);
+}
