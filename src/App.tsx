@@ -96,6 +96,8 @@ export default function App() {
     lessonType: LessonType;
     /** Hours dragged out on the grid, when that is how it was opened. */
     duration?: number;
+    /** The lesson being changed, when this is an edit rather than a new one. */
+    existing?: ManagedBooking;
   } | null>(null);
   const [hourMenu, setHourMenu] = useState<{
     instructor: Instructor;
@@ -332,7 +334,17 @@ export default function App() {
         tentative: input.tentative,
       };
 
-      if (input.dates.length > 1) {
+      if (dialog.existing) {
+        await api.updateBooking(dialog.existing.id, {
+          customerId: input.customerId,
+          lessonType: input.lessonType,
+          sport: input.sport,
+          groupSize: input.groupSize,
+          durationHours: input.durationHours,
+          tentative: input.tentative,
+          agreementId: input.agreementId,
+        });
+      } else if (input.dates.length > 1) {
         const { created, skipped } = await api.createBookingSeries(base, input.dates);
         setNotice(
           t('{a} ders yazıldı, {b} saat dolu olduğu için atlandı.')
@@ -512,16 +524,6 @@ export default function App() {
             </p>
           )}
 
-          {manages && (
-            <p className="notice">
-              {t(
-                viewer.role === 'admin'
-                  ? 'Bir saate tıklayarak ders yazabilir, çocuk kampı açabilir ya da saati bloke edebilirsiniz — her hocanın takviminde.'
-                  : 'Kendi takviminizde bir saate tıklayarak ders yazabilir ya da saati bloke edebilirsiniz.',
-              )}
-            </p>
-          )}
-
           {notice && (
             <p className="notice notice--done" onClick={() => setNotice(null)}>
               {notice}
@@ -560,6 +562,17 @@ export default function App() {
 
         {dialog && (
           <BookingDialog
+            existing={
+              dialog.existing && {
+                id: dialog.existing.id,
+                customerName: dialog.existing.customerName,
+                lessonType: dialog.existing.lessonType,
+                sport: dialog.existing.sport,
+                groupSize: dialog.existing.groupSize,
+                durationHours: dialog.existing.durationHours,
+                tentative: dialog.existing.status === 'pending',
+              }
+            }
             instructor={dialog.instructor}
             startsAt={dialog.startsAt}
             freeHours={freeHoursFrom(dialog.instructor.id, dialog.startsAt)}
@@ -611,6 +624,23 @@ export default function App() {
               const cell = hourMenu.cell;
               setHourMenu(null);
               await toggleBlock(cell);
+            }}
+            onEditBooking={() => {
+              const { cell, instructor } = hourMenu;
+              const booking = ownBookings.get(hourKey(instructor.id, cell.startsAt));
+              setHourMenu(null);
+              if (!booking) {
+                setDayError(t('Bu saatteki ders bulunamadı; sayfayı yenileyip tekrar deneyin.'));
+                return;
+              }
+              setBookingError(null);
+              setDialog({
+                instructor,
+                // an edit keeps the hour it already has
+                startsAt: new Date(booking.startsAt),
+                lessonType: booking.lessonType,
+                existing: booking,
+              });
             }}
             onCancelBooking={async () => {
               const { cell, instructor } = hourMenu;

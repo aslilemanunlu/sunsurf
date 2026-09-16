@@ -1314,3 +1314,43 @@ export async function updateInstructor(
     throw new Error(translate('Eğitmen kaydedilemedi'));
   }
 }
+
+/**
+ * Edits a booking in place.
+ *
+ * Only what the lesson *is* — who it is for, which sport, how long. Moving it
+ * to another hour or another instructor is a different act and is not offered
+ * here; the exclusion constraint would refuse an overlap anyway.
+ */
+export async function updateBooking(
+  bookingId: string,
+  patch: {
+    customerId?: string | null;
+    lessonType?: LessonType;
+    sport?: Sport | null;
+    groupSize?: number | null;
+    durationHours?: number;
+    tentative?: boolean;
+    agreementId?: string | null;
+  },
+): Promise<void> {
+  const row: Record<string, unknown> = {};
+  if (patch.customerId !== undefined) row.customer_id = patch.customerId;
+  if (patch.lessonType !== undefined) row.lesson_type = patch.lessonType;
+  if (patch.sport !== undefined) row.sport = patch.sport;
+  if (patch.groupSize !== undefined) row.group_size = patch.groupSize;
+  if (patch.durationHours !== undefined) row.duration_hours = patch.durationHours;
+  if (patch.agreementId !== undefined) row.agreement_id = patch.agreementId;
+  if (patch.tentative !== undefined) row.status = patch.tentative ? 'pending' : 'approved';
+
+  const result = await neon.from('bookings').update(row).eq('id', bookingId).select('id');
+  if (result.error?.code === '23P01') {
+    throw new Error(translate('Bu saatler dolu. Başka bir saat seçin.'));
+  }
+  if (result.error) {
+    throw new Error(`${translate('Ders kaydedilemedi')}: ${result.error.message}`);
+  }
+  if (!result.data || result.data.length === 0) {
+    throw new Error(translate('Ders kaydedilemedi'));
+  }
+}

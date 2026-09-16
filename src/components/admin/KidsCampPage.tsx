@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CampRegistration, KidsCampEntry } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
-import { formatTime } from '../../lib/date';
 import CampRegistrationForm from './CampRegistrationForm';
 
 /** Seasons the roll can be filtered by, newest first. */
@@ -27,7 +26,6 @@ export default function KidsCampPage({ onChanged }: Props) {
   const [rows, setRows] = useState<KidsCampEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [season, setSeason] = useState(new Date().getFullYear());
   const [roll, setRoll] = useState<CampRegistration[]>([]);
   const [adding, setAdding] = useState(false);
@@ -117,19 +115,6 @@ export default function KidsCampPage({ onChanged }: Props) {
     }
     return [...map.values()].sort((a, b) => b.hours - a.hours);
   }, [rows]);
-
-  async function decide(id: string, next: 'approved' | 'rejected') {
-    setBusyId(id);
-    try {
-      await api.decideBooking(id, next);
-      await load();
-      onChanged();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusyId(null);
-    }
-  }
 
   return (
     <section>
@@ -289,71 +274,6 @@ export default function KidsCampPage({ onChanged }: Props) {
             </div>
           </section>
 
-          <section className="panel">
-            <h4 className="panel-title">{t('Kamp kayıtları')}</h4>
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>{t('Tarih / saat')}</th>
-                    <th>{t('İsim')}</th>
-                    <th>{t('Telefon')}</th>
-                    <th>{t('Hoca')}</th>
-                    <th>{t('Süre')}</th>
-                    <th>{t('Durum')}</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => (
-                    <tr key={r.bookingId}>
-                      <td>
-                        {new Date(r.startsAt).toLocaleDateString(locale())}
-                        <div className="cell-dim">{formatTime(r.startsAt)}</div>
-                      </td>
-                      <td>{r.name ?? t('İsimsiz')}</td>
-                      <td className="cell-dim">{r.phone ?? '—'}</td>
-                      <td>{r.instructorName ?? '—'}</td>
-                      <td>
-                        {r.durationHours} {t('saat')}
-                      </td>
-                      <td>
-                        <span className={`status status--${r.status}`}>
-                          {t(
-                            r.status === 'approved'
-                              ? 'Onaylı'
-                              : r.status === 'pending'
-                                ? 'Beklemede'
-                                : 'Reddedildi',
-                          )}
-                        </span>
-                      </td>
-                      <td>
-                        {r.status === 'pending' && (
-                          <div className="row-actions">
-                            <button
-                              className="btn btn--small"
-                              onClick={() => decide(r.bookingId, 'approved')}
-                              disabled={busyId === r.bookingId}
-                            >
-                              {t('Onayla')}
-                            </button>
-                            <button
-                              className="link-btn danger"
-                              onClick={() => decide(r.bookingId, 'rejected')}
-                              disabled={busyId === r.bookingId}
-                            >
-                              {t('Reddet')}
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
         </>
       )}
       {(adding || openReg) && (

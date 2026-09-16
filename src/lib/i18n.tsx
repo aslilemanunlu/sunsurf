@@ -236,6 +236,11 @@ const EN: Record<string, string> = {
   'Kaydet dedikten sonra bu pencere açık kalır ve formu ekleyebilirsiniz.':
     'This stays open after saving so you can add the form.',
 
+  'Dersi düzenle': 'Edit lesson',
+  'Ders kaydedilemedi': 'Could not save the lesson',
+  'Çocuklar sezon kayıt listesinde tutulur; burada isim sorulmaz.':
+    'Children are kept on the season registration list; no name is asked for here.',
+
   // camp registrations
   'Sezon kayıtları': 'Season registrations',
   Sezon: 'Season',

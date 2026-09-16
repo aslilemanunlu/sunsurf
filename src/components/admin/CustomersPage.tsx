@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CrmCustomer, Segment } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
-import { SEGMENTS, SEGMENT_LABEL, segmentTone } from '../../lib/segments';
+import { ALL_SEGMENTS, SEGMENT_LABEL, segmentTone } from '../../lib/segments';
 import CustomerDrawer from './CustomerDrawer';
 import CustomerForm from './CustomerForm';
 
@@ -93,7 +93,7 @@ export default function CustomersPage({ onChanged }: Props) {
           >
             {t('Tümü')}
           </button>
-          {SEGMENTS.map((s) => (
+          {ALL_SEGMENTS.map((s) => (
             <button
               key={s}
               className={`segment${segment === s ? ' is-active' : ''}`}

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Instructor, ManagedBooking } from '../../types';
+import type { Instructor, LessonType, ManagedBooking } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
 import { addDays, fromDateKey, toDateKey, todayKey } from '../../lib/date';
@@ -53,7 +53,8 @@ export default function Dashboard() {
 
   const [from, setFrom] = useState(startOfMonth());
   const [to, setTo] = useState(todayKey());
-  const [instructorId, setInstructorId] = useState('all');
+  const [pickedInstructors, setPickedInstructors] = useState<string[]>([]);
+  const [pickedTypes, setPickedTypes] = useState<LessonType[]>([]);
   /** Rejected lessons never happened, so they are out of the numbers by default. */
   const [countRejected, setCountRejected] = useState(false);
 
@@ -94,14 +95,16 @@ export default function Dashboard() {
     void load();
   }, [load]);
 
+  /** Nothing picked means everything: an empty filter is not an empty result. */
   const counted = useMemo(
     () =>
       rows.filter(
         (r) =>
           (countRejected || r.status !== 'rejected') &&
-          (instructorId === 'all' || r.instructorId === instructorId),
+          (pickedInstructors.length === 0 || pickedInstructors.includes(r.instructorId)) &&
+          (pickedTypes.length === 0 || pickedTypes.includes(r.lessonType)),
       ),
-    [rows, countRejected, instructorId],
+    [rows, countRejected, pickedInstructors, pickedTypes],
   );
 
   const totals = useMemo(() => {
@@ -258,18 +261,54 @@ export default function Dashboard() {
           />
         </label>
 
-        <select
-          value={instructorId}
-          onChange={(e) => setInstructorId(e.target.value)}
-          aria-label={t('Hoca')}
-        >
-          <option value="all">{t('Tüm hocalar')}</option>
-          {instructors.map((i) => (
-            <option key={i.id} value={i.id}>
-              {i.name}
-            </option>
-          ))}
-        </select>
+        <div className="chipset">
+          {instructors.map((i) => {
+            const on = pickedInstructors.includes(i.id);
+            return (
+              <button
+                key={i.id}
+                type="button"
+                className={`chip${on ? ' is-on chip--individual' : ''}`}
+                onClick={() =>
+                  setPickedInstructors((prev) =>
+                    prev.includes(i.id) ? prev.filter((x) => x !== i.id) : [...prev, i.id],
+                  )
+                }
+                aria-pressed={on}
+              >
+                {i.name}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="chipset">
+          {(
+            [
+              ['individual', 'Bireysel'],
+              ['group', 'Grup'],
+              ['kids_camp', 'Çocuk kampı'],
+            ] as [LessonType, string][]
+          ).map(([value, label]) => {
+            const on = pickedTypes.includes(value);
+            const tone = value === 'kids_camp' ? 'kids' : value === 'group' ? 'group' : 'individual';
+            return (
+              <button
+                key={value}
+                type="button"
+                className={`chip${on ? ` is-on chip--${tone}` : ''}`}
+                onClick={() =>
+                  setPickedTypes((prev) =>
+                    prev.includes(value) ? prev.filter((x) => x !== value) : [...prev, value],
+                  )
+                }
+                aria-pressed={on}
+              >
+                {t(label)}
+              </button>
+            );
+          })}
+        </div>
 
         <label className="check check--inline">
           <input

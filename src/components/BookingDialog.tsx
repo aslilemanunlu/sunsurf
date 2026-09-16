@@ -25,6 +25,16 @@ export type NewBooking = {
 };
 
 type Props = {
+  /** Set when an existing lesson is being changed rather than written. */
+  existing?: {
+    id: string;
+    customerName: string | null;
+    lessonType: LessonType;
+    sport: Sport | null;
+    groupSize: number | null;
+    durationHours: number;
+    tentative: boolean;
+  };
   instructor: Instructor;
   startsAt: Date;
   /** Consecutive free hours from startsAt. */
@@ -53,6 +63,7 @@ const GROUP_SIZES = [2, 3, 4];
  * lost.
  */
 export default function BookingDialog({
+  existing,
   instructor,
   startsAt,
   freeHours,
@@ -66,11 +77,17 @@ export default function BookingDialog({
   onClose,
 }: Props) {
   const { t } = useT();
-  const [lessonType, setLessonType] = useState<LessonType>(initialLessonType);
-  const [sport, setSport] = useState<Sport>(instructor.sports[0] ?? 'windsurf');
-  const [groupSize, setGroupSize] = useState(2);
-  const [duration, setDuration] = useState(Math.max(1, initialDuration ?? 1));
-  const [tentative, setTentative] = useState(false);
+  const [lessonType, setLessonType] = useState<LessonType>(
+    existing?.lessonType ?? initialLessonType,
+  );
+  const [sport, setSport] = useState<Sport>(
+    existing?.sport ?? instructor.sports[0] ?? 'windsurf',
+  );
+  const [groupSize, setGroupSize] = useState(existing?.groupSize ?? 2);
+  const [duration, setDuration] = useState(
+    existing?.durationHours ?? Math.max(1, initialDuration ?? 1),
+  );
+  const [tentative, setTentative] = useState(existing?.tentative ?? false);
 
   /**
    * One field for the customer: type a name, or pick one already there.
@@ -79,7 +96,7 @@ export default function BookingDialog({
    * desk with somebody waiting. Whatever is typed is matched against the list
    * when saving; no match means a new record, with the phone only if given.
    */
-  const [name, setName] = useState('');
+  const [name, setName] = useState(existing?.customerName ?? '');
   const [phone, setPhone] = useState('');
   const [packages, setPackages] = useState<api.OpenPackage[]>([]);
   const [agreementId, setAgreementId] = useState('');
@@ -138,15 +155,19 @@ export default function BookingDialog({
 
   /** A lesson cannot run past closing time, nor into an hour already taken. */
   const allowed = (hours: number) =>
-    hours <= freeHours && startsAt.getHours() + hours <= OPEN_UNTIL_HOUR;
+    // An existing lesson already occupies its own hours, so they are not "free"
+    // — without this, editing one could never keep the length it has.
+    hours <= Math.max(freeHours, existing?.durationHours ?? 0) &&
+    startsAt.getHours() + hours <= OPEN_UNTIL_HOUR;
 
   const choices = useMemo(
     () => durationChoices(Math.min(freeHours, OPEN_UNTIL_HOUR - startsAt.getHours())),
     [freeHours, startsAt],
   );
 
-  // A camp can go on the calendar before anybody is named; everything else
-  // needs to be for somebody.
+  // A camp is not asked who it is for at all: the hour gets blocked out long
+  // before anybody knows which children are coming, and the children are named
+  // on the season's registration list instead.
   const canSubmit =
     !submitting && !saving && allowed(duration) && (isCamp || name.trim().length >= 2);
 
@@ -187,7 +208,9 @@ export default function BookingDialog({
         aria-labelledby="booking-title"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 id="booking-title">{t(isCamp ? 'Çocuk kampı' : 'Ders oluştur')}</h3>
+        <h3 id="booking-title">
+          {t(existing ? 'Dersi düzenle' : isCamp ? 'Çocuk kampı' : 'Ders oluştur')}
+        </h3>
 
         <div className="dialog-summary">
           <p className="dialog-instructor">{instructor.name}</p>
@@ -199,8 +222,9 @@ export default function BookingDialog({
 
         {(error || saveError) && <p className="dialog-error">{error ?? saveError}</p>}
 
+        {!isCamp && (
         <label className="field">
-          <span>{isCamp ? `${t('Çocuğun ismi')} (${t('opsiyonel')})` : t('Kimin adına?')}</span>
+          <span>{t('Kimin adına?')}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -214,15 +238,16 @@ export default function BookingDialog({
             ))}
           </datalist>
           <small className="field-hint">
-            {matched
-              ? t('Kayıtlı müşteri')
-              : name.trim().length >= 2
-                ? t('Yeni kayıt açılacak')
-                : isCamp
-                  ? t('Boş bırakabilirsiniz — kampı sonra isimlendirirsiniz.')
-                  : ''}
+            {matched ? t('Kayıtlı müşteri') : name.trim().length >= 2 ? t('Yeni kayıt açılacak') : ''}
           </small>
         </label>
+        )}
+
+        {isCamp && (
+          <p className="admin-hint">
+            {t('Çocuklar sezon kayıt listesinde tutulur; burada isim sorulmaz.')}
+          </p>
+        )}
 
         {!matched && name.trim().length >= 2 && (
           <>

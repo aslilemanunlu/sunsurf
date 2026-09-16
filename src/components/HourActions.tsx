@@ -13,6 +13,7 @@ type Props = {
   onBlock: () => void;
   onUnblock: () => void;
   onCancelBooking: () => void;
+  onEditBooking: () => void;
   onCreateLesson: () => void;
   onCreateCamp: () => void;
   onClose: () => void;
@@ -30,6 +31,7 @@ export default function HourActions({
   onBlock,
   onUnblock,
   onCancelBooking,
+  onEditBooking,
   onCreateLesson,
   onCreateCamp,
   onClose,
@@ -72,9 +74,14 @@ export default function HourActions({
               {t('Bloğu kaldır')}
             </button>
           ) : booked ? (
-            <button className="btn btn--ghost danger" onClick={onCancelBooking} disabled={busy}>
-              {t('Dersi sil')}
-            </button>
+            <>
+              <button className="btn" onClick={onEditBooking} disabled={busy}>
+                {t('Dersi düzenle')}
+              </button>
+              <button className="btn btn--ghost danger" onClick={onCancelBooking} disabled={busy}>
+                {t('Dersi sil')}
+              </button>
+            </>
           ) : (
             <>
               <button className="btn" onClick={onCreateLesson} disabled={busy}>

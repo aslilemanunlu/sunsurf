@@ -95,7 +95,19 @@ $mig$;
 
 alter table bookings alter column instructor_id set not null;
 alter table bookings alter column starts_at set not null;
-alter table bookings alter column sport set not null;
+-- Only while nothing contradicts it: db/005 makes this column nullable, because
+-- a kids camp has no sport, and re-running this file afterwards must not fail.
+do $sport$
+begin
+  if not exists (select 1 from bookings where sport is null) then
+    begin
+      alter table bookings alter column sport set not null;
+    exception when others then
+      null; -- already relaxed by a later migration; nothing to do
+    end;
+  end if;
+end
+$sport$;
 alter table bookings drop column if exists slot_id;
 
 do $c$

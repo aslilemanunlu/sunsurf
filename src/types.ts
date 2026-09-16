@@ -58,7 +58,7 @@ export type Block = {
 };
 
 /** How the office classifies a customer. */
-export type Segment = 'lesson' | 'storage' | 'rental' | 'kids_camp';
+export type Segment = 'lesson' | 'storage' | 'rental' | 'kids_camp' | 'windsurf' | 'wingfoil';
 
 /** A booking the viewer is allowed to act on, with who is coming. */
 export type ManagedBooking = {

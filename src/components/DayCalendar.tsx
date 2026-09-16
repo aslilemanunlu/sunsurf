@@ -56,9 +56,10 @@ export default function DayCalendar({
   /**
    * Dragging down a column to book several hours at once.
    *
-   * Mouse and pen only: on a touch screen a vertical drag is how the grid is
-   * scrolled, and stealing that to draw a selection makes the calendar
-   * unusable on a phone. A tap there still opens the hour menu.
+   * A plain touch-drag is how the grid is scrolled, so stealing it would make
+   * the calendar unusable on a phone. A press and hold starts the selection
+   * instead — the gesture phones already use for "select", and it cannot be
+   * confused with scrolling because scrolling moves before the timer is up.
    */
   const [drag, setDrag] = useState<{
     instructorId: string;
@@ -72,6 +73,15 @@ export default function DayCalendar({
    * of the dialog the drag just asked for. This swallows exactly that one click.
    */
   const justDragged = useRef(false);
+  /** Set while a finger is held still, waiting to become a selection. */
+  const holdTimer = useRef<number | null>(null);
+
+  const cancelHold = useCallback(() => {
+    if (holdTimer.current !== null) {
+      window.clearTimeout(holdTimer.current);
+      holdTimer.current = null;
+    }
+  }, []);
 
   const finish = useCallback(() => {
     setDrag((d) => {
@@ -98,6 +108,18 @@ export default function DayCalendar({
       window.removeEventListener('pointercancel', finish);
     };
   }, [drag, finish]);
+
+  // a finger lifted before the hold completes is just a tap
+  useEffect(() => {
+    window.addEventListener('pointerup', cancelHold);
+    window.addEventListener('pointercancel', cancelHold);
+    window.addEventListener('scroll', cancelHold, true);
+    return () => {
+      window.removeEventListener('pointerup', cancelHold);
+      window.removeEventListener('pointercancel', cancelHold);
+      window.removeEventListener('scroll', cancelHold, true);
+    };
+  }, [cancelHold]);
   if (loading) {
     return <div className="cal-skeleton" aria-busy="true" />;
   }
@@ -115,7 +137,7 @@ export default function DayCalendar({
 
   return (
     <div className="cal-scroll" style={{ ['--cols' as string]: instructors.length }}>
-      <div className="cal">
+      <div className={`cal${drag ? ' is-selecting' : ''}`}>
         <div className="cal-corner" />
         {instructors.map((ins) => (
           <div className="cal-head" key={`h-${ins.id}`}>
@@ -187,13 +209,43 @@ export default function DayCalendar({
                     key={key}
                     className={`cal-cell is-${state}${tone}${manages ? ' is-own' : ''}${busy ? ' is-busy' : ''}${inDrag ? ' is-selecting' : ''}`}
                     onPointerDown={(e) => {
-                      if (!draggable || e.pointerType === 'touch' || e.button !== 0) return;
-                      setDrag({ instructorId: ins.id, from: hour.getTime(), to: hour.getTime() });
+                      if (!draggable || e.button !== 0) return;
+                      const start = () =>
+                        setDrag({
+                          instructorId: ins.id,
+                          from: hour.getTime(),
+                          to: hour.getTime(),
+                        });
+
+                      if (e.pointerType === 'touch') {
+                        cancelHold();
+                        holdTimer.current = window.setTimeout(start, 400);
+                        return;
+                      }
+                      start();
+                    }}
+                    onPointerMove={(e) => {
+                      // a finger that has started moving is scrolling, not selecting
+                      if (e.pointerType === 'touch' && !drag) cancelHold();
+                      if (!drag || drag.instructorId !== ins.id) return;
+                      if (e.pointerType !== 'touch') return;
+                      // touch does not fire pointerenter on the cell under the
+                      // finger, so the cell has to be found the hard way
+                      const el = document
+                        .elementFromPoint(e.clientX, e.clientY)
+                        ?.closest('[data-hour]') as HTMLElement | null;
+                      const at = el?.dataset.hour;
+                      if (el?.dataset.instructor === ins.id && at) {
+                        e.preventDefault();
+                        setDrag({ ...drag, to: Number(at) });
+                      }
                     }}
                     onPointerEnter={() => {
                       if (!drag || drag.instructorId !== ins.id || state !== 'free') return;
                       setDrag({ ...drag, to: hour.getTime() });
                     }}
+                    data-hour={hour.getTime()}
+                    data-instructor={ins.id}
                   >
                     {clickable ? (
                       <button className="cal-hit" onClick={onClick} disabled={busy}>
