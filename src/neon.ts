@@ -16,9 +16,21 @@ import { BetterAuthReactAdapter } from '@neondatabase/neon-js/auth/react/adapter
  */
 const proxyPath = import.meta.env.VITE_NEON_AUTH_PROXY_PATH as string | undefined;
 
-const authUrl = proxyPath
-  ? new URL(proxyPath, window.location.origin).toString().replace(/\/$/, '')
-  : import.meta.env.VITE_NEON_AUTH_URL;
+/**
+ * DISABLED while the proxy is not actually being served.
+ *
+ * Setting the variable pointed the client at a path Vercel answers with
+ * index.html, which broke signing in completely — worse than the Safari problem
+ * it was meant to solve. Until a request to the proxy is shown to reach Neon,
+ * the direct URL is the only one used, whatever the variable says.
+ */
+const PROXY_READY = false;
+
+const authUrl =
+  PROXY_READY && proxyPath
+    ? new URL(proxyPath, window.location.origin).toString().replace(/\/$/, '')
+    : import.meta.env.VITE_NEON_AUTH_URL;
+
 const dataApiUrl = import.meta.env.VITE_NEON_DATA_API_URL;
 
 /** False until .env is filled in; `main.tsx` shows setup instructions instead of the app. */
