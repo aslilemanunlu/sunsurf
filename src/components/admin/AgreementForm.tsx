@@ -41,6 +41,7 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [newPhone, setNewPhone] = useState('');
+  const newNameOk = newName.trim().length >= 2;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -73,38 +74,25 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
   const needsLabel = plan === 'other';
   const unitValue = units.trim() === '' ? null : Number(units);
   const unitsOk = !unit || (unitValue !== null && Number.isFinite(unitValue) && unitValue > 0);
+  // While the new-customer fields are open, a typed name counts as a chosen
+  // customer: the record is created on save. Requiring a separate "Ekle" first
+  // meant the main button sat there disabled with nothing saying why.
+  const haveCustomer = adding ? newNameOk : customerId !== '';
   const canSave =
-    !saving &&
-    customerId !== '' &&
-    amountOk &&
-    paidOk &&
-    unitsOk &&
-    (!needsLabel || label.trim() !== '');
-
-  async function addCustomer() {
-    const name = newName.trim();
-    if (name.length < 2) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const id = await api.createCustomer({ fullName: name, phone: newPhone });
-      setCustomerId(id);
-      setAdding(false);
-      setNewName('');
-      setNewPhone('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setSaving(false);
-    }
-  }
+    !saving && haveCustomer && amountOk && paidOk && unitsOk && (!needsLabel || label.trim() !== '');
 
   async function save() {
     setSaving(true);
     setError(null);
     try {
+      // The phone is optional here as everywhere else: a name is enough to owe
+      // somebody money against.
+      const forCustomer = adding
+        ? await api.createCustomer({ fullName: newName, phone: newPhone })
+        : customerId;
+
       const id = await api.createAgreement({
-        customerId,
+        customerId: forCustomer,
         kind,
         plan,
         equipmentLevel: kind === 'rental' ? level : null,
@@ -150,22 +138,15 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
               <input
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
-                placeholder={t('Telefon')}
+                placeholder={`${t('Telefon')} (${t('opsiyonel')})`}
                 inputMode="tel"
               />
-              <div className="row-actions">
-                <button
-                  type="button"
-                  className="btn btn--small"
-                  onClick={addCustomer}
-                  disabled={saving || newName.trim().length < 2}
-                >
-                  {t('Ekle')}
-                </button>
-                <button type="button" className="link-btn" onClick={() => setAdding(false)}>
-                  {t('Vazgeç')}
-                </button>
-              </div>
+              <small className="field-hint">
+                {t('Telefon opsiyonel. Kaydet dediğinizde müşteri de oluşturulur.')}
+              </small>
+              <button type="button" className="link-btn" onClick={() => setAdding(false)}>
+                {t('Listeden seç')}
+              </button>
             </div>
           ) : (
             <>

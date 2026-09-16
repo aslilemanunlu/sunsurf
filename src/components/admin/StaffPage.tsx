@@ -47,6 +47,7 @@ export default function StaffPage({ viewer, onChanged }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [editing, setEditing] = useState<api.InstructorAdmin | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
   const load = useCallback(async () => {
@@ -167,6 +168,7 @@ export default function StaffPage({ viewer, onChanged }: Props) {
                 <th>{t('Hesap')}</th>
                 <th>{t('Bu ay')}</th>
                 <th>{t('Eklendi')}</th>
+                <th />
               </tr>
             </thead>
             <tbody>
@@ -202,6 +204,11 @@ export default function StaffPage({ viewer, onChanged }: Props) {
                   </td>
                   <td className="cell-dim">
                     {i.createdAt ? new Date(i.createdAt).toLocaleDateString(locale()) : '—'}
+                  </td>
+                  <td>
+                    <button className="link-btn" onClick={() => setEditing(i)}>
+                      {t('Düzenle')}
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -383,11 +390,16 @@ export default function StaffPage({ viewer, onChanged }: Props) {
         )}
       </section>
 
-      {addOpen && (
+      {(addOpen || editing) && (
         <InstructorForm
-          onClose={() => setAddOpen(false)}
+          instructor={editing}
+          onClose={() => {
+            setAddOpen(false);
+            setEditing(null);
+          }}
           onSaved={() => {
             setAddOpen(false);
+            setEditing(null);
             void load();
             onChanged();
           }}

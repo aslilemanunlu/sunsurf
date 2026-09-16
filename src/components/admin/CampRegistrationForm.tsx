@@ -9,7 +9,8 @@ type Props = {
   /** Set when an existing registration is being looked at rather than created. */
   registration: CampRegistration | null;
   onClose: () => void;
-  onSaved: () => void;
+  /** Carries the new registration's id, so the caller can stay on it. */
+  onSaved: (registrationId?: string) => void;
 };
 
 /**
@@ -87,10 +88,11 @@ export default function CampRegistrationForm({ season, registration, onClose, on
     try {
       if (editing) {
         await api.updateCustomer(registration.customerId, { fullName: child, ...details });
+        onSaved();
       } else {
-        await api.registerForCamp({ childName: child, season, details, note });
+        const id = await api.registerForCamp({ childName: child, season, details, note });
+        onSaved(id);
       }
-      onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -259,7 +261,9 @@ export default function CampRegistrationForm({ season, registration, onClose, on
               )}
             </>
           ) : (
-            <p className="cell-dim">{t('Kaydı oluşturduktan sonra formun fotoğrafını ekleyin.')}</p>
+            <p className="cell-dim">
+              {t('Kaydet dedikten sonra bu pencere açık kalır ve formu ekleyebilirsiniz.')}
+            </p>
           )}
         </section>
 

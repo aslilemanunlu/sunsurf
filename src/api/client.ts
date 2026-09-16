@@ -1274,3 +1274,43 @@ export async function deleteCampDocument(id: string): Promise<void> {
     throw new Error(`${translate('Form silinemedi')}: ${result.error.message}`);
   }
 }
+
+/**
+ * Edits an instructor record.
+ *
+ * Commission is refused for anyone who is not a yönetici — by a trigger in
+ * db/015, not here, so the rule holds for anything that talks to the database.
+ */
+export async function updateInstructor(
+  id: string,
+  patch: {
+    name?: string;
+    email?: string | null;
+    phone?: string | null;
+    bio?: string | null;
+    sports?: Sport[];
+    employment?: Employment | null;
+    employmentNote?: string | null;
+  },
+): Promise<void> {
+  const row: Record<string, unknown> = {};
+  const text = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
+  if (patch.name !== undefined) row.name = patch.name.trim();
+  if (patch.email !== undefined) row.email = patch.email?.trim().toLowerCase() || null;
+  if (patch.phone !== undefined) row.phone = text(patch.phone);
+  if (patch.bio !== undefined) row.bio = patch.bio?.trim() ?? '';
+  if (patch.sports !== undefined) row.sports = patch.sports;
+  if (patch.employment !== undefined) row.employment = patch.employment;
+  if (patch.employmentNote !== undefined) row.employment_note = text(patch.employmentNote);
+
+  const result = await neon.from('instructors').update(row).eq('id', id).select('id');
+  if (result.error?.code === '23505') {
+    throw new Error(translate('Bu e-posta ile kayıtlı bir eğitmen zaten var.'));
+  }
+  if (result.error) {
+    throw new Error(`${translate('Eğitmen kaydedilemedi')}: ${result.error.message}`);
+  }
+  if (!result.data || result.data.length === 0) {
+    throw new Error(translate('Eğitmen kaydedilemedi'));
+  }
+}

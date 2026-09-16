@@ -32,7 +32,7 @@ export default function PaymentsPage({ onChanged }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [kind, setKind] = useState<AgreementKind | 'all'>('all');
   const [onlyOwing, setOnlyOwing] = useState(false);
-  const [search, setSearch] = useState('');
+  const [customerId, setCustomerId] = useState('all');
   const [adding, setAdding] = useState(false);
   const [paying, setPaying] = useState<Agreement | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -55,19 +55,25 @@ export default function PaymentsPage({ onChanged }: Props) {
     void load();
   }, [load]);
 
-  const shown = useMemo(() => {
-    const q = search.trim().toLocaleLowerCase('tr');
-    return rows.filter((a) => {
-      if (kind !== 'all' && a.kind !== kind) return false;
-      if (onlyOwing && a.balance <= 0) return false;
-      if (!q) return true;
-      return (
-        a.customerName.toLocaleLowerCase('tr').includes(q) ||
-        (a.label ?? '').toLocaleLowerCase('tr').includes(q) ||
-        (a.customerPhone ?? '').includes(q)
-      );
-    });
-  }, [rows, kind, onlyOwing, search]);
+  const shown = useMemo(
+    () =>
+      rows.filter((a) => {
+        if (kind !== 'all' && a.kind !== kind) return false;
+        if (onlyOwing && a.balance <= 0) return false;
+        if (customerId !== 'all' && a.customerId !== customerId) return false;
+        return true;
+      }),
+    [rows, kind, onlyOwing, customerId],
+  );
+
+  /** Only people who actually have an agreement; the rest are noise here. */
+  const withAgreements = useMemo(() => {
+    const seen = new Map<string, string>();
+    for (const a of rows) seen.set(a.customerId, a.customerName);
+    return [...seen.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name, 'tr'));
+  }, [rows]);
 
   /** Totals follow the filter: the number you are looking at is the one shown. */
   const totals = useMemo(() => {
@@ -183,13 +189,18 @@ export default function PaymentsPage({ onChanged }: Props) {
           {t('Sadece borcu olanlar')}
         </label>
 
-        <input
-          className="search"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t('Müşteri ara')}
-          aria-label={t('Ara')}
-        />
+        <select
+          value={customerId}
+          onChange={(e) => setCustomerId(e.target.value)}
+          aria-label={t('Müşteri')}
+        >
+          <option value="all">{t('Tüm müşteriler')}</option>
+          {withAgreements.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
       </div>
 
       {loading ? (

@@ -15,6 +15,8 @@ const EMPLOYMENT: { value: Employment; label: string }[] = [
 ];
 
 type Props = {
+  /** Null when adding somebody new. */
+  instructor: api.InstructorAdmin | null;
   onClose: () => void;
   onSaved: () => void;
 };
@@ -24,15 +26,16 @@ type Props = {
  * email is the matching key: when that person later registers with the same
  * address and verifies it, the database links the account automatically.
  */
-export default function InstructorForm({ onClose, onSaved }: Props) {
+export default function InstructorForm({ instructor, onClose, onSaved }: Props) {
   const { t } = useT();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [bio, setBio] = useState('');
-  const [sports, setSports] = useState<Sport[]>(['windsurf']);
-  const [employment, setEmployment] = useState<Employment>('freelance');
-  const [employmentNote, setEmploymentNote] = useState('');
+  const editing = instructor !== null;
+  const [name, setName] = useState(instructor?.name ?? '');
+  const [email, setEmail] = useState(instructor?.email ?? '');
+  const [phone, setPhone] = useState(instructor?.phone ?? '');
+  const [bio, setBio] = useState(instructor?.bio ?? '');
+  const [sports, setSports] = useState<Sport[]>(instructor?.sports ?? ['windsurf']);
+  const [employment, setEmployment] = useState<Employment>(instructor?.employment ?? 'freelance');
+  const [employmentNote, setEmploymentNote] = useState(instructor?.employmentNote ?? '');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -47,7 +50,19 @@ export default function InstructorForm({ onClose, onSaved }: Props) {
     setSaving(true);
     setError(null);
     try {
-      await api.createInstructor({ name, email, sports, phone, bio, employment, employmentNote });
+      if (editing) {
+        await api.updateInstructor(instructor.id, {
+          name,
+          email,
+          phone,
+          bio,
+          sports,
+          employment,
+          employmentNote,
+        });
+      } else {
+        await api.createInstructor({ name, email, sports, phone, bio, employment, employmentNote });
+      }
       onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -65,12 +80,14 @@ export default function InstructorForm({ onClose, onSaved }: Props) {
         aria-labelledby="add-instructor"
         onClick={(e) => e.stopPropagation()}
       >
-        <h3 id="add-instructor">{t('Hoca ekle')}</h3>
-        <p className="admin-hint">
-          {t(
-            'Hocanın kayıt olmasını beklemeden profil oluşturabilirsiniz; takvimde hemen görünür. Kayıt olup e-postasını doğruladığında hesabı bu profile otomatik bağlanır.',
-          )}
-        </p>
+        <h3 id="add-instructor">{editing ? t('Hocayı düzenle') : t('Hoca ekle')}</h3>
+        {!editing && (
+          <p className="admin-hint">
+            {t(
+              'Hocanın kayıt olmasını beklemeden profil oluşturabilirsiniz; takvimde hemen görünür. Kayıt olduktan sonra hesabını aşağıdaki listeden bu profile bağlayın.',
+            )}
+          </p>
+        )}
 
         {error && <p className="dialog-error">{error}</p>}
 

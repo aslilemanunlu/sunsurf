@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { CampRegistration, KidsCampEntry } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
-import { addDays, formatTime, fromDateKey, todayKey } from '../../lib/date';
+import { formatTime } from '../../lib/date';
 import CampRegistrationForm from './CampRegistrationForm';
 
 /** Seasons the roll can be filtered by, newest first. */
@@ -23,8 +23,7 @@ type Props = { onChanged: () => void };
  */
 export default function KidsCampPage({ onChanged }: Props) {
   const { t } = useT();
-  const [from, setFrom] = useState(addDays(todayKey(), -30));
-  const [to, setTo] = useState(addDays(todayKey(), 60));
+
   const [rows, setRows] = useState<KidsCampEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,19 +33,20 @@ export default function KidsCampPage({ onChanged }: Props) {
   const [adding, setAdding] = useState(false);
   const [openReg, setOpenReg] = useState<CampRegistration | null>(null);
 
+  /** A season is its calendar year; the bookings follow the same filter. */
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const end = fromDateKey(to);
-      end.setDate(end.getDate() + 1);
-      setRows(await api.listKidsCamp(fromDateKey(from).toISOString(), end.toISOString()));
+      const start = new Date(season, 0, 1).toISOString();
+      const end = new Date(season + 1, 0, 1).toISOString();
+      setRows(await api.listKidsCamp(start, end));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
-  }, [from, to]);
+  }, [season]);
 
   useEffect(() => {
     void load();
@@ -215,9 +215,14 @@ export default function KidsCampPage({ onChanged }: Props) {
                     </td>
                     <td className="num">{r.days}</td>
                     <td>
-                      <button className="link-btn danger" onClick={() => removeRegistration(r)}>
-                        {t('Sil')}
-                      </button>
+                      <div className="row-actions">
+                        <button className="link-btn" onClick={() => setOpenReg(r)}>
+                          {t('Düzenle')}
+                        </button>
+                        <button className="link-btn danger" onClick={() => removeRegistration(r)}>
+                          {t('Sil')}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -227,29 +232,10 @@ export default function KidsCampPage({ onChanged }: Props) {
         )}
       </section>
 
-      <div className="filters">
-        <label className="range">
-          <input
-            type="date"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            aria-label={t('Başlangıç')}
-          />
-          <span>–</span>
-          <input
-            type="date"
-            value={to}
-            min={from}
-            onChange={(e) => setTo(e.target.value)}
-            aria-label={t('Bitiş')}
-          />
-        </label>
-      </div>
-
       {loading ? (
         <p className="admin-hint">{t('Yükleniyor…')}</p>
       ) : rows.length === 0 ? (
-        <p className="mybookings-empty">{t('Bu tarihlerde çocuk kampı kaydı yok.')}</p>
+        <p className="mybookings-empty">{t('Bu sezonda çocuk kampı rezervasyonu yok.')}</p>
       ) : (
         <>
           <section className="panel">
@@ -378,9 +364,16 @@ export default function KidsCampPage({ onChanged }: Props) {
             setAdding(false);
             setOpenReg(null);
           }}
-          onSaved={() => {
+          onSaved={async (registrationId) => {
             setAdding(false);
-            void loadRoll();
+            const fresh = await api.listCampRegistrations(season).catch(() => null);
+            if (fresh) setRoll(fresh);
+            // Adding the photograph is the next thing anybody does, and it can
+            // only happen once the registration exists — so the dialog stays
+            // open on it instead of sending them back to find the child again.
+            if (registrationId && fresh) {
+              setOpenReg(fresh.find((x) => x.registrationId === registrationId) ?? null);
+            }
             onChanged();
           }}
         />

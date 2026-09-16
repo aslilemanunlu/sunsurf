@@ -25,6 +25,7 @@ export default function CustomersPage({ onChanged }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
 
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<CrmCustomer | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -186,9 +187,14 @@ export default function CustomersPage({ onChanged }: Props) {
                     {c.lastLessonAt ? new Date(c.lastLessonAt).toLocaleDateString(locale()) : '—'}
                   </td>
                   <td>
-                    <button className="link-btn danger" onClick={() => remove(c)}>
-                      {t('Sil')}
-                    </button>
+                    <div className="row-actions">
+                      <button className="link-btn" onClick={() => setEditing(c)}>
+                        {t('Düzenle')}
+                      </button>
+                      <button className="link-btn danger" onClick={() => remove(c)}>
+                        {t('Sil')}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -197,12 +203,16 @@ export default function CustomersPage({ onChanged }: Props) {
         </div>
       )}
 
-      {adding && (
+      {(adding || editing) && (
         <CustomerForm
-          customer={null}
-          onClose={() => setAdding(false)}
+          customer={editing}
+          onClose={() => {
+            setAdding(false);
+            setEditing(null);
+          }}
           onSaved={() => {
             setAdding(false);
+            setEditing(null);
             void load();
             onChanged();
           }}

@@ -224,6 +224,18 @@ const EN: Record<string, string> = {
   '{n} bu hocanın uzmanlık alanlarında yazılı değil.':
     '{n} is not listed among this instructor’s specialities.',
 
+  'Hocayı düzenle': 'Edit instructor',
+  'Eğitmen kaydedilemedi': 'Could not save the instructor',
+  'Hocanın kayıt olmasını beklemeden profil oluşturabilirsiniz; takvimde hemen görünür. Kayıt olduktan sonra hesabını aşağıdaki listeden bu profile bağlayın.':
+    'You can create the profile before they sign up; it appears on the calendar at once. Once they register, link their account to this profile in the list below.',
+  'Tüm müşteriler': 'All customers',
+  'Telefon opsiyonel. Kaydet dediğinizde müşteri de oluşturulur.':
+    'The phone is optional. Saving creates the customer too.',
+  'Listeden seç': 'Pick from the list',
+  'Bu sezonda çocuk kampı rezervasyonu yok.': 'No kids camp bookings in this season.',
+  'Kaydet dedikten sonra bu pencere açık kalır ve formu ekleyebilirsiniz.':
+    'This stays open after saving so you can add the form.',
+
   // camp registrations
   'Sezon kayıtları': 'Season registrations',
   Sezon: 'Season',
