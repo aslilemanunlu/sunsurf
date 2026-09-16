@@ -18,7 +18,8 @@ type Props = {
   /** Null when adding somebody new. */
   instructor: api.InstructorAdmin | null;
   onClose: () => void;
-  onSaved: () => void;
+  /** Carries the new record's id, so a caller can select it straight away. */
+  onSaved: (instructorId?: string) => void;
 };
 
 /**
@@ -60,10 +61,19 @@ export default function InstructorForm({ instructor, onClose, onSaved }: Props) 
           employment,
           employmentNote,
         });
+        onSaved();
       } else {
-        await api.createInstructor({ name, email, sports, phone, bio, employment, employmentNote });
+        const id = await api.createInstructor({
+          name,
+          email,
+          sports,
+          phone,
+          bio,
+          employment,
+          employmentNote,
+        });
+        onSaved(id);
       }
-      onSaved();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {

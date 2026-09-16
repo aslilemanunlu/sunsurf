@@ -241,6 +241,14 @@ const EN: Record<string, string> = {
   'Çocuklar sezon kayıt listesinde tutulur; burada isim sorulmaz.':
     'Children are kept on the season registration list; no name is asked for here.',
 
+  '+ Hoca profili oluştur': '+ Create instructor profile',
+  'İptal edilen': 'Cancelled',
+  anlaşma: 'agreements',
+  'Bu müşteriye bağlı {n} var; önce onları silin.':
+    'This customer still has {n}; delete those first.',
+  'Bu müşteri silinemiyor: başka bir kayda bağlı.':
+    'This customer cannot be deleted: something else still refers to them.',
+
   // accounts and access
   'Kullanıcı Ekle': 'Add user',
   'Davet et': 'Invite',

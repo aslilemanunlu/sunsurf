@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { AccessLevel, DirectoryUser, Viewer } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
+import InstructorForm from './InstructorForm';
 
 type Props = { viewer: Viewer; onChanged: () => void };
 
@@ -11,6 +12,9 @@ const LEVELS: { value: AccessLevel; label: string }[] = [
   { value: 'instructor', label: 'Hoca' },
   { value: 'none', label: 'Erişimi yok' },
 ];
+
+/** Everything else is still reachable under "Tümü". */
+const FILTERS: (AccessLevel | 'all')[] = ['all', 'owner', 'admin'];
 
 const LEVEL_LABEL: Record<AccessLevel, string> = {
   owner: 'Yönetici',
@@ -52,6 +56,13 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
   const [email, setEmail] = useState('');
   const [level, setLevel] = useState<Exclude<AccessLevel, 'none'>>('instructor');
   const [instructorId, setInstructorId] = useState('');
+  /**
+   * Somebody is being made an instructor and there is no record to point at.
+   * Sending them off to another page to make one is how the half-finished
+   * invitation gets abandoned, so the form opens here and the new record is
+   * selected when it closes.
+   */
+  const [makingProfile, setMakingProfile] = useState<null | { for: string | null }>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -196,6 +207,13 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
                   </option>
                 ))}
               </select>
+              <button
+                type="button"
+                className="link-btn"
+                onClick={() => setMakingProfile({ for: null })}
+              >
+                {t('+ Hoca profili oluştur')}
+              </button>
             </label>
           )}
 
@@ -219,14 +237,14 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
           >
             {t('Tümü')}
           </button>
-          {LEVELS.map((l) => (
+          {FILTERS.filter((f) => f !== 'all').map((f) => (
             <button
-              key={l.value}
-              className={`segment${filter === l.value ? ' is-active' : ''}`}
-              onClick={() => setFilter(l.value)}
-              aria-pressed={filter === l.value}
+              key={f}
+              className={`segment${filter === f ? ' is-active' : ''}`}
+              onClick={() => setFilter(f)}
+              aria-pressed={filter === f}
             >
-              {t(l.label)}
+              {t(LEVEL_LABEL[f as AccessLevel])}
             </button>
           ))}
         </div>
@@ -290,18 +308,28 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
                       ) : u.pending ? (
                         <span className="cell-dim">{u.instructorName ?? '—'}</span>
                       ) : (
-                        <select
-                          value={u.instructorId ?? ''}
-                          disabled={locked}
-                          onChange={(e) => setLevelFor(u, 'instructor', e.target.value || null)}
-                        >
-                          <option value="">{t('— seçin —')}</option>
-                          {instructors.map((i) => (
-                            <option key={i.id} value={i.id}>
-                              {i.name}
-                            </option>
-                          ))}
-                        </select>
+                        <>
+                          <select
+                            value={u.instructorId ?? ''}
+                            disabled={locked}
+                            onChange={(e) => setLevelFor(u, 'instructor', e.target.value || null)}
+                          >
+                            <option value="">{t('— seçin —')}</option>
+                            {instructors.map((i) => (
+                              <option key={i.id} value={i.id}>
+                                {i.name}
+                              </option>
+                            ))}
+                          </select>
+                          {!u.instructorId && (
+                            <button
+                              className="link-btn"
+                              onClick={() => setMakingProfile({ for: u.userId })}
+                            >
+                              {t('+ Hoca profili oluştur')}
+                            </button>
+                          )}
+                        </>
                       )}
                     </td>
                     <td className="cell-dim">
@@ -327,6 +355,27 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
           'Yetkisi olmayan bir hesap yalnızca herkese açık takvimi okur. Şifresini unutan herkes giriş ekranından kendisi yenileyebilir.',
         )}
       </p>
+
+      {makingProfile && (
+        <InstructorForm
+          instructor={null}
+          onClose={() => setMakingProfile(null)}
+          onSaved={async (newId) => {
+            const target = makingProfile.for;
+            setMakingProfile(null);
+            await load();
+            if (!newId) return;
+            // link it to whoever the button was pressed for; in the invite panel
+            // there is nobody yet, so it just becomes the chosen profile
+            if (target) {
+              const u = rows.find((r) => r.userId === target);
+              if (u) await setLevelFor(u, 'instructor', newId);
+            } else {
+              setInstructorId(newId);
+            }
+          }}
+        />
+      )}
     </section>
   );
 }

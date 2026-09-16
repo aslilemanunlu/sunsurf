@@ -7,16 +7,15 @@ import { locale } from '../../lib/i18n';
 import { describeLesson, lessonClass } from '../../lib/lessons';
 
 const STATUS_LABEL: Record<BookingStatus, string> = {
-  pending: 'Beklemede',
+  pending: 'Ön rezervasyon',
   approved: 'Onaylı',
-  rejected: 'Reddedildi',
+  rejected: 'İptal edilen',
 };
 
 const STATUSES: { value: BookingStatus | 'all'; label: string }[] = [
-  { value: 'all', label: 'Tümü' },
-  { value: 'pending', label: 'Beklemede' },
   { value: 'approved', label: 'Onaylı' },
-  { value: 'rejected', label: 'Reddedildi' },
+  { value: 'all', label: 'Tümü' },
+  { value: 'rejected', label: 'İptal edilen' },
 ];
 
 type Props = {
@@ -31,7 +30,7 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
   const [rows, setRows] = useState<ManagedBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<BookingStatus | 'all'>('all');
+  const [status, setStatus] = useState<BookingStatus | 'all'>('approved');
   const [instructorId, setInstructorId] = useState('all');
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -171,7 +170,13 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
                       {r.durationHours} {t('saat')}
                     </td>
                     <td>
-                      <span className={`status status--${r.status}`}>{t(STATUS_LABEL[r.status])}</span>
+                      {r.status === 'approved' ? (
+                        <span className="cell-dim">—</span>
+                      ) : (
+                        <span className={`status status--${r.status}`}>
+                          {t(STATUS_LABEL[r.status])}
+                        </span>
+                      )}
                     </td>
                     <td>
                       {r.status === 'pending' && (

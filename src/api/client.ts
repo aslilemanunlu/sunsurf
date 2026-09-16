@@ -538,11 +538,33 @@ export async function updateCustomer(
   }
 }
 
-/** Refused by a foreign key while the customer still has lessons on record. */
+/**
+ * Notes go with the customer. Lessons and agreements do not: a lesson that
+ * happened is calendar history and an agreement is money, and neither should
+ * disappear because somebody tidied a contact list.
+ *
+ * When one of them blocks the delete, the message says which — it used to blame
+ * lessons whatever the reason, which is how "I deleted every booking and it
+ * still refuses" happens.
+ */
 export async function deleteCustomer(customerId: string): Promise<void> {
   const result = await neon.from('customers').delete().eq('id', customerId).select('id');
   if (result.error?.code === '23503') {
-    throw new Error(translate('Bu müşterinin dersleri var; önce onları silin.'));
+    const [lessons, agreements] = await Promise.all([
+      countOf('managed_bookings', 'id', (q) => q.eq('customer_id', customerId)).catch(() => 0),
+      countOf('agreement_balances', 'id', (q) => q.eq('customer_id', customerId)).catch(() => 0),
+    ]);
+    const parts: string[] = [];
+    if (lessons > 0) parts.push(`${lessons} ${translate('ders')}`);
+    if (agreements > 0) parts.push(`${agreements} ${translate('anlaşma')}`);
+    throw new Error(
+      parts.length > 0
+        ? translate('Bu müşteriye bağlı {n} var; önce onları silin.').replace(
+            '{n}',
+            parts.join(' + '),
+          )
+        : translate('Bu müşteri silinemiyor: başka bir kayda bağlı.'),
+    );
   }
   if (result.error) {
     throw new Error(`${translate('Müşteri silinemedi')}: ${result.error.message}`);
@@ -680,7 +702,7 @@ export async function createInstructor(input: {
   bio?: string;
   employment?: Employment | null;
   employmentNote?: string;
-}): Promise<void> {
+}): Promise<string> {
   const id = `ins-${input.email.split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase()}-${Date.now()
     .toString(36)
     .slice(-4)}`;
@@ -700,6 +722,7 @@ export async function createInstructor(input: {
     throw new Error(translate('Bu e-posta ile kayıtlı bir eğitmen zaten var.'));
   }
   if (result.error) throw new Error(`${translate("Eğitmen eklenemedi")}: ${result.error.message}`);
+  return id;
 }
 
 // ------------------------------------------------------- management settings

@@ -15,7 +15,6 @@ type Card = {
 const CARDS: Card[] = [
   { key: 'students', title: 'Toplam Müşteri', tone: 'accent' },
   { key: 'instructors', title: 'Toplam Hoca', tone: 'individual' },
-  { key: 'users', title: 'Hesap', tone: 'group' },
   { key: 'bookings', title: 'Toplam Rezervasyon', tone: 'kids' },
   { key: 'hoursThisMonth', title: 'Bu Ay Verilen Ders', tone: 'accent', suffix: 'saat' },
 ];
@@ -55,8 +54,7 @@ export default function Dashboard() {
   const [to, setTo] = useState(todayKey());
   const [pickedInstructors, setPickedInstructors] = useState<string[]>([]);
   const [pickedTypes, setPickedTypes] = useState<LessonType[]>([]);
-  /** Rejected lessons never happened, so they are out of the numbers by default. */
-  const [countRejected, setCountRejected] = useState(false);
+
 
   const [rangeFrom, rangeTo] = [from, to];
 
@@ -100,11 +98,11 @@ export default function Dashboard() {
     () =>
       rows.filter(
         (r) =>
-          (countRejected || r.status !== 'rejected') &&
+            r.status !== 'rejected' &&
           (pickedInstructors.length === 0 || pickedInstructors.includes(r.instructorId)) &&
           (pickedTypes.length === 0 || pickedTypes.includes(r.lessonType)),
       ),
-    [rows, countRejected, pickedInstructors, pickedTypes],
+    [rows, pickedInstructors, pickedTypes],
   );
 
   const totals = useMemo(() => {
@@ -310,14 +308,7 @@ export default function Dashboard() {
           })}
         </div>
 
-        <label className="check check--inline">
-          <input
-            type="checkbox"
-            checked={countRejected}
-            onChange={(e) => setCountRejected(e.target.checked)}
-          />
-          {t('Reddedilenleri de say')}
-        </label>
+
       </div>
 
       <p className="admin-hint">{rangeLabel}</p>
