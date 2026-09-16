@@ -241,6 +241,21 @@ const EN: Record<string, string> = {
   'Çocuklar sezon kayıt listesinde tutulur; burada isim sorulmaz.':
     'Children are kept on the season registration list; no name is asked for here.',
 
+  // accounts and access
+  'Kullanıcı Ekle': 'Add user',
+  'Davet et': 'Invite',
+  'Davet edildi': 'Invited',
+  'Daveti geri al': 'Withdraw invitation',
+  '{n} daveti geri alınsın mı?': 'Withdraw the invitation for {n}?',
+  'Yetkiye göre filtrele': 'Filter by access',
+  'Bu filtreye uyan hesap yok.': 'No account matches this filter.',
+  'Davet kaydedilemedi': 'Could not save the invitation',
+  'Davet silinemedi': 'Could not withdraw the invitation',
+  'Şifreyi siz belirlemiyorsunuz: davet ettiğiniz kişi bu e-posta ile kayıt olup kendi şifresini seçer, yetkisi ilk girişinde otomatik tanımlanır. Böylece kimse bir başkasının şifresini bilmek zorunda kalmaz.':
+    'You do not set the password: the person you invite signs up with this address, chooses their own, and gets their access on first sign-in. Nobody has to know a colleague’s password.',
+  'Yetkisi olmayan bir hesap yalnızca herkese açık takvimi okur. Şifresini unutan herkes giriş ekranından kendisi yenileyebilir.':
+    'An account with no access can only read the public calendar. Anyone who forgets their password can reset it from the sign-in screen.',
+
   // camp registrations
   'Sezon kayıtları': 'Season registrations',
   Sezon: 'Season',

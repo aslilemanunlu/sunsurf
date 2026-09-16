@@ -124,13 +124,25 @@ export default function App() {
       setViewer(GUEST);
       return;
     }
+    const uid = session.data?.user?.id;
     api
       .getViewer()
-      .then((v) => !cancelled && setViewer(v))
+      .then(async (v) => {
+        if (cancelled) return;
+        // No role yet may mean an invitation is waiting. Claiming one is an
+        // insert the account makes for itself; db/018 decides what it says.
+        if (v.role === 'customer' && uid && (await api.claimInvitation(uid))) {
+          const claimed = await api.getViewer();
+          if (!cancelled) setViewer(claimed);
+          return;
+        }
+        setViewer(v);
+      })
       .catch(() => !cancelled && setViewer(GUEST));
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [signedIn, reloadToken]);
 
   // The day, as anyone may see it: instructors, which hours are taken, and

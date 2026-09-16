@@ -78,17 +78,27 @@ export type ManagedBooking = {
   customerSegments: Segment[];
 };
 
-/** An account that can sign in — staff, or somebody waiting to be made staff. */
+/**
+ * Somebody who can sign in, or has been invited to.
+ *
+ * `pending` rows are invitations: no account exists yet, so `userId` is null
+ * and nothing about them can be edited except withdrawing the invitation.
+ */
 export type DirectoryUser = {
-  userId: string;
+  userId: string | null;
   email: string;
   name: string | null;
   role: Role;
   isOwner: boolean;
   instructorId: string | null;
+  instructorName: string | null;
   emailVerified: boolean;
   createdAt: string | null;
+  pending: boolean;
 };
+
+/** What an admin picks when they give somebody access. One choice, not two. */
+export type AccessLevel = 'owner' | 'admin' | 'instructor' | 'none';
 
 /** Someone staff may book. A record typed in by the school, not an account. */
 export type CustomerRef = {

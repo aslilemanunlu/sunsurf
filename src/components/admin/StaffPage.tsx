@@ -1,15 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { DirectoryUser, Employment, ManagedBooking, Role, Viewer } from '../../types';
+import type { Employment, ManagedBooking } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
 import { SPORT_LABEL } from '../../lib/lessons';
 import InstructorForm from './InstructorForm';
-
-const ROLE_LABEL: Record<Role, string> = {
-  admin: 'Admin',
-  instructor: 'Hoca',
-  customer: 'Erişimi yok',
-};
 
 const EMPLOYMENT_LABEL: Record<Employment, string> = {
   salaried: 'Maaşlı',
@@ -17,7 +11,7 @@ const EMPLOYMENT_LABEL: Record<Employment, string> = {
   other: 'Diğer',
 };
 
-type Props = { viewer: Viewer; onChanged: () => void };
+type Props = { onChanged: () => void };
 
 /** "2026-09" — the month a month picker gives back. */
 function thisMonthKey(): string {
@@ -37,12 +31,10 @@ function monthBounds(key: string): [string, string] {
  * that person has an account, and until the two are joined they appear on the
  * calendar but cannot sign in and manage their own hours.
  */
-export default function StaffPage({ viewer, onChanged }: Props) {
+export default function StaffPage({ onChanged }: Props) {
   const { t } = useT();
   const [rows, setRows] = useState<api.InstructorAdmin[]>([]);
-  const [accounts, setAccounts] = useState<DirectoryUser[]>([]);
   const [worked, setWorked] = useState<ManagedBooking[]>([]);
-  const [busyId, setBusyId] = useState<string | null>(null);
   const [month, setMonthKey] = useState(thisMonthKey());
   const [openId, setOpenId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,14 +46,12 @@ export default function StaffPage({ viewer, onChanged }: Props) {
     setLoading(true);
     try {
       const [from, to] = monthBounds(month);
-      const [list, bookings, users] = await Promise.all([
+      const [list, bookings] = await Promise.all([
         api.listInstructorsAdmin(),
         api.listBookingsBetween(from, to),
-        api.listUsers(),
       ]);
       setRows(list);
       setWorked(bookings);
-      setAccounts(users);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -111,35 +101,6 @@ export default function StaffPage({ viewer, onChanged }: Props) {
     () => [...worksheet.values()].reduce((s, r) => s + r.hours, 0),
     [worksheet],
   );
-
-  /** Only a yönetici may appoint one; a trigger in db/015 enforces it too. */
-  async function setOwner(u: DirectoryUser, owner: boolean) {
-    setBusyId(u.userId);
-    setError(null);
-    try {
-      await api.setOwner(u.userId, owner);
-      await load();
-      onChanged();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusyId(null);
-    }
-  }
-
-  async function changeRole(u: DirectoryUser, role: Role, instructorId: string | null) {
-    setBusyId(u.userId);
-    setError(null);
-    try {
-      await api.setUserRole(u.userId, role, role === 'instructor' ? instructorId : null);
-      await load();
-      onChanged();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusyId(null);
-    }
-  }
 
   return (
     <section>
@@ -289,101 +250,6 @@ export default function StaffPage({ viewer, onChanged }: Props) {
                       </tr>
                     );
                   })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </section>
-
-      <section className="panel">
-        <h4 className="panel-title">{t('Hesaplar ve yetkiler')}</h4>
-        <p className="admin-hint">
-          {t(
-            'Yalnızca hocalar ve yöneticiler giriş yapar. Yeni bir hesap, siz yetki verene kadar hiçbir şey yapamaz — sadece takvimi okur.',
-          )}
-        </p>
-        {accounts.length === 0 ? (
-          <p className="cell-dim">{t('Kayıtlı hesap yok.')}</p>
-        ) : (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t('İsim')}</th>
-                  <th>{t('E-posta')}</th>
-                  <th>{t('Yetki')}</th>
-                  <th>{t('Yönetici')}</th>
-                  <th>{t('Hoca profili')}</th>
-                  <th>{t('Kayıt')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {accounts.map((u) => (
-                  <tr key={u.userId}>
-                    <td>{u.name ?? '—'}</td>
-                    <td className="cell-dim">
-                      {u.email}
-                      {!u.emailVerified && (
-                        <div className="status status--pending">{t('Doğrulanmadı')}</div>
-                      )}
-                    </td>
-                    <td>
-                      <select
-                        value={u.role}
-                        disabled={busyId === u.userId}
-                        onChange={(e) => changeRole(u, e.target.value as Role, u.instructorId)}
-                      >
-                        {(['customer', 'instructor', 'admin'] as Role[]).map((r) => (
-                          <option key={r} value={r}>
-                            {t(ROLE_LABEL[r])}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      {u.role === 'admin' ? (
-                        viewer.isOwner ? (
-                          <label className="check check--inline">
-                            <input
-                              type="checkbox"
-                              checked={u.isOwner}
-                              disabled={busyId === u.userId}
-                              onChange={(e) => setOwner(u, e.target.checked)}
-                            />
-                            {t('Yönetici')}
-                          </label>
-                        ) : u.isOwner ? (
-                          <span className="status status--approved">{t('Yönetici')}</span>
-                        ) : (
-                          <span className="cell-dim">—</span>
-                        )
-                      ) : (
-                        <span className="cell-dim">—</span>
-                      )}
-                    </td>
-                    <td>
-                      {u.role === 'instructor' ? (
-                        <select
-                          value={u.instructorId ?? ''}
-                          disabled={busyId === u.userId}
-                          onChange={(e) => changeRole(u, 'instructor', e.target.value || null)}
-                        >
-                          <option value="">{t('— seçin —')}</option>
-                          {rows.map((i) => (
-                            <option key={i.id} value={i.id}>
-                              {i.name}
-                            </option>
-                          ))}
-                        </select>
-                      ) : (
-                        <span className="cell-dim">—</span>
-                      )}
-                    </td>
-                    <td className="cell-dim">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString(locale()) : '—'}
-                    </td>
-                  </tr>
-                ))}
               </tbody>
             </table>
           </div>

@@ -12,6 +12,7 @@
  * lives here so no component has to know about either.
  */
 import type {
+  AccessLevel,
   Agreement,
   AgreementKind,
   Block,
@@ -347,14 +348,16 @@ export async function getViewer(): Promise<Viewer> {
 }
 
 type DirectoryRow = {
-  user_id: string;
+  user_id: string | null;
   email: string;
   name: string | null;
   role: string;
   is_owner: boolean | null;
   instructor_id: string | null;
+  instructor_name: string | null;
   email_verified: boolean | null;
   created_at: string | null;
+  pending: boolean;
 };
 
 /** The admin panel's user list. Returns nothing unless you are an admin. */
@@ -370,8 +373,10 @@ export async function listUsers(): Promise<DirectoryUser[]> {
     role: r.role as Role,
     isOwner: r.is_owner ?? false,
     instructorId: r.instructor_id,
+    instructorName: r.instructor_name,
     emailVerified: r.email_verified ?? false,
     createdAt: r.created_at,
+    pending: r.pending,
   }));
 }
 
@@ -1353,4 +1358,55 @@ export async function updateBooking(
   if (!result.data || result.data.length === 0) {
     throw new Error(translate('Ders kaydedilemedi'));
   }
+}
+
+// --------------------------------------------------------------- invitations
+
+/**
+ * Invites somebody to a role.
+ *
+ * Nobody types anybody else's password: the invitation names the address and
+ * what they may do, and that person sets their own on sign-up. Creating the
+ * account outright is not possible here — Neon's sign-up endpoint answers with
+ * a session for the new user, which would sign the admin out of their own
+ * browser, and there is no server of ours to call an admin API from.
+ */
+export async function inviteStaff(input: {
+  email: string;
+  level: Exclude<AccessLevel, 'none'>;
+  instructorId?: string | null;
+}): Promise<void> {
+  const result = await neon.from('staff_invitations').upsert(
+    {
+      email: input.email.trim().toLowerCase(),
+      role: input.level === 'instructor' ? 'instructor' : 'admin',
+      is_owner: input.level === 'owner',
+      instructor_id: input.level === 'instructor' ? (input.instructorId ?? null) : null,
+    },
+    { onConflict: 'email' },
+  );
+  if (result.error) throw new Error(`${translate('Davet kaydedilemedi')}: ${result.error.message}`);
+}
+
+export async function cancelInvitation(email: string): Promise<void> {
+  const result = await neon.from('staff_invitations').delete().eq('email', email).select('email');
+  if (result.error) throw new Error(`${translate('Davet silinemedi')}: ${result.error.message}`);
+}
+
+/**
+ * Takes up an invitation, once, for the caller themselves.
+ *
+ * The role sent here is ignored: a trigger in db/018 replaces it with the
+ * invited one and deletes the invitation. That is what makes it safe for the
+ * new account to write its own row — it cannot choose what the row says.
+ *
+ * Returns false when there was nothing to claim, which is the ordinary case.
+ */
+export async function claimInvitation(userId: string): Promise<boolean> {
+  const result = await neon
+    .from('user_roles')
+    .insert({ user_id: userId, role: 'instructor' })
+    .select('user_id');
+  if (result.error) return false;
+  return Boolean(result.data && result.data.length > 0);
 }

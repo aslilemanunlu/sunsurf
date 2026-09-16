@@ -6,9 +6,10 @@ import CustomersPage from './CustomersPage';
 import BookingsPage from './BookingsPage';
 import KidsCampPage from './KidsCampPage';
 import StaffPage from './StaffPage';
+import AccountsPage from './AccountsPage';
 import PaymentsPage from './PaymentsPage';
 
-type Page = 'dashboard' | 'bookings' | 'customers' | 'payments' | 'kids' | 'staff';
+type Page = 'dashboard' | 'bookings' | 'customers' | 'payments' | 'kids' | 'staff' | 'accounts';
 
 const NAV: { key: Page; label: string }[] = [
   { key: 'dashboard', label: 'Ana Sayfa' },
@@ -17,6 +18,7 @@ const NAV: { key: Page; label: string }[] = [
   { key: 'payments', label: 'Ödemeler' },
   { key: 'kids', label: 'Çocuk Kampı' },
   { key: 'staff', label: 'Hocalar' },
+  { key: 'accounts', label: 'Hesaplar ve yetkiler' },
 ];
 
 type Props = {
@@ -57,7 +59,8 @@ export default function AdminShell({ viewer, instructors, onBackToCalendar, onCh
         {page === 'customers' && <CustomersPage onChanged={onChanged} />}
         {page === 'payments' && <PaymentsPage onChanged={onChanged} />}
         {page === 'kids' && <KidsCampPage onChanged={onChanged} />}
-        {page === 'staff' && <StaffPage viewer={viewer} onChanged={onChanged} />}
+        {page === 'staff' && <StaffPage onChanged={onChanged} />}
+        {page === 'accounts' && <AccountsPage viewer={viewer} onChanged={onChanged} />}
       </div>
     </div>
   );
