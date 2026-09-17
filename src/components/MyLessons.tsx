@@ -2,7 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ManagedBooking } from '../types';
 import { locale, useT } from '../lib/i18n';
 import * as api from '../api/client';
-import { addDays, formatTime, fromDateKey, todayKey, toDateKey } from '../lib/date';
+import {
+  addDays,
+  formatTime,
+  fromDateKey,
+  startOfMonthKey,
+  startOfWeekKey,
+  todayKey,
+  toDateKey,
+} from '../lib/date';
 import { describeLesson, lessonClass } from '../lib/lessons';
 import { downloadCsv } from '../lib/csv';
 import { Split, type Slice } from './admin/Charts';
@@ -14,27 +22,14 @@ type Props = {
   onBack: () => void;
 };
 
-/** Monday of the week containing today — the week a school actually plans. */
-function startOfWeek(): string {
-  const d = new Date();
-  const back = (d.getDay() + 6) % 7; // Sunday is 0; Monday should be the start
-  d.setDate(d.getDate() - back);
-  return toDateKey(d);
-}
-
-function startOfMonth(): string {
-  const d = new Date();
-  return toDateKey(new Date(d.getFullYear(), d.getMonth(), 1));
-}
-
 /**
  * The shortcuts write into the same two date fields the reader can edit, so
  * "this week but from Wednesday" is one click and one edit rather than a mode.
  */
 const PRESETS: { label: string; range: () => [string, string] }[] = [
   { label: 'Bugün', range: () => [todayKey(), todayKey()] },
-  { label: 'Bu hafta', range: () => [startOfWeek(), addDays(startOfWeek(), 6)] },
-  { label: 'Bu ay', range: () => [startOfMonth(), todayKey()] },
+  { label: 'Bu hafta', range: () => [startOfWeekKey(), addDays(startOfWeekKey(), 6)] },
+  { label: 'Bu ay', range: () => [startOfMonthKey(), todayKey()] },
   { label: 'Son 90 gün', range: () => [addDays(todayKey(), -89), todayKey()] },
 ];
 
@@ -50,7 +45,7 @@ const PRESETS: { label: string; range: () => [string, string] }[] = [
  */
 export default function MyLessons({ instructorId, instructorName, onBack }: Props) {
   const { t } = useT();
-  const [from, setFrom] = useState(startOfMonth());
+  const [from, setFrom] = useState(startOfMonthKey());
   const [to, setTo] = useState(todayKey());
   const [rows, setRows] = useState<ManagedBooking[]>([]);
   const [loading, setLoading] = useState(true);

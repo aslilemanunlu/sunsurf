@@ -2,7 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Instructor, LessonType, ManagedBooking } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
-import { addDays, fromDateKey, toDateKey, todayKey } from '../../lib/date';
+import {
+  addDays,
+  fromDateKey,
+  startOfMonthKey,
+  startOfWeekKey,
+  toDateKey,
+  todayKey,
+} from '../../lib/date';
 import { BarRows, Columns, Split, type Slice } from './Charts';
 import MultiSelect from './MultiSelect';
 import { downloadCsv } from '../../lib/csv';
@@ -28,11 +35,6 @@ const STATUS_TEXT: Record<string, string> = {
   rejected: 'İptal edilen',
 };
 
-function startOfMonth(): string {
-  const d = new Date();
-  return toDateKey(new Date(d.getFullYear(), d.getMonth(), 1));
-}
-
 /**
  * The shortcuts, as the dates they stand for.
  *
@@ -41,8 +43,10 @@ function startOfMonth(): string {
  * click and one edit instead of a different control.
  */
 const PRESETS: { label: string; range: () => [string, string] }[] = [
+  { label: 'Bugün', range: () => [todayKey(), todayKey()] },
+  { label: 'Bu hafta', range: () => [startOfWeekKey(), addDays(startOfWeekKey(), 6)] },
   { label: 'Son 7 gün', range: () => [addDays(todayKey(), -6), todayKey()] },
-  { label: 'Bu ay', range: () => [startOfMonth(), todayKey()] },
+  { label: 'Bu ay', range: () => [startOfMonthKey(), todayKey()] },
   { label: 'Son 90 gün', range: () => [addDays(todayKey(), -89), todayKey()] },
 ];
 
@@ -59,7 +63,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [from, setFrom] = useState(startOfMonth());
+  const [from, setFrom] = useState(startOfMonthKey());
   const [to, setTo] = useState(todayKey());
   const [pickedInstructors, setPickedInstructors] = useState<string[]>([]);
   const [pickedTypes, setPickedTypes] = useState<LessonType[]>([]);

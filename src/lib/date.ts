@@ -24,6 +24,18 @@ export function todayKey(): string {
   return toDateKey(new Date());
 }
 
+/** Monday of the week containing today — the week a school plans. */
+export function startOfWeekKey(): string {
+  const d = new Date();
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // Sunday is 0; Monday starts the week
+  return toDateKey(d);
+}
+
+export function startOfMonthKey(): string {
+  const d = new Date();
+  return toDateKey(new Date(d.getFullYear(), d.getMonth(), 1));
+}
+
 export function isToday(key: string): boolean {
   return key === todayKey();
 }
