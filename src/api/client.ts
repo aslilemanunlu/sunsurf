@@ -394,7 +394,9 @@ export async function setUserRole(
     {
       user_id: userId,
       role,
-      instructor_id: role === 'instructor' ? instructorId : null,
+      // An admin (or yönetici) may teach too. Only an account with no access
+      // at all has nothing to be linked to.
+      instructor_id: role === 'customer' ? null : instructorId,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'user_id' },
@@ -1508,7 +1510,7 @@ export async function inviteStaff(input: {
       email: input.email.trim().toLowerCase(),
       role: input.level === 'instructor' ? 'instructor' : 'admin',
       is_owner: input.level === 'owner',
-      instructor_id: input.level === 'instructor' ? (input.instructorId ?? null) : null,
+      instructor_id: input.instructorId || null,
     },
     { onConflict: 'email' },
   );

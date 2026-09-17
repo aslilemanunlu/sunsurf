@@ -6,12 +6,33 @@ import InstructorForm from './InstructorForm';
 
 type Props = { viewer: Viewer; onChanged: () => void };
 
-const LEVELS: { value: AccessLevel; label: string }[] = [
+/**
+ * Two questions, not one.
+ *
+ * "How much of the office may this person run" has three answers — yönetici,
+ * admin, or none — and they exclude each other, which is why they are one
+ * dropdown. "Do they teach" is separate: a yönetici can be on the water too.
+ * So teaching is its own column, the instructor profile, and an account is an
+ * instructor when it has one.
+ */
+type Management = 'owner' | 'admin' | 'none';
+
+const MANAGEMENT: { value: Management; label: string }[] = [
   { value: 'owner', label: 'Yönetici' },
   { value: 'admin', label: 'Admin' },
-  { value: 'instructor', label: 'Hoca' },
-  { value: 'none', label: 'Erişimi yok' },
+  { value: 'none', label: '—' },
 ];
+
+function managementOf(u: DirectoryUser): Management {
+  if (u.role !== 'admin') return 'none';
+  return u.isOwner ? 'owner' : 'admin';
+}
+
+/** What the two answers make, in the columns the database keeps. */
+function roleFor(m: Management, instructorId: string | null): 'admin' | 'instructor' | 'customer' {
+  if (m !== 'none') return 'admin';
+  return instructorId ? 'instructor' : 'customer';
+}
 
 /** Everything else is still reachable under "Tümü". */
 const FILTERS: (AccessLevel | 'all')[] = ['all', 'owner', 'admin'];
@@ -67,7 +88,7 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
 
   const [inviteOpen, setInviteOpen] = useState(false);
   const [email, setEmail] = useState('');
-  const [level, setLevel] = useState<Exclude<AccessLevel, 'none'>>('instructor');
+  const [level, setLevel] = useState<Management>('none');
   const [instructorId, setInstructorId] = useState('');
   /**
    * Somebody is being made an instructor and there is no record to point at.
@@ -78,7 +99,6 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
   const [makingProfile, setMakingProfile] = useState<null | { for: string | null }>(null);
   /** The last address invited, so the panel can hand over what to send. */
   const [justInvited, setJustInvited] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -105,19 +125,14 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 
-  async function setLevelFor(u: DirectoryUser, next: AccessLevel, linkTo?: string | null) {
+  async function setAccess(u: DirectoryUser, management: Management, instructorId: string | null) {
     if (!u.userId) return;
     setBusy(u.email);
     setError(null);
     try {
-      const role = next === 'instructor' ? 'instructor' : next === 'none' ? 'customer' : 'admin';
-      await api.setUserRole(
-        u.userId,
-        role,
-        next === 'instructor' ? (linkTo ?? u.instructorId) : null,
-      );
+      await api.setUserRole(u.userId, roleFor(management, instructorId), instructorId);
       // owner is a second, narrower question and only a yönetici may answer it
-      if (viewer.isOwner) await api.setOwner(u.userId, next === 'owner');
+      if (viewer.isOwner) await api.setOwner(u.userId, management === 'owner');
       await load();
       onChanged();
     } catch (e) {
@@ -131,9 +146,16 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
     setBusy('invite');
     setError(null);
     try {
-      await api.inviteStaff({ email, level, instructorId });
+      if (level === 'none' && !instructorId) {
+        setError(t('Yönetim yetkisi ya da hoca profili seçin; ikisi de boşsa davetin bir anlamı yok.'));
+        return;
+      }
+      await api.inviteStaff({
+        email,
+        level: level === 'none' ? 'instructor' : level,
+        instructorId: instructorId || null,
+      });
       setJustInvited(email.trim().toLowerCase());
-      setCopied(false);
       setEmail('');
       setInstructorId('');
       await load();
@@ -202,27 +224,23 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
             </label>
 
             <label className="field">
-              <span>{t('Yetki')}</span>
-              <select
-                value={level}
-                onChange={(e) => setLevel(e.target.value as Exclude<AccessLevel, 'none'>)}
-              >
-                {LEVELS.filter((l) => l.value !== 'none')
-                  .filter((l) => l.value !== 'owner' || viewer.isOwner)
-                  .map((l) => (
-                    <option key={l.value} value={l.value}>
-                      {t(l.label)}
-                    </option>
-                  ))}
+              <span>{t('Yönetim yetkisi')}</span>
+              <select value={level} onChange={(e) => setLevel(e.target.value as Management)}>
+                {MANAGEMENT.filter((m) => m.value !== 'owner' || viewer.isOwner).map((m) => (
+                  <option key={m.value} value={m.value}>
+                    {t(m.label)}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
 
-          {level === 'instructor' && (
-            <label className="field">
-              <span>{t('Hoca profili')}</span>
+          <label className="field">
+              <span>
+                {t('Hoca profili')} ({t('ders veriyorsa')})
+              </span>
               <select value={instructorId} onChange={(e) => setInstructorId(e.target.value)}>
-                <option value="">{t('— seçin —')}</option>
+                <option value="">{t('— hoca değil —')}</option>
                 {instructors.map((i) => (
                   <option key={i.id} value={i.id}>
                     {i.name}
@@ -237,7 +255,6 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
                 {t('+ Hoca profili oluştur')}
               </button>
             </label>
-          )}
 
           <div className="row-actions">
             <button className="btn" onClick={invite} disabled={!emailOk || busy === 'invite'}>
@@ -256,29 +273,29 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
 
           {justInvited && (
             <div className="handover">
-              <h4 className="panel-title">{t('Bu mesajı gönderin')}</h4>
-              <pre>{message(justInvited)}</pre>
+              <h4 className="panel-title">
+                {t('{e} davet edildi. Şimdi haber verin:').replace('{e}', justInvited)}
+              </h4>
               <div className="row-actions">
                 <a
                   className="btn btn--small"
+                  href={`https://wa.me/?text=${encodeURIComponent(message(justInvited))}`}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {t('WhatsApp ile paylaş')}
+                </a>
+                <a
+                  className="btn btn--ghost btn--small"
                   href={`mailto:${encodeURIComponent(justInvited)}?subject=${encodeURIComponent(
                     t('Sun Surf Alaçatı — hesabınız hazır'),
                   )}&body=${encodeURIComponent(message(justInvited))}`}
                 >
                   {t('E-posta ile gönder')}
                 </a>
-                <button
-                  className="link-btn"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(message(justInvited));
-                    setCopied(true);
-                  }}
-                >
-                  {copied ? t('Kopyalandı') : t('Kopyala')}
-                </button>
               </div>
               <small className="field-hint">
-                {t('Kendi e-posta programınız açılır; gönderen siz olursunuz.')}
+                {t('Kendi uygulamanız açılır, mesaj hazır gelir; gönderen siz olursunuz.')}
               </small>
             </div>
           )}
@@ -318,7 +335,7 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
               <tr>
                 <th>{t('İsim')}</th>
                 <th>{t('E-posta')}</th>
-                <th>{t('Yetki')}</th>
+                <th>{t('Yönetim yetkisi')}</th>
                 <th>{t('Hoca profili')}</th>
                 <th>{t('Kayıt')}</th>
                 <th />
@@ -326,7 +343,7 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
             </thead>
             <tbody>
               {shown.map((u) => {
-                const current = levelOf(u);
+                const management = managementOf(u);
                 const locked = busy === u.email;
                 return (
                   <tr key={u.userId ?? `invite-${u.email}`}>
@@ -344,34 +361,36 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
                     </td>
                     <td>
                       {u.pending ? (
-                        <span>{t(LEVEL_LABEL[current])}</span>
+                        <span>{management === 'none' ? '—' : t(LEVEL_LABEL[management])}</span>
                       ) : (
                         <select
-                          value={current}
-                          disabled={locked || (current === 'owner' && !viewer.isOwner)}
-                          onChange={(e) => setLevelFor(u, e.target.value as AccessLevel)}
+                          value={management}
+                          disabled={locked || (management === 'owner' && !viewer.isOwner)}
+                          onChange={(e) =>
+                            setAccess(u, e.target.value as Management, u.instructorId)
+                          }
                         >
-                          {LEVELS.filter((l) => l.value !== 'owner' || viewer.isOwner).map((l) => (
-                            <option key={l.value} value={l.value}>
-                              {t(l.label)}
-                            </option>
-                          ))}
+                          {MANAGEMENT.filter((m) => m.value !== 'owner' || viewer.isOwner).map(
+                            (m) => (
+                              <option key={m.value} value={m.value}>
+                                {t(m.label)}
+                              </option>
+                            ),
+                          )}
                         </select>
                       )}
                     </td>
                     <td>
-                      {current !== 'instructor' ? (
-                        <span className="cell-dim">—</span>
-                      ) : u.pending ? (
+                      {u.pending ? (
                         <span className="cell-dim">{u.instructorName ?? '—'}</span>
                       ) : (
                         <>
                           <select
                             value={u.instructorId ?? ''}
                             disabled={locked}
-                            onChange={(e) => setLevelFor(u, 'instructor', e.target.value || null)}
+                            onChange={(e) => setAccess(u, management, e.target.value || null)}
                           >
-                            <option value="">{t('— seçin —')}</option>
+                            <option value="">{t('— hoca değil —')}</option>
                             {instructors.map((i) => (
                               <option key={i.id} value={i.id}>
                                 {i.name}
@@ -426,7 +445,7 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
             // there is nobody yet, so it just becomes the chosen profile
             if (target) {
               const u = rows.find((r) => r.userId === target);
-              if (u) await setLevelFor(u, 'instructor', newId);
+              if (u) await setAccess(u, managementOf(u), newId);
             } else {
               setInstructorId(newId);
             }

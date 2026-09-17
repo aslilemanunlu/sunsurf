@@ -291,6 +291,16 @@ const EN: Record<string, string> = {
     'Their latest form is loaded; saving creates a new registration for {s}. The earlier season is left unchanged.',
   'Kamp kaydı kaydedilemedi': 'Could not save the registration',
 
+  'Yönetim yetkisi': 'Management access',
+  'ders veriyorsa': 'if they teach',
+  '— hoca değil —': '— not an instructor —',
+  'Yönetim yetkisi ya da hoca profili seçin; ikisi de boşsa davetin bir anlamı yok.':
+    'Choose management access or an instructor profile; with neither, the invitation grants nothing.',
+  '{e} davet edildi. Şimdi haber verin:': '{e} is invited. Now let them know:',
+  'WhatsApp ile paylaş': 'Share on WhatsApp',
+  'Kendi uygulamanız açılır, mesaj hazır gelir; gönderen siz olursunuz.':
+    'Your own app opens with the message ready; it is sent by you.',
+
   // accounts and access
   'Kullanıcı Ekle': 'Add user',
   'Davet et': 'Invite',

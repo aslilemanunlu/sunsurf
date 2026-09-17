@@ -426,14 +426,12 @@ export default function App() {
     }
   }
 
+  // A yönetici or admin who also teaches says both.
+  const management = viewer.isOwner ? 'Yönetici' : viewer.role === 'admin' ? 'Admin' : null;
   const roleLabel =
-    viewer.isOwner
-      ? 'Yönetici'
-      : viewer.role === 'admin'
-        ? 'Admin'
-        : viewer.role === 'instructor'
-          ? 'Eğitmen'
-          : null;
+    management && viewer.instructorId
+      ? `${t(management)} · ${t('Eğitmen')}`
+      : (management ?? (viewer.role === 'instructor' ? 'Eğitmen' : null));
 
   const account = (
     <div className="account">
