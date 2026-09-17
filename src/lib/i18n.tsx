@@ -303,6 +303,10 @@ const EN: Record<string, string> = {
 
   'Çalışılan gün': 'Days worked',
 
+  'Bu hafta': 'This week',
+  'Ders listesi': 'Lessons',
+  'Bu tarihlerde ders yok.': 'No lessons in these dates.',
+
   // accounts and access
   'Kullanıcı Ekle': 'Add user',
   'Davet et': 'Invite',

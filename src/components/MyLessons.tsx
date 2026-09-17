@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ManagedBooking } from '../types';
 import { locale, useT } from '../lib/i18n';
 import * as api from '../api/client';
-import { formatTime } from '../lib/date';
+import { addDays, formatTime, fromDateKey, todayKey, toDateKey } from '../lib/date';
 import { describeLesson, lessonClass } from '../lib/lessons';
 import { downloadCsv } from '../lib/csv';
 import { Split, type Slice } from './admin/Charts';
@@ -14,16 +14,29 @@ type Props = {
   onBack: () => void;
 };
 
-/** "2026-09" — what a month picker gives back. */
-function thisMonth(): string {
+/** Monday of the week containing today — the week a school actually plans. */
+function startOfWeek(): string {
   const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  const back = (d.getDay() + 6) % 7; // Sunday is 0; Monday should be the start
+  d.setDate(d.getDate() - back);
+  return toDateKey(d);
 }
 
-function bounds(month: string): [string, string] {
-  const [y, m] = month.split('-').map(Number);
-  return [new Date(y, m - 1, 1).toISOString(), new Date(y, m, 1).toISOString()];
+function startOfMonth(): string {
+  const d = new Date();
+  return toDateKey(new Date(d.getFullYear(), d.getMonth(), 1));
 }
+
+/**
+ * The shortcuts write into the same two date fields the reader can edit, so
+ * "this week but from Wednesday" is one click and one edit rather than a mode.
+ */
+const PRESETS: { label: string; range: () => [string, string] }[] = [
+  { label: 'Bugün', range: () => [todayKey(), todayKey()] },
+  { label: 'Bu hafta', range: () => [startOfWeek(), addDays(startOfWeek(), 6)] },
+  { label: 'Bu ay', range: () => [startOfMonth(), todayKey()] },
+  { label: 'Son 90 gün', range: () => [addDays(todayKey(), -89), todayKey()] },
+];
 
 /**
  * An instructor's own month: what they taught, and the totals.
@@ -37,7 +50,8 @@ function bounds(month: string): [string, string] {
  */
 export default function MyLessons({ instructorId, instructorName, onBack }: Props) {
   const { t } = useT();
-  const [month, setMonth] = useState(thisMonth());
+  const [from, setFrom] = useState(startOfMonth());
+  const [to, setTo] = useState(todayKey());
   const [rows, setRows] = useState<ManagedBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,8 +59,9 @@ export default function MyLessons({ instructorId, instructorName, onBack }: Prop
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [from, to] = bounds(month);
-      const all = await api.listBookingsBetween(from, to);
+      const end = fromDateKey(to);
+      end.setDate(end.getDate() + 1); // the last day is included
+      const all = await api.listBookingsBetween(fromDateKey(from).toISOString(), end.toISOString());
       setRows(
         all
           .filter((b) => b.instructorId === instructorId && b.status !== 'rejected')
@@ -58,7 +73,7 @@ export default function MyLessons({ instructorId, instructorName, onBack }: Prop
     } finally {
       setLoading(false);
     }
-  }, [month, instructorId]);
+  }, [from, to, instructorId]);
 
   useEffect(() => {
     void load();
@@ -88,9 +103,19 @@ export default function MyLessons({ instructorId, instructorName, onBack }: Prop
     [rows],
   );
 
+  /** The lessons grouped by day, in order — how a week is read. */
+  const days = useMemo(() => {
+    const map = new Map<string, ManagedBooking[]>();
+    for (const r of rows) {
+      const key = toDateKey(new Date(r.startsAt));
+      map.set(key, [...(map.get(key) ?? []), r]);
+    }
+    return [...map.entries()];
+  }, [rows]);
+
   function exportMonth() {
     downloadCsv(
-      `derslerim-${month}`,
+      `derslerim-${from}_${to}`,
       [t('Tarih'), t('Saat'), t('Müşteri'), t('Ders'), t('Süre')],
       rows.map((r) => [
         new Date(r.startsAt).toLocaleDateString(locale()),
@@ -114,12 +139,6 @@ export default function MyLessons({ instructorId, instructorName, onBack }: Prop
         <h2 className="admin-title">
           {t('Derslerim')} · {instructorName}
         </h2>
-        <input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value || thisMonth())}
-          aria-label={t('Ay')}
-        />
         <button
           className="btn btn--ghost btn--small"
           onClick={exportMonth}
@@ -127,6 +146,46 @@ export default function MyLessons({ instructorId, instructorName, onBack }: Prop
         >
           {t('Excel’e aktar')}
         </button>
+      </div>
+
+      <div className="filters">
+        <div className="segmented" role="group" aria-label={t('Dönem')}>
+          {PRESETS.map((p) => {
+            const [pf, pt] = p.range();
+            const active = from === pf && to === pt;
+            return (
+              <button
+                key={p.label}
+                className={`segment${active ? ' is-active' : ''}`}
+                onClick={() => {
+                  setFrom(pf);
+                  setTo(pt);
+                }}
+                aria-pressed={active}
+              >
+                {t(p.label)}
+              </button>
+            );
+          })}
+        </div>
+
+        <label className="range">
+          <input
+            type="date"
+            value={from}
+            max={to}
+            onChange={(e) => e.target.value && setFrom(e.target.value)}
+            aria-label={t('Başlangıç')}
+          />
+          <span>–</span>
+          <input
+            type="date"
+            value={to}
+            min={from}
+            onChange={(e) => e.target.value && setTo(e.target.value)}
+            aria-label={t('Bitiş')}
+          />
+        </label>
       </div>
 
       {error && <p className="dialog-error">{error}</p>}
@@ -169,73 +228,67 @@ export default function MyLessons({ instructorId, instructorName, onBack }: Prop
             <div className="chart-grid">
               <section className="panel">
                 <h4 className="panel-title">{t('Ders tipi dağılımı')}</h4>
-                <Split data={byType} empty={t('Bu ayda ders yok.')} />
+                <Split data={byType} empty={t('Bu tarihlerde ders yok.')} />
               </section>
               <section className="panel">
                 <h4 className="panel-title">{t('Spor')}</h4>
-                <Split data={bySport} empty={t('Bu ayda ders yok.')} />
+                <Split data={bySport} empty={t('Bu tarihlerde ders yok.')} />
               </section>
             </div>
           )}
 
+          <h3 className="section-title">{t('Ders listesi')}</h3>
+
           {rows.length === 0 ? (
-            <p className="mybookings-empty">{t('Bu ayda ders yok.')}</p>
+            <p className="mybookings-empty">{t('Bu tarihlerde ders yok.')}</p>
           ) : (
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>{t('Tarih / saat')}</th>
-                    <th>{t('Müşteri')}</th>
-                    <th>{t('Ders')}</th>
-                    <th className="num">{t('Süre')}</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((r) => {
-                    const end = new Date(
-                      new Date(r.startsAt).getTime() + r.durationHours * 3_600_000,
-                    );
-                    return (
-                      <tr key={r.id}>
-                        <td>
-                          {new Date(r.startsAt).toLocaleDateString(locale(), {
-                            weekday: 'short',
-                            day: 'numeric',
-                            month: 'short',
-                          })}
-                          <div className="cell-dim">
+            <div className="lessonlist">
+              {days.map(([day, lessons]) => (
+                <section key={day} className="lessonlist-day">
+                  <h4 className="lessonlist-date">
+                    {fromDateKey(day).toLocaleDateString(locale(), {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                    })}
+                    <span className="cell-dim">
+                      {' · '}
+                      {lessons.length} {t('ders')} ·{' '}
+                      {lessons.reduce((sum, l) => sum + l.durationHours, 0)} {t('saat')}
+                    </span>
+                  </h4>
+                  <ul>
+                    {lessons.map((r) => {
+                      const end = new Date(
+                        new Date(r.startsAt).getTime() + r.durationHours * 3_600_000,
+                      );
+                      return (
+                        <li key={r.id} className={`lessonlist-item is-${lessonClass(r)}`}>
+                          <span className="lessonlist-time">
                             {formatTime(r.startsAt)} – {formatTime(end.toISOString())}
-                          </div>
-                        </td>
-                        <td>
-                          {r.isGuest ? (
-                            <span className="cell-dim">{t('Misafir')}</span>
-                          ) : (
-                            <>
-                              {r.customerName ?? '—'}
-                              {r.customerPhone && (
-                                <div className="cell-dim">
-                                  <a href={`tel:${r.customerPhone}`}>{r.customerPhone}</a>
-                                </div>
-                              )}
-                            </>
-                          )}
-                        </td>
-                        <td>
+                          </span>
+                          <span className="lessonlist-who">
+                            {r.isGuest ? (
+                              <span className="cell-dim">{t('Misafir')}</span>
+                            ) : (
+                              (r.customerName ?? '—')
+                            )}
+                            {!r.isGuest && r.customerPhone && (
+                              <a className="cell-dim" href={`tel:${r.customerPhone}`}>
+                                {r.customerPhone}
+                              </a>
+                            )}
+                          </span>
                           <span className={`tag tag--${lessonClass(r)}`}>{describeLesson(r)}</span>
                           {r.status === 'pending' && (
-                            <div className="status status--pending">{t('Ön rezervasyon')}</div>
+                            <span className="status status--pending">{t('Ön rezervasyon')}</span>
                           )}
-                        </td>
-                        <td className="num">
-                          {r.durationHours} {t('saat')}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </section>
+              ))}
             </div>
           )}
         </>

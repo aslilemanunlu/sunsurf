@@ -2681,3 +2681,71 @@ ol {
 .multi-item:hover {
   background: var(--surface-2);
 }
+
+/* ---------- an instructor's lessons, day by day ---------- */
+.lessonlist {
+  display: grid;
+  gap: 14px;
+}
+
+.lessonlist-day {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.lessonlist-date {
+  margin: 0;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--surface-2);
+  text-transform: capitalize;
+}
+
+.lessonlist-day ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lessonlist-item {
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  font-size: 14px;
+}
+
+.lessonlist-item.is-individual { border-left-color: var(--individual); }
+.lessonlist-item.is-group { border-left-color: var(--group); }
+.lessonlist-item.is-kids { border-left-color: var(--kids); }
+
+.lessonlist-time {
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+}
+
+.lessonlist-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.lessonlist-who a {
+  font-size: 12px;
+}
+
+@media (max-width: 560px) {
+  .lessonlist-item {
+    grid-template-columns: 1fr auto;
+  }
+
+  .lessonlist-time {
+    grid-column: 1 / -1;
+  }
+}
