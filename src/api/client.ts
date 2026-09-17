@@ -339,9 +339,14 @@ type RoleRow = {
  * schedule and nothing else — which is every account until an admin gives it
  * a job.
  */
-export async function getViewer(): Promise<Viewer> {
+export async function getViewer(userId: string): Promise<Viewer> {
   const rows = await read<RoleRow[]>(
-    () => neon.from('user_roles').select('user_id,role,is_owner,instructor_id').limit(1),
+    () =>
+      neon
+        .from('user_roles')
+        .select('user_id,role,is_owner,instructor_id')
+        .eq('user_id', userId)
+        .limit(1),
     'Rolünüz okunamadı',
   );
   if (rows.length === 0) return { role: 'customer', isOwner: false, instructorId: null };

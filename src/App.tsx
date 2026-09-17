@@ -125,14 +125,18 @@ export default function App() {
       return;
     }
     const uid = session.data?.user?.id;
+    if (!uid) {
+      setViewer(GUEST);
+      return;
+    }
     api
-      .getViewer()
+      .getViewer(uid)
       .then(async (v) => {
         if (cancelled) return;
         // No role yet may mean an invitation is waiting. Claiming one is an
         // insert the account makes for itself; db/018 decides what it says.
-        if (v.role === 'customer' && uid && (await api.claimInvitation(uid))) {
-          const claimed = await api.getViewer();
+        if (v.role === 'customer' && (await api.claimInvitation(uid))) {
+          const claimed = await api.getViewer(uid);
           if (!cancelled) setViewer(claimed);
           return;
         }
