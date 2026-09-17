@@ -23,6 +23,7 @@ import AccountMenu from './components/AccountMenu';
 import LangToggle from './components/LangToggle';
 import HourActions from './components/HourActions';
 import LeaveDialog from './components/LeaveDialog';
+import MyLessons from './components/MyLessons';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -106,7 +107,7 @@ export default function App() {
     hours?: number;
   } | null>(null);
   const [authOpen, setAuthOpen] = useState(() => authViewFromLocation() !== null);
-  const [screen, setScreen] = useState<'calendar' | 'admin'>('calendar');
+  const [screen, setScreen] = useState<'calendar' | 'admin' | 'mine'>('calendar');
   const [authView, setAuthView] = useState<AuthViewName>(() => authViewFromLocation() ?? 'SIGN_IN');
   const [submitting, setSubmitting] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -441,6 +442,11 @@ export default function App() {
     <div className="account">
       <LangToggle />
       {roleLabel && <span className="role-badge">{t(roleLabel)}</span>}
+      {viewer.instructorId && screen === 'calendar' && (
+        <button className="btn btn--ghost" onClick={() => setScreen('mine')}>
+          {t('Derslerim')}
+        </button>
+      )}
       {viewer.role === 'admin' && screen === 'calendar' && (
         <button className="btn btn--ghost" onClick={() => setScreen('admin')}>
           {t('Yönetim')}
@@ -456,6 +462,35 @@ export default function App() {
       </SignedOut>
     </div>
   );
+
+  if (screen === 'mine' && viewer.instructorId) {
+    const own = instructors.find((i) => i.id === viewer.instructorId);
+    return (
+      <NeonAuthUIProvider
+        authClient={auth}
+        navigate={navigateAuth}
+        replace={navigateAuth}
+        Link={AuthLink}
+      >
+        <div className="app app--wide">
+          <header className="topbar">
+            <div className="brand">
+              <img className="brand-mark" src="/logo.jpg" alt="Sun Surf Alaçatı" />
+              <div>
+                <h1>Sun Surf Alaçatı</h1>
+              </div>
+            </div>
+            {account}
+          </header>
+          <MyLessons
+            instructorId={viewer.instructorId}
+            instructorName={own?.name ?? ''}
+            onBack={() => setScreen('calendar')}
+          />
+        </div>
+      </NeonAuthUIProvider>
+    );
+  }
 
   // The admin panel is its own screen rather than a route: there is no router,
   // and it shares nothing with the calendar but the header.

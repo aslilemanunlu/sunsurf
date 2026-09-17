@@ -301,6 +301,8 @@ const EN: Record<string, string> = {
   'Kendi uygulamanız açılır, mesaj hazır gelir; gönderen siz olursunuz.':
     'Your own app opens with the message ready; it is sent by you.',
 
+  'Çalışılan gün': 'Days worked',
+
   // accounts and access
   'Kullanıcı Ekle': 'Add user',
   'Davet et': 'Invite',
