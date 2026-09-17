@@ -281,6 +281,16 @@ const EN: Record<string, string> = {
   'Kendi e-posta programınız açılır; gönderen siz olursunuz.':
     'Your own mail app opens; the message comes from you.',
 
+  '“{n}” adında bir müşteri zaten var. Yine de yeni bir kayıt açılsın mı?':
+    'A customer called “{n}” already exists. Create a new record anyway?',
+  İndir: 'Download',
+  'Kaydedince eklenecek': 'Added when saved',
+  'Önceki sezonlardan öğrenci': 'Student from a previous season',
+  '— yeni öğrenci —': '— new student —',
+  'Son formu açıldı; düzenleyip kaydettiğinizde {s} sezonu için yeni bir kayıt olur. Eski sezonun kaydı değişmez.':
+    'Their latest form is loaded; saving creates a new registration for {s}. The earlier season is left unchanged.',
+  'Kamp kaydı kaydedilemedi': 'Could not save the registration',
+
   // accounts and access
   'Kullanıcı Ekle': 'Add user',
   'Davet et': 'Invite',

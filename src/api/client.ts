@@ -512,6 +512,21 @@ function detailRow(d: CustomerDetails): Record<string, unknown> {
   return row;
 }
 
+/**
+ * An existing customer with this exact name, ignoring case and spacing.
+ *
+ * Used to ask before creating what is almost always the same person typed in a
+ * second time. A question now is cheaper than merging two histories later.
+ */
+export async function findCustomerByName(name: string): Promise<CustomerRef | null> {
+  const typed = name.trim().toLocaleLowerCase('tr').replace(/\s+/g, ' ');
+  if (!typed) return null;
+  const all = await listCustomers().catch(() => [] as CustomerRef[]);
+  return (
+    all.find((c) => c.name.trim().toLocaleLowerCase('tr').replace(/\s+/g, ' ') === typed) ?? null
+  );
+}
+
 /** Adds a customer record. Staff type these in; nobody signs up. */
 export async function createCustomer(
   input: CustomerDetails & { fullName: string },
@@ -1193,12 +1208,8 @@ type CampRow = {
   created_at: string;
 };
 
-export async function listCampRegistrations(season: number): Promise<CampRegistration[]> {
-  const rows = await read<CampRow[]>(
-    () => neon.from('camp_season_roll').select('*').eq('season', season).order('child_name'),
-    'Kamp kayıtları yüklenemedi',
-  );
-  return rows.map((r) => ({
+function toCampRegistration(r: CampRow): CampRegistration {
+  return {
     registrationId: r.registration_id,
     customerId: r.customer_id,
     season: Number(r.season),
@@ -1217,38 +1228,88 @@ export async function listCampRegistrations(season: number): Promise<CampRegistr
     days: Number(r.days ?? 0),
     hours: Number(r.hours ?? 0),
     createdAt: r.created_at,
-  }));
+  };
+}
+
+export async function listCampRegistrations(season: number): Promise<CampRegistration[]> {
+  const rows = await read<CampRow[]>(
+    () => neon.from('camp_season_roll').select('*').eq('season', season).order('child_name'),
+    'Kamp kayıtları yüklenemedi',
+  );
+  return rows.map(toCampRegistration);
+}
+
+/** What was written on one season's form. */
+export type CampForm = {
+  childName: string;
+  birthDate: string | null;
+  allergyNote: string;
+  guardianName: string;
+  guardianPhone: string;
+  emergency1Name: string;
+  emergency1Phone: string;
+  emergency2Name: string;
+  emergency2Phone: string;
+};
+
+function campRow(form: CampForm): Record<string, unknown> {
+  const text = (v: string | null | undefined) => (v?.trim() ? v.trim() : null);
+  return {
+    child_name: form.childName.trim(),
+    birth_date: form.birthDate || null,
+    allergy_note: text(form.allergyNote),
+    guardian_name: text(form.guardianName),
+    guardian_phone: text(form.guardianPhone),
+    emergency1_name: text(form.emergency1Name),
+    emergency1_phone: text(form.emergency1Phone),
+    emergency2_name: text(form.emergency2Name),
+    emergency2_phone: text(form.emergency2Phone),
+  };
 }
 
 /**
  * Registers a child for a season.
  *
- * The child is a customer record, so this creates or updates one and then signs
- * it up. Everything about the child — allergy, guardian, who to ring — lives
- * there; this table only holds what is about the season.
+ * The form's details are stored on the registration, not on the child's
+ * customer record, so each season keeps what was written that season. Bringing
+ * a child back for a new season and correcting a phone number must not rewrite
+ * last year's form.
+ *
+ * `customerId` links the registration to a child already known — from a past
+ * season, say. Without it a new customer record is made, seeded with the same
+ * details so the customer list is not blank, and never written to again from
+ * here.
  */
 export async function registerForCamp(input: {
-  /** Omit to create a new child record. */
-  customerId?: string;
-  childName: string;
+  customerId?: string | null;
   season: number;
-  details: CustomerDetails;
+  form: CampForm;
   note?: string;
 }): Promise<string> {
-  let customerId = input.customerId;
-  if (customerId) {
-    await updateCustomer(customerId, { fullName: input.childName, ...input.details });
-  } else {
+  let customerId = input.customerId ?? null;
+  if (!customerId) {
     customerId = await createCustomer({
-      fullName: input.childName,
-      ...input.details,
-      segments: [...new Set([...(input.details.segments ?? []), 'kids_camp' as Segment])],
+      fullName: input.form.childName,
+      birthDate: input.form.birthDate,
+      allergyNote: input.form.allergyNote,
+      guardianName: input.form.guardianName,
+      guardianPhone: input.form.guardianPhone,
+      emergency1Name: input.form.emergency1Name,
+      emergency1Phone: input.form.emergency1Phone,
+      emergency2Name: input.form.emergency2Name,
+      emergency2Phone: input.form.emergency2Phone,
+      segments: ['kids_camp'],
     });
   }
 
   const result = (await neon
     .from('camp_registrations')
-    .insert({ customer_id: customerId, season: input.season, note: input.note?.trim() || null })
+    .insert({
+      customer_id: customerId,
+      season: input.season,
+      note: input.note?.trim() || null,
+      ...campRow(input.form),
+    })
     .select('id')) as Result<{ id: string }[]>;
 
   if (result.error?.code === '23505') {
@@ -1258,6 +1319,42 @@ export async function registerForCamp(input: {
     throw new Error(`${translate('Kamp kaydı oluşturulamadı')}: ${result.error.message}`);
   }
   return unwrap(result, 'Kamp kaydı oluşturulamadı')[0].id;
+}
+
+/** Changes one season's form. Other seasons of the same child are untouched. */
+export async function updateCampRegistration(id: string, form: CampForm): Promise<void> {
+  const result = await neon
+    .from('camp_registrations')
+    .update({ ...campRow(form), updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('id');
+  if (result.error) {
+    throw new Error(`${translate('Kamp kaydı kaydedilemedi')}: ${result.error.message}`);
+  }
+  if (!result.data || result.data.length === 0) {
+    throw new Error(translate('Kamp kaydı kaydedilemedi'));
+  }
+}
+
+/**
+ * Children registered in some season, each with their most recent form —
+ * what a returning child's new registration starts from.
+ */
+export async function listPastCampChildren(): Promise<CampRegistration[]> {
+  const rows = await read<CampRow[]>(
+    () =>
+      neon
+        .from('camp_season_roll')
+        .select('*')
+        .order('season', { ascending: false })
+        .order('created_at', { ascending: false }),
+    'Kamp kayıtları yüklenemedi',
+  );
+  const latest = new Map<string, CampRegistration>();
+  for (const r of rows.map(toCampRegistration)) {
+    if (!latest.has(r.customerId)) latest.set(r.customerId, r);
+  }
+  return [...latest.values()].sort((a, b) => a.childName.localeCompare(b.childName, 'tr'));
 }
 
 export async function deleteCampRegistration(id: string): Promise<void> {

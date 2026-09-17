@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { CampDocument, CampRegistration } from '../../types';
 import { useT } from '../../lib/i18n';
 import * as api from '../../api/client';
@@ -6,41 +6,80 @@ import { shrinkToDataUrl } from '../../lib/image';
 
 type Props = {
   season: number;
-  /** Set when an existing registration is being looked at rather than created. */
+  /** Set when an existing registration is being changed rather than created. */
   registration: CampRegistration | null;
   onClose: () => void;
-  /** Carries the new registration's id, so the caller can stay on it. */
-  onSaved: (registrationId?: string) => void;
+  onSaved: () => void;
 };
 
+/** A photographed page waiting for the registration it belongs to. */
+type Pending = { key: string; name: string; data: string };
+
+const EMPTY: api.CampForm = {
+  childName: '',
+  birthDate: null,
+  allergyNote: '',
+  guardianName: '',
+  guardianPhone: '',
+  emergency1Name: '',
+  emergency1Phone: '',
+  emergency2Name: '',
+  emergency2Phone: '',
+};
+
+function formOf(r: CampRegistration): api.CampForm {
+  return {
+    childName: r.childName,
+    birthDate: r.birthDate,
+    allergyNote: r.allergyNote ?? '',
+    guardianName: r.guardianName ?? '',
+    guardianPhone: r.guardianPhone ?? '',
+    emergency1Name: r.emergency1Name ?? '',
+    emergency1Phone: r.emergency1Phone ?? '',
+    emergency2Name: r.emergency2Name ?? '',
+    emergency2Phone: r.emergency2Phone ?? '',
+  };
+}
+
+function download(dataUrl: string, filename: string) {
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+}
+
 /**
- * Signing a child up for a season.
+ * One season's form for one child.
  *
- * Names are one field each, not first and last: that is how they are written on
- * the form the parent hands over, and splitting them only creates two fields to
- * get wrong.
+ * Everything written here belongs to this season's registration. A returning
+ * child starts from last season's form — picked from the list — and saving
+ * makes a new registration for the new season; last year's stays exactly as it
+ * was signed.
  *
- * The emergency contacts default to the guardian, because for most children the
- * first person to ring is the person who signed the form.
+ * The form can be photographed before saving. It used to be the other way
+ * round, which meant saving, then the dialog staying open for the upload —
+ * and a dialog that stays open after "Kaydet" looks like one that did not save.
  */
 export default function CampRegistrationForm({ season, registration, onClose, onSaved }: Props) {
   const { t } = useT();
   const editing = registration !== null;
 
-  const [child, setChild] = useState(registration?.childName ?? '');
-  const [birthDate, setBirthDate] = useState(registration?.birthDate ?? '');
-  const [allergy, setAllergy] = useState(registration?.allergyNote ?? '');
-  const [gName, setGName] = useState(registration?.guardianName ?? '');
-  const [gPhone, setGPhone] = useState(registration?.guardianPhone ?? '');
-  const [e1Name, setE1Name] = useState(registration?.emergency1Name ?? '');
-  const [e1Phone, setE1Phone] = useState(registration?.emergency1Phone ?? '');
-  const [e2Name, setE2Name] = useState(registration?.emergency2Name ?? '');
-  const [e2Phone, setE2Phone] = useState(registration?.emergency2Phone ?? '');
+  const [form, setForm] = useState<api.CampForm>(registration ? formOf(registration) : EMPTY);
   const [note, setNote] = useState(registration?.note ?? '');
+  /** The child this is for, when they are already known. */
+  const [customerId, setCustomerId] = useState<string | null>(registration?.customerId ?? null);
+
+  const [past, setPast] = useState<CampRegistration[]>([]);
 
   const [docs, setDocs] = useState<CampDocument[]>([]);
+  const [pending, setPending] = useState<Pending[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const set = (key: keyof api.CampForm) => (value: string) =>
+    setForm((prev) => ({ ...prev, [key]: value }));
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -49,66 +88,58 @@ export default function CampRegistrationForm({ season, registration, onClose, on
   }, [onClose]);
 
   useEffect(() => {
-    if (!registration) return;
     let cancelled = false;
-    api
-      .listCampDocuments(registration.registrationId)
-      .then((d) => !cancelled && setDocs(d))
-      .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)));
+    if (registration) {
+      api
+        .listCampDocuments(registration.registrationId)
+        .then((d) => !cancelled && setDocs(d))
+        .catch((e) => !cancelled && setError(e instanceof Error ? e.message : String(e)));
+    } else {
+      api
+        .listPastCampChildren()
+        .then((p) => !cancelled && setPast(p))
+        .catch(() => {});
+    }
     return () => {
       cancelled = true;
     };
   }, [registration]);
 
+  /** Children from other seasons who are not already signed up for this one. */
+  const returning = useMemo(() => past.filter((p) => p.season !== season), [past, season]);
+
+  function pickReturning(id: string) {
+    const r = returning.find((p) => p.customerId === id);
+    if (!r) {
+      setCustomerId(null);
+      setForm(EMPTY);
+      return;
+    }
+    setCustomerId(r.customerId);
+    // last season's form as the starting point; saving writes a new one
+    setForm(formOf(r));
+  }
+
   /** The first person to ring is usually whoever signed the form. */
   function sameAsGuardian(slot: 1 | 2) {
-    if (slot === 1) {
-      setE1Name(gName);
-      setE1Phone(gPhone);
-    } else {
-      setE2Name(gName);
-      setE2Phone(gPhone);
-    }
+    setForm((prev) =>
+      slot === 1
+        ? { ...prev, emergency1Name: prev.guardianName, emergency1Phone: prev.guardianPhone }
+        : { ...prev, emergency2Name: prev.guardianName, emergency2Phone: prev.guardianPhone },
+    );
   }
 
-  const details = {
-    birthDate: birthDate || null,
-    allergyNote: allergy,
-    guardianName: gName,
-    guardianPhone: gPhone,
-    emergency1Name: e1Name,
-    emergency1Phone: e1Phone,
-    emergency2Name: e2Name,
-    emergency2Phone: e2Phone,
-  };
-
-  async function save() {
-    setBusy(true);
-    setError(null);
-    try {
-      if (editing) {
-        await api.updateCustomer(registration.customerId, { fullName: child, ...details });
-        onSaved();
-      } else {
-        const id = await api.registerForCamp({ childName: child, season, details, note });
-        onSaved(id);
-      }
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function addFile(file: File) {
-    if (!registration) return;
+  async function queueFile(file: File) {
     setBusy(true);
     setError(null);
     try {
       const data = await shrinkToDataUrl(file);
-      await api.addCampDocument(registration.registrationId, data, file.name);
-      setDocs(await api.listCampDocuments(registration.registrationId));
-      onSaved();
+      if (registration) {
+        await api.addCampDocument(registration.registrationId, data, file.name);
+        setDocs(await api.listCampDocuments(registration.registrationId));
+      } else {
+        setPending((prev) => [...prev, { key: `${Date.now()}-${file.name}`, name: file.name, data }]);
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -123,7 +154,42 @@ export default function CampRegistrationForm({ season, registration, onClose, on
     try {
       await api.deleteCampDocument(id);
       setDocs(await api.listCampDocuments(registration.registrationId));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function save() {
+    // A new name that matches somebody already on file is usually the same
+    // child typed again. Asking once is cheaper than merging duplicates later.
+    if (!editing && !customerId) {
+      const same = await api.findCustomerByName(form.childName);
+      if (
+        same &&
+        !window.confirm(
+          t('“{n}” adında bir müşteri zaten var. Yine de yeni bir kayıt açılsın mı?').replace(
+            '{n}',
+            same.name,
+          ),
+        )
+      ) {
+        return;
+      }
+    }
+
+    setBusy(true);
+    setError(null);
+    try {
+      if (editing) {
+        await api.updateCampRegistration(registration.registrationId, form);
+      } else {
+        const id = await api.registerForCamp({ customerId, season, form, note });
+        for (const p of pending) await api.addCampDocument(id, p.data, p.name);
+      }
       onSaved();
+      onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -141,15 +207,36 @@ export default function CampRegistrationForm({ season, registration, onClose, on
         onClick={(e) => e.stopPropagation()}
       >
         <h3 id="camp-reg-title">
-          {editing ? t('Kamp kaydı') : t('Kamp Kaydı Ekle')} · {season}
+          {editing ? t('Kamp kaydı') : t('Kamp Kaydı Ekle')} · {registration?.season ?? season}
         </h3>
 
         {error && <p className="dialog-error">{error}</p>}
 
+        {!editing && returning.length > 0 && (
+          <label className="field">
+            <span>{t('Önceki sezonlardan öğrenci')}</span>
+            <select value={customerId ?? ''} onChange={(e) => pickReturning(e.target.value)}>
+              <option value="">{t('— yeni öğrenci —')}</option>
+              {returning.map((r) => (
+                <option key={r.customerId} value={r.customerId}>
+                  {r.childName} · {r.season}
+                </option>
+              ))}
+            </select>
+            {customerId && (
+              <small className="field-hint">
+                {t(
+                  'Son formu açıldı; düzenleyip kaydettiğinizde {s} sezonu için yeni bir kayıt olur. Eski sezonun kaydı değişmez.',
+                ).replace('{s}', String(season))}
+              </small>
+            )}
+          </label>
+        )}
+
         <div className="money-row">
           <label className="field">
             <span>{t('Çocuğun adı soyadı')}</span>
-            <input value={child} onChange={(e) => setChild(e.target.value)} autoFocus />
+            <input value={form.childName} onChange={(e) => set('childName')(e.target.value)} autoFocus />
           </label>
           <label className="field">
             <span>
@@ -157,9 +244,9 @@ export default function CampRegistrationForm({ season, registration, onClose, on
             </span>
             <input
               type="date"
-              value={birthDate}
+              value={form.birthDate ?? ''}
               max={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => setBirthDate(e.target.value)}
+              onChange={(e) => set('birthDate')(e.target.value)}
             />
           </label>
         </div>
@@ -167,11 +254,15 @@ export default function CampRegistrationForm({ season, registration, onClose, on
         <div className="money-row">
           <label className="field">
             <span>{t('Veli adı soyadı')}</span>
-            <input value={gName} onChange={(e) => setGName(e.target.value)} />
+            <input value={form.guardianName} onChange={(e) => set('guardianName')(e.target.value)} />
           </label>
           <label className="field">
             <span>{t('Veli telefonu')}</span>
-            <input value={gPhone} onChange={(e) => setGPhone(e.target.value)} inputMode="tel" />
+            <input
+              value={form.guardianPhone}
+              onChange={(e) => set('guardianPhone')(e.target.value)}
+              inputMode="tel"
+            />
           </label>
         </div>
 
@@ -179,17 +270,21 @@ export default function CampRegistrationForm({ season, registration, onClose, on
           <span>
             {t('Alerji')} ({t('opsiyonel')})
           </span>
-          <input value={allergy} onChange={(e) => setAllergy(e.target.value)} />
+          <input value={form.allergyNote} onChange={(e) => set('allergyNote')(e.target.value)} />
         </label>
 
         <fieldset className="field">
           <span>{t('Acil durumda aranacak')}</span>
 
           <div className="money-row">
-            <input value={e1Name} onChange={(e) => setE1Name(e.target.value)} placeholder={t('İsim')} />
             <input
-              value={e1Phone}
-              onChange={(e) => setE1Phone(e.target.value)}
+              value={form.emergency1Name}
+              onChange={(e) => set('emergency1Name')(e.target.value)}
+              placeholder={t('İsim')}
+            />
+            <input
+              value={form.emergency1Phone}
+              onChange={(e) => set('emergency1Phone')(e.target.value)}
               placeholder={t('Telefon')}
               inputMode="tel"
             />
@@ -200,13 +295,13 @@ export default function CampRegistrationForm({ season, registration, onClose, on
 
           <div className="money-row">
             <input
-              value={e2Name}
-              onChange={(e) => setE2Name(e.target.value)}
+              value={form.emergency2Name}
+              onChange={(e) => set('emergency2Name')(e.target.value)}
               placeholder={`${t('İsim')} 2`}
             />
             <input
-              value={e2Phone}
-              onChange={(e) => setE2Phone(e.target.value)}
+              value={form.emergency2Phone}
+              onChange={(e) => set('emergency2Phone')(e.target.value)}
               placeholder={`${t('Telefon')} 2`}
               inputMode="tel"
             />
@@ -227,55 +322,75 @@ export default function CampRegistrationForm({ season, registration, onClose, on
 
         <section className="drawer-block">
           <h4 className="panel-title">{t('Form')}</h4>
-          {editing ? (
-            <>
-              <label className="filedrop">
-                <input
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  disabled={busy}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    e.target.value = '';
-                    if (file) void addFile(file);
-                  }}
-                />
-                <span>{busy ? t('Yükleniyor…') : t('Formun fotoğrafını ekle')}</span>
-              </label>
-              {docs.length === 0 ? (
-                <p className="cell-dim">{t('Henüz form eklenmemiş.')}</p>
-              ) : (
-                <ul className="docgrid">
-                  {docs.map((d) => (
-                    <li key={d.id}>
-                      <a href={d.data} target="_blank" rel="noreferrer">
-                        <img src={d.data} alt={d.filename ?? t('Form')} />
-                      </a>
-                      <button className="link-btn danger" onClick={() => removeFile(d.id)}>
-                        {t('Sil')}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </>
+          <label className="filedrop">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              disabled={busy}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                e.target.value = '';
+                if (file) void queueFile(file);
+              }}
+            />
+            <span>{busy ? t('Yükleniyor…') : t('Formun fotoğrafını ekle')}</span>
+          </label>
+
+          {docs.length === 0 && pending.length === 0 ? (
+            <p className="cell-dim">{t('Henüz form eklenmemiş.')}</p>
           ) : (
-            <p className="cell-dim">
-              {t('Kaydet dedikten sonra bu pencere açık kalır ve formu ekleyebilirsiniz.')}
-            </p>
+            <ul className="docgrid">
+              {docs.map((d, i) => (
+                <li key={d.id}>
+                  <a href={d.data} target="_blank" rel="noreferrer">
+                    <img src={d.data} alt={d.filename ?? t('Form')} />
+                  </a>
+                  <div className="row-actions">
+                    <button
+                      className="link-btn"
+                      onClick={() =>
+                        download(
+                          d.data,
+                          d.filename ?? `${form.childName || 'form'}-${registration?.season}-${i + 1}.jpg`,
+                        )
+                      }
+                    >
+                      {t('İndir')}
+                    </button>
+                    <button className="link-btn danger" onClick={() => removeFile(d.id)}>
+                      {t('Sil')}
+                    </button>
+                  </div>
+                </li>
+              ))}
+              {pending.map((p) => (
+                <li key={p.key}>
+                  <img src={p.data} alt={p.name} />
+                  <div className="row-actions">
+                    <span className="cell-dim">{t('Kaydedince eklenecek')}</span>
+                    <button
+                      className="link-btn danger"
+                      onClick={() => setPending((prev) => prev.filter((x) => x.key !== p.key))}
+                    >
+                      {t('Sil')}
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
           )}
         </section>
 
         <div className="dialog-actions">
           <button type="button" className="btn btn--ghost" onClick={onClose}>
-            {editing ? t('Kapat') : t('Vazgeç')}
+            {t('Vazgeç')}
           </button>
           <button
             type="button"
             className="btn"
             onClick={save}
-            disabled={busy || child.trim().length < 2}
+            disabled={busy || form.childName.trim().length < 2}
           >
             {busy ? t('Kaydediliyor…') : t('Kaydet')}
           </button>

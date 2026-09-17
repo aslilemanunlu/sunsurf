@@ -82,6 +82,20 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
     !saving && haveCustomer && amountOk && paidOk && unitsOk && (!needsLabel || label.trim() !== '');
 
   async function save() {
+    if (adding) {
+      const same = await api.findCustomerByName(newName);
+      if (
+        same &&
+        !window.confirm(
+          t('“{n}” adında bir müşteri zaten var. Yine de yeni bir kayıt açılsın mı?').replace(
+            '{n}',
+            same.name,
+          ),
+        )
+      ) {
+        return;
+      }
+    }
     setSaving(true);
     setError(null);
     try {

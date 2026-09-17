@@ -51,6 +51,20 @@ export default function CustomerForm({ customer, onClose, onSaved }: Props) {
   }
 
   async function save() {
+    if (!customer) {
+      const same = await api.findCustomerByName(name);
+      if (
+        same &&
+        !window.confirm(
+          t('“{n}” adında bir müşteri zaten var. Yine de yeni bir kayıt açılsın mı?').replace(
+            '{n}',
+            same.name,
+          ),
+        )
+      ) {
+        return;
+      }
+    }
     setSaving(true);
     setError(null);
     const details: CustomerDetails = {

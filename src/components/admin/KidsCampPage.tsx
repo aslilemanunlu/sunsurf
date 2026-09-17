@@ -278,22 +278,15 @@ export default function KidsCampPage({ onChanged }: Props) {
       )}
       {(adding || openReg) && (
         <CampRegistrationForm
+          key={openReg?.registrationId ?? `new-${season}`}
           season={season}
           registration={openReg}
           onClose={() => {
             setAdding(false);
             setOpenReg(null);
           }}
-          onSaved={async (registrationId) => {
-            setAdding(false);
-            const fresh = await api.listCampRegistrations(season).catch(() => null);
-            if (fresh) setRoll(fresh);
-            // Adding the photograph is the next thing anybody does, and it can
-            // only happen once the registration exists — so the dialog stays
-            // open on it instead of sending them back to find the child again.
-            if (registrationId && fresh) {
-              setOpenReg(fresh.find((x) => x.registrationId === registrationId) ?? null);
-            }
+          onSaved={() => {
+            void loadRoll();
             onChanged();
           }}
         />
