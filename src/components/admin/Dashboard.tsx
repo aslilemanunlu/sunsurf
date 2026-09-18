@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Instructor, LessonType, ManagedBooking } from '../../types';
+import type { CampAttendance, Instructor, LessonType, ManagedBooking } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
 import {
@@ -22,11 +22,17 @@ type Card = {
   suffix?: string;
 };
 
+/**
+ * A camp child is a customer row like any other, so the two counts would say
+ * the same people twice if they were not split here.
+ */
 const CARDS: Card[] = [
   { key: 'students', title: 'Toplam Müşteri', tone: 'accent' },
+  { key: 'campChildren', title: 'Toplam Çocuk', tone: 'kids', suffix: 'çocuk' },
   { key: 'instructors', title: 'Toplam Hoca', tone: 'individual' },
-  { key: 'bookings', title: 'Toplam Rezervasyon', tone: 'kids' },
+  { key: 'bookings', title: 'Toplam Rezervasyon', tone: 'group' },
   { key: 'hoursThisMonth', title: 'Bu Ay Verilen Ders', tone: 'accent', suffix: 'saat' },
+  { key: 'campThisMonth', title: 'Bu Ay Kampa Gelen', tone: 'kids', suffix: 'çocuk' },
 ];
 
 const STATUS_TEXT: Record<string, string> = {
@@ -58,6 +64,7 @@ export default function Dashboard() {
   const [stats, setStats] = useState<api.DashboardStats | null>(null);
   const [instructors, setInstructors] = useState<Instructor[]>([]);
   const [rows, setRows] = useState<ManagedBooking[]>([]);
+  const [campRows, setCampRows] = useState<CampAttendance[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -71,7 +78,6 @@ export default function Dashboard() {
    * how busy the school is with people who come back.
    */
   const [withGuests, setWithGuests] = useState(false);
-
 
   const [rangeFrom, rangeTo] = [from, to];
 
@@ -95,9 +101,14 @@ export default function Dashboard() {
     try {
       const end = fromDateKey(rangeTo);
       end.setDate(end.getDate() + 1);
-      setRows(
-        await api.listBookingsBetween(fromDateKey(rangeFrom).toISOString(), end.toISOString()),
-      );
+      const [booked, camp] = await Promise.all([
+        api.listBookingsBetween(fromDateKey(rangeFrom).toISOString(), end.toISOString()),
+        // its own catch: the camp register is newer than the rest of this page
+        // and a missing view should not take the lesson report down with it
+        api.listAttendanceBetween(rangeFrom, rangeTo).catch(() => [] as CampAttendance[]),
+      ]);
+      setRows(booked);
+      setCampRows(camp);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -115,7 +126,7 @@ export default function Dashboard() {
     () =>
       rows.filter(
         (r) =>
-            r.status !== 'rejected' &&
+          r.status !== 'rejected' &&
           (withGuests || !r.isGuest) &&
           (pickedInstructors.length === 0 || pickedInstructors.includes(r.instructorId)) &&
           (pickedTypes.length === 0 || pickedTypes.includes(r.lessonType)),
@@ -191,7 +202,14 @@ export default function Dashboard() {
   const table = useMemo(() => {
     const map = new Map<
       string,
-      { name: string; lessons: number; hours: number; individual: number; group: number; kids: number }
+      {
+        name: string;
+        lessons: number;
+        hours: number;
+        individual: number;
+        group: number;
+        kids: number;
+      }
     >();
     for (const r of counted) {
       const row = map.get(r.instructorId) ?? {
@@ -211,6 +229,42 @@ export default function Dashboard() {
     }
     return [...map.values()].sort((a, b) => b.hours - a.hours);
   }, [counted]);
+
+  /**
+   * The camp in the same dates, kept apart from the lesson figures: a camp day
+   * is a child being there, not an hour somebody taught, and adding the two
+   * would answer no question at all.
+   */
+  const camp = useMemo(() => {
+    const full = campRows.filter((r) => r.kind === 'full').length;
+    const half = campRows.filter((r) => r.kind === 'half').length;
+    return {
+      children: new Set(campRows.map((r) => r.customerId)).size,
+      full,
+      half,
+      days: full + half * 0.5,
+      days_label: (full + half * 0.5).toLocaleString(locale()),
+    };
+  }, [campRows]);
+
+  const campSplit = useMemo<Slice[]>(
+    () => [
+      { label: t('Tam gün'), value: camp.full, tone: 'kids' },
+      { label: t('Yarım gün'), value: camp.half, tone: 'group' },
+    ],
+    [camp, t],
+  );
+
+  /** Days per child over the range, busiest first — who is actually there. */
+  const campByChild = useMemo<Slice[]>(() => {
+    const map = new Map<string, number>();
+    for (const r of campRows) {
+      map.set(r.childName, (map.get(r.childName) ?? 0) + (r.kind === 'full' ? 1 : 0.5));
+    }
+    return [...map.entries()]
+      .map(([label, value]) => ({ label, value, tone: 'kids' }))
+      .sort((a, b) => b.value - a.value);
+  }, [campRows]);
 
   const guestCount = useMemo(
     () => rows.filter((r) => r.isGuest && r.status !== 'rejected').length,
@@ -309,7 +363,8 @@ export default function Dashboard() {
             ] as [LessonType, string][]
           ).map(([value, label]) => {
             const on = pickedTypes.includes(value);
-            const tone = value === 'kids_camp' ? 'kids' : value === 'group' ? 'group' : 'individual';
+            const tone =
+              value === 'kids_camp' ? 'kids' : value === 'group' ? 'group' : 'individual';
             return (
               <button
                 key={value}
@@ -327,8 +382,6 @@ export default function Dashboard() {
             );
           })}
         </div>
-
-
       </div>
 
       <div className="admin-bar">
@@ -338,15 +391,7 @@ export default function Dashboard() {
           onClick={() =>
             downloadCsv(
               `dersler-${rangeFrom}_${rangeTo}`,
-              [
-                t('Tarih'),
-                t('Saat'),
-                t('Hoca'),
-                t('Müşteri'),
-                t('Ders'),
-                t('Süre'),
-                t('Durum'),
-              ],
+              [t('Tarih'), t('Saat'), t('Hoca'), t('Müşteri'), t('Ders'), t('Süre'), t('Durum')],
               counted.map((r) => [
                 new Date(r.startsAt).toLocaleDateString(locale()),
                 new Date(r.startsAt).toLocaleTimeString(locale(), {
@@ -460,12 +505,57 @@ export default function Dashboard() {
               </div>
             )}
           </section>
+
+          <h3 className="admin-subtitle">{t('Çocuk kampı')}</h3>
+
+          <div className="stat-grid stat-grid--compact">
+            <article className="stat stat--kids">
+              <header className="stat-head">
+                <span className="stat-title">{t('Kampa gelen çocuk')}</span>
+              </header>
+              <p className="stat-value">{camp.children.toLocaleString(locale())}</p>
+            </article>
+            <article className="stat stat--individual">
+              <header className="stat-head">
+                <span className="stat-title">{t('Tam gün')}</span>
+              </header>
+              <p className="stat-value">{camp.full.toLocaleString(locale())}</p>
+            </article>
+            <article className="stat stat--group">
+              <header className="stat-head">
+                <span className="stat-title">{t('Yarım gün')}</span>
+              </header>
+              <p className="stat-value">{camp.half.toLocaleString(locale())}</p>
+            </article>
+            <article className="stat stat--accent">
+              <header className="stat-head">
+                <span className="stat-title">{t('Toplam gün')}</span>
+              </header>
+              <p className="stat-value">{camp.days_label}</p>
+            </article>
+          </div>
+
+          <div className="chart-grid">
+            <section className="panel">
+              <h4 className="panel-title">{t('Çocuk başına gün')}</h4>
+              <BarRows
+                data={campByChild}
+                suffix={` ${t('gün')}`}
+                empty={t('Bu dönemde kamp yoklaması yok.')}
+              />
+            </section>
+
+            <section className="panel">
+              <h4 className="panel-title">{t('Tam / yarım gün')}</h4>
+              <Split data={campSplit} empty={t('Bu dönemde kamp yoklaması yok.')} />
+            </section>
+          </div>
         </>
       )}
 
       <p className="admin-hint">
         {t(
-          'Hesap sayısı giriş yapabilen kişileri gösterir — müşterilerin hesabı yoktur. Bu ay verilen ders, bu ay başlayan onaylı rezervasyonların toplam saatidir.',
+          'Toplam müşteri çocuk kampı kayıtlarını saymaz; kamp çocukları ayrı sayılır. Bu ay verilen ders, bu ay başlayan onaylı rezervasyonların toplam saatidir. Bu ay kampa gelen, bu ay yoklamada işaretlenmiş çocuk sayısıdır.',
         )}
       </p>
     </section>

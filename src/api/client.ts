@@ -38,7 +38,7 @@ import type {
   Sport,
   Viewer,
 } from '../types';
-import { fromDateKey } from '../lib/date';
+import { fromDateKey, toDateKey } from '../lib/date';
 import { translate } from '../lib/i18n';
 import { neon } from '../neon';
 
@@ -615,9 +615,14 @@ async function countOf(table: string, column: string, apply?: (q: any) => any): 
 export type DashboardStats = {
   users: number;
   instructors: number;
+  /** Customers who are not camp children — the school's own people. */
   students: number;
+  /** Children with a camp registration, counted once however many seasons. */
+  campChildren: number;
   bookings: number;
   hoursThisMonth: number;
+  /** Children who actually turned up at camp this month. */
+  campThisMonth: number;
 };
 
 export async function getDashboardStats(): Promise<DashboardStats> {
@@ -625,31 +630,86 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const [users, instructors, bookings, students, thisMonth] = await Promise.all([
-    countOf('admin_users', 'user_id'),
-    countOf('instructors', 'id'),
-    countOf('bookings', 'id'),
-    countOf('customers', 'id'),
-    // hours has to be summed, so these rows do come back — one month at a time
-    read<{ duration_hours: number }[]>(
-      () =>
-        neon
-          .from('managed_bookings')
-          .select('duration_hours')
-          .eq('status', 'approved')
-          .gte('starts_at', monthStart.toISOString())
-          .lt('starts_at', monthEnd.toISOString()),
-      'Aylık ders saati hesaplanamadı',
-    ),
-  ]);
+  const [users, instructors, bookings, customers, thisMonth, campRows, campDays] =
+    await Promise.all([
+      countOf('admin_users', 'user_id'),
+      countOf('instructors', 'id'),
+      countOf('bookings', 'id'),
+      countOf('customers', 'id'),
+      // hours has to be summed, so these rows do come back — one month at a time
+      read<{ duration_hours: number }[]>(
+        () =>
+          neon
+            .from('managed_bookings')
+            .select('duration_hours')
+            .eq('status', 'approved')
+            .gte('starts_at', monthStart.toISOString())
+            .lt('starts_at', monthEnd.toISOString()),
+        'Aylık ders saati hesaplanamadı',
+      ),
+      // counted here rather than by the database: a child registered for three
+      // summers is three rows and one child
+      read<{ customer_id: string }[]>(
+        () => neon.from('camp_season_roll').select('customer_id'),
+        'Sayım yapılamadı',
+      ).catch(() => [] as { customer_id: string }[]),
+      read<{ customer_id: string }[]>(
+        () =>
+          neon
+            .from('camp_attendance_roll')
+            .select('customer_id')
+            .gte('day', toDateKey(monthStart))
+            .lt('day', toDateKey(monthEnd)),
+        'Sayım yapılamadı',
+      ).catch(() => [] as { customer_id: string }[]),
+    ]);
+
+  const campChildren = new Set(campRows.map((r) => r.customer_id));
 
   return {
     users,
     instructors,
-    students,
+    // a camp child is a customer row too; the two cards must not count them twice
+    students: Math.max(customers - campChildren.size, 0),
+    campChildren: campChildren.size,
     bookings,
     hoursThisMonth: thisMonth.reduce((sum, r) => sum + r.duration_hours, 0),
+    campThisMonth: new Set(campDays.map((r) => r.customer_id)).size,
   };
+}
+
+/** Every camp mark in a date range, across seasons — the reporting question. */
+export async function listAttendanceBetween(
+  fromKey: string,
+  toKey: string,
+): Promise<CampAttendance[]> {
+  const rows = await read<
+    {
+      id: string;
+      registration_id: string;
+      customer_id: string;
+      child_name: string;
+      day: string;
+      kind: string;
+    }[]
+  >(
+    () =>
+      neon
+        .from('camp_attendance_roll')
+        .select('*')
+        .gte('day', fromKey)
+        .lte('day', toKey)
+        .order('day'),
+    'Yoklama yüklenemedi',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    registrationId: r.registration_id,
+    customerId: r.customer_id,
+    childName: r.child_name,
+    day: r.day,
+    kind: r.kind as 'full' | 'half',
+  }));
 }
 
 /** Every booking in a date range. Admin sees all; an instructor sees their own. */

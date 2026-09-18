@@ -492,8 +492,14 @@ const EN: Record<string, string> = {
   Doğrulanmadı: 'Not verified',
   'Toplam Müşteri': 'Total customers',
   Hesap: 'Accounts',
-  'Hesap sayısı giriş yapabilen kişileri gösterir — müşterilerin hesabı yoktur. Bu ay verilen ders, bu ay başlayan onaylı rezervasyonların toplam saatidir.':
-    'Accounts counts the people who can sign in — customers have none. Lessons this month is the total hours of approved bookings starting this month.',
+  'Toplam Çocuk': 'Camp children',
+  'Bu Ay Kampa Gelen': 'At camp this month',
+  çocuk: 'children',
+  'Çocuk başına gün': 'Days per child',
+  'Tam / yarım gün': 'Full and half days',
+  'Bu dönemde kamp yoklaması yok.': 'No camp days recorded in this period.',
+  'Toplam müşteri çocuk kampı kayıtlarını saymaz; kamp çocukları ayrı sayılır. Bu ay verilen ders, bu ay başlayan onaylı rezervasyonların toplam saatidir. Bu ay kampa gelen, bu ay yoklamada işaretlenmiş çocuk sayısıdır.':
+    'Total customers leaves out the camp children, who are counted on their own card. Lessons this month is the total hours of approved bookings starting this month. At camp this month counts the children marked on the register this month.',
   'Bekliyor demek, hoca profili var ama henüz bir hesaba bağlanmamış demektir. Hoca kayıt olduktan sonra aşağıdaki listeden hesabını bu profile bağlayın.':
     'Waiting means the instructor profile exists but no account is linked to it. Once they sign up, link their account to this profile in the list below.',
 
