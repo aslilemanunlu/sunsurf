@@ -5,6 +5,7 @@ import * as api from '../../api/client';
 import { fromDateKey, todayKey } from '../../lib/date';
 import { downloadCsv } from '../../lib/csv';
 import CampRegistrationForm from './CampRegistrationForm';
+import CampQuickAdd from './CampQuickAdd';
 
 type Props = {
   season: number;
@@ -40,7 +41,8 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [adding, setAdding] = useState(false);
+  /** Which way a child is being added: the two-field one, or the whole form. */
+  const [adding, setAdding] = useState<'quick' | 'full' | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -162,8 +164,8 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
           <span className="admin-count">
             {here.full} {t('tam')} · {here.half} {t('yarım')}
           </span>
-          <button className="btn btn--small" onClick={() => setAdding(true)}>
-            {t('Kamp Kaydı Ekle')}
+          <button className="btn btn--small" onClick={() => setAdding('quick')}>
+            + {t('Çocuk ekle')}
           </button>
         </div>
 
@@ -272,11 +274,25 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
         )}
       </section>
 
-      {adding && (
+      {adding === 'quick' && (
+        <CampQuickAdd
+          season={season}
+          day={day}
+          registered={roll}
+          onClose={() => setAdding(null)}
+          onDetailed={() => setAdding('full')}
+          onSaved={() => {
+            void load();
+            onChanged();
+          }}
+        />
+      )}
+
+      {adding === 'full' && (
         <CampRegistrationForm
           season={season}
           registration={null}
-          onClose={() => setAdding(false)}
+          onClose={() => setAdding(null)}
           onSaved={() => {
             void load();
             onChanged();

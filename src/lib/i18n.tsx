@@ -42,7 +42,6 @@ const EN: Record<string, string> = {
   'Spora göre filtrele': 'Filter by sport',
   'Müsait saatler': 'Available hours',
   Takvimim: 'My calendar',
-  '08:00 – 20:00 arası ders alınabilir': 'Lessons run between 08:00 and 20:00',
   Müsait: 'Free',
   'Müsait · düzenle': 'Free · edit',
   Beklemede: 'Pending',
@@ -625,6 +624,14 @@ const EN: Record<string, string> = {
 
   // camp register
   'Gün seç': 'Pick a day',
+  'Çocuk ekle': 'Add a child',
+  '— yeni çocuk —': '— new child —',
+  'Adı soyadı': 'Full name',
+  'Çocuğun adı': 'The child’s name',
+  'Gün tipi': 'Full or half day',
+  'Detaylı form': 'Full form',
+  'Veli, alerji ve form sayfaları sonradan Kayıtlar sekmesinden eklenebilir.':
+    'Guardian, allergies and the form pages can be added later from Registrations.',
   'Tam gün': 'Full day',
   'Yarım gün': 'Half day',
   tam: 'full',
@@ -701,8 +708,8 @@ const EN: Record<string, string> = {
   'Çocuk kampı — Yoklama': 'Kids camp — Register',
   'Günlük tutulur: gün seç, gelen çocuğa tam gün ya da yarım gün bas. Başka bir şey girilmez.':
     'Kept daily: pick the day and press full day or half day for each child who came. Nothing else is entered.',
-  'İsimler o sezonun kayıtlarından kendiliğinden gelir. Listede olmayan bir çocuk için Kamp Kaydı Ekle ile hemen kaydını aç.':
-    'The names come from that season’s registrations. For a child who is not on the list, Add camp registration opens one on the spot.',
+  'İsimler o sezonun kayıtlarından kendiliğinden gelir. Listede olmayan bir çocuk için Çocuk ekle: adını yaz ya da geçen seneki listeden seç, tam veya yarım gün, bitti.':
+    'The names come from that season’s registrations. For a child who is not on the list, Add a child: type the name or pick them from last year’s list, full or half day, done.',
   'Sezon toplamı tablosunda her çocuğun kaç tam, kaç yarım gün geldiği toplanır (yarım gün 0,5 sayılır).':
     'The season total adds up each child’s full and half days (a half day counts as 0.5).',
   'Gün gün listesi hangi gün kimlerin geldiğini gösterir; Excel’e aktarabilirsin.':

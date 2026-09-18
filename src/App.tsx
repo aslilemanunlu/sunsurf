@@ -553,13 +553,10 @@ export default function App() {
                 {t('İzin / gün kapat')}
               </button>
             )}
-            <span className="count">{t('08:00 – 20:00 arası ders alınabilir')}</span>
           </div>
 
           <div className="cal-bar">
-            <h3 className="section-title">
-              {t('Ders programı')}
-            </h3>
+            <h3 className="section-title">{t('Ders programı')}</h3>
             <ul className="legend">
               <li className="legend-item legend-item--open">{t('Müsait')}</li>
               <li className="legend-item legend-item--booked">{t('Dolu')}</li>

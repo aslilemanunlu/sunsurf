@@ -953,9 +953,15 @@ ol {
 
 .dialog-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 8px;
   margin-top: 18px;
+}
+
+/* Pushes what follows to the right, for a row with a link on the left. */
+.dialog-actions .spacer {
+  flex: 1;
 }
 
 /* ---------- setup notice ---------- */

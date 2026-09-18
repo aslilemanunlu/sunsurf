@@ -67,7 +67,7 @@ const SECTIONS: Section[] = [
     title: 'Çocuk kampı — Yoklama',
     lead: 'Günlük tutulur: gün seç, gelen çocuğa tam gün ya da yarım gün bas. Başka bir şey girilmez.',
     steps: [
-      'İsimler o sezonun kayıtlarından kendiliğinden gelir. Listede olmayan bir çocuk için Kamp Kaydı Ekle ile hemen kaydını aç.',
+      'İsimler o sezonun kayıtlarından kendiliğinden gelir. Listede olmayan bir çocuk için Çocuk ekle: adını yaz ya da geçen seneki listeden seç, tam veya yarım gün, bitti.',
       'İşaretlenmeyen çocuk o gün gelmemiş sayılır; aynı düğmeye tekrar basmak işareti kaldırır.',
       'Sezon toplamı tablosunda her çocuğun kaç tam, kaç yarım gün geldiği toplanır (yarım gün 0,5 sayılır).',
       'Gün gün listesi hangi gün kimlerin geldiğini gösterir; Excel’e aktarabilirsin.',
