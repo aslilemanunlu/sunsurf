@@ -184,6 +184,13 @@ export default function AttendanceSheet({
   }, [registered, past, added]);
 
   const shown = useMemo(() => rows.filter((r) => matches(r.name, query)), [rows, query]);
+
+  /**
+   * Typing always shows what matches. Focus alone offers the whole list, and
+   * clicking away puts it back — but a search with something typed in it that
+   * shows nothing looks broken, so that case wins.
+   */
+  const showList = open || query.trim().length > 0;
   const chosen = useMemo(() => rows.filter((r) => picked.has(r.key)), [rows, picked]);
 
   function toggle(key: string) {
@@ -343,15 +350,20 @@ export default function AttendanceSheet({
             onKeyDown={(e) => e.key === 'Escape' && open && setOpen(false)}
             placeholder={t('İlk harfleri yazın')}
             role="combobox"
-            aria-expanded={open}
+            aria-expanded={showList}
+            autoComplete="off"
             autoFocus
           />
 
-          {open && (
+          {showList && (
             // mousedown is what steals focus from the input; ticking must not
             <div className="picklist combo-pop" onMouseDown={(e) => e.preventDefault()}>
               {shown.length === 0 ? (
-                <p className="cell-dim">{t('Bu isimde çocuk yok. Aşağıdan yeni çocuk ekleyin.')}</p>
+                <p className="cell-dim">
+                  {query.trim()
+                    ? t('Bu isimde çocuk yok. Aşağıdan kampa kaydedin.')
+                    : t('Bu sezonda kayıtlı çocuk yok. Aşağıdan kampa kaydedin.')}
+                </p>
               ) : (
                 shown.map((r) => (
                   <label key={r.key} className={`pickrow${picked.has(r.key) ? ' is-picked' : ''}`}>

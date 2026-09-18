@@ -661,6 +661,34 @@ const EN: Record<string, string> = {
   Astım: 'Asthma',
   'Gözlük/lens': 'Glasses or lenses',
 
+  'İsim yazın, listeden seçin': 'Type a name, pick from the list',
+  'Listeden seçin': 'Pick one from the list',
+  'Yoklamadan kaldır': 'Take off the register',
+  'Seçilenleri kaldır': 'Take the selected off',
+  'Bu gün için yoklama yok. “Yoklama ekle” ile gelen çocukları işaretleyin.':
+    'Nothing recorded for this day. Use “Yoklama ekle” to tick the children who came.',
+  'Bu liste o gün gelenlerdir. Kamp kaydı olan bir çocuk, siz yoklamaya eklemeden burada görünmez.':
+    'This list is who came that day. A child registered for the camp does not appear here until you add them.',
+  'Bu isimde çocuk yok. Aşağıdan kampa kaydedin.':
+    'No child by that name. Register them for the camp below.',
+  'Bu sezonda kayıtlı çocuk yok. Aşağıdan kampa kaydedin.':
+    'No children registered this season. Register one below.',
+  'Kim neyi görür, neyi değiştirir': 'Who sees what, and who can change it',
+  Görür: 'Sees',
+  Değiştirir: 'Changes',
+  'Yetkisiz hesap': 'Account with no access',
+  'Her şeyi — hoca hakedişleri dahil': 'Everything, instructor pay included',
+  'Her şeyi: dersler, müşteriler, ödemeler, kamp, hesaplar, komisyon oranları':
+    'Everything: lessons, customers, payments, camp, accounts, commission rates',
+  'Hoca hakedişleri hariç her şeyi': 'Everything except instructor pay',
+  'Dersler, müşteriler, ödemeler, kamp, hesaplar':
+    'Lessons, customers, payments, camp and accounts',
+  'Kendi takvimi ve kendi öğrencileri; diğer hocaların takvimi yalnız dolu/boş':
+    'Their own calendar and their own students; other instructors’ calendars as busy or free only',
+  'Kendi takvimindeki dersler': 'Lessons on their own calendar',
+  'Herkese açık takvim: dolu ve boş saatler': 'The public calendar: which hours are busy or free',
+  'Hiçbir şey': 'Nothing',
+
   'Yoklama ekle': 'Take the register',
   'Yukarıdaki ders rakamlarına çocuk kampı saatleri dahil değildir.':
     'The lesson figures above leave out the camp hours.',

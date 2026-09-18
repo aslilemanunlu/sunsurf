@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { AgreementKind, CustomerRef, EquipmentLevel } from '../../types';
 import { useT } from '../../lib/i18n';
 import * as api from '../../api/client';
+import NameSearch from './NameSearch';
 import {
   EQUIPMENT_LABEL,
   EQUIPMENT_LEVELS,
@@ -27,6 +28,8 @@ type Props = {
 export default function AgreementForm({ customers, plans, onClose, onSaved }: Props) {
   const { t } = useT();
   const [customerId, setCustomerId] = useState('');
+  /** What has been typed into the name box, which is how one is found. */
+  const [search, setSearch] = useState('');
   const [kind, setKind] = useState<AgreementKind>('lesson');
   const [plan, setPlan] = useState(plans.lesson[0].value);
   const [label, setLabel] = useState('');
@@ -79,7 +82,12 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
   // meant the main button sat there disabled with nothing saying why.
   const haveCustomer = adding ? newNameOk : customerId !== '';
   const canSave =
-    !saving && haveCustomer && amountOk && paidOk && unitsOk && (!needsLabel || label.trim() !== '');
+    !saving &&
+    haveCustomer &&
+    amountOk &&
+    paidOk &&
+    unitsOk &&
+    (!needsLabel || label.trim() !== '');
 
   async function save() {
     if (adding) {
@@ -164,15 +172,26 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
             </div>
           ) : (
             <>
-              <select value={customerId} onChange={(e) => setCustomerId(e.target.value)}>
-                <option value="">{t('— müşteri seçin —')}</option>
-                {sorted.map((c) => (
-                  <option key={c.customerId} value={c.customerId}>
-                    {c.name}
-                    {c.phone ? ` · ${c.phone}` : ''}
-                  </option>
-                ))}
-              </select>
+              <NameSearch
+                value={search}
+                onChange={(text) => {
+                  setSearch(text);
+                  // editing the name lets go of whoever was picked
+                  if (customerId) setCustomerId('');
+                }}
+                items={sorted.map((c) => ({
+                  id: c.customerId,
+                  name: c.name,
+                  hint: c.phone,
+                }))}
+                onPick={(item) => {
+                  setCustomerId(item.id);
+                  setSearch(item.name);
+                }}
+                placeholder={t('İsim yazın, listeden seçin')}
+                autoFocus
+                hint={customerId ? 'Kayıtlı müşteri' : search.trim() ? 'Listeden seçin' : ''}
+              />
               <button type="button" className="link-btn" onClick={() => setAdding(true)}>
                 {t('+ Yeni müşteri')}
               </button>
@@ -200,7 +219,11 @@ export default function AgreementForm({ customers, plans, onClose, onSaved }: Pr
         {kind === 'rental' && (
           <div className="field">
             <span>{t('Ekipman seviyesi')}</span>
-            <div className="segmented segmented--block" role="group" aria-label={t('Ekipman seviyesi')}>
+            <div
+              className="segmented segmented--block"
+              role="group"
+              aria-label={t('Ekipman seviyesi')}
+            >
               {EQUIPMENT_LEVELS.map((l) => (
                 <button
                   key={l}

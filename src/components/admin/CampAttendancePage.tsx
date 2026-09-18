@@ -36,6 +36,8 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
   const [day, setDay] = useState(todayKey());
   const [roll, setRoll] = useState<CampRegistration[]>([]);
   const [marks, setMarks] = useState<Map<string, Mark>>(new Map());
+  /** Who is on the register for this day — not who is registered for the season. */
+  const [here, setHere] = useState<CampAttendance[]>([]);
   const [totals, setTotals] = useState<CampAttendanceTotal[]>([]);
   const [recent, setRecent] = useState<CampAttendance[]>([]);
   const [loading, setLoading] = useState(true);
@@ -65,6 +67,7 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
         api.listCampAttendance(season),
       ]);
       setRoll(children);
+      setHere(today);
       setMarks(new Map(today.map((a) => [a.registrationId, a.kind as Mark])));
       setTotals(sums);
       setRecent(all);
@@ -182,7 +185,9 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
     }
   }
 
-  const here = useMemo(() => {
+  const byRegistration = useMemo(() => new Map(roll.map((r) => [r.registrationId, r])), [roll]);
+
+  const counts = useMemo(() => {
     const values = [...marks.values()];
     return {
       full: values.filter((m) => m === 'full').length,
@@ -270,7 +275,7 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
             })}
           </h4>
           <span className="admin-count">
-            {here.full} {t('tam')} · {here.half} {t('yarım')}
+            {counts.full} {t('tam')} · {counts.half} {t('yarım')}
           </span>
           <button className="btn btn--small" onClick={() => setSheetOpen(true)}>
             + {t('Yoklama ekle')}
@@ -279,40 +284,41 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
 
         {loading ? (
           <p className="admin-hint">{t('Yükleniyor…')}</p>
-        ) : roll.length === 0 ? (
-          <p className="cell-dim">{t('Bu sezonda kayıtlı çocuk yok.')}</p>
+        ) : here.length === 0 ? (
+          <p className="cell-dim">
+            {t('Bu gün için yoklama yok. “Yoklama ekle” ile gelen çocukları işaretleyin.')}
+          </p>
         ) : (
           <ul className="register">
-            {roll.map((r) => {
-              const current = marks.get(r.registrationId) ?? null;
+            {here.map((a) => {
+              const child = byRegistration.get(a.registrationId);
+              const current = marks.get(a.registrationId) ?? null;
               return (
-                <li key={r.registrationId} className={current ? 'is-here' : undefined}>
+                <li key={a.registrationId} className={current ? 'is-here' : undefined}>
                   <input
                     type="checkbox"
                     className="register-pick"
-                    checked={selected.has(r.registrationId)}
-                    onChange={() => pick(r.registrationId)}
+                    checked={selected.has(a.registrationId)}
+                    onChange={() => pick(a.registrationId)}
                     aria-label={t('Seç')}
                   />
                   {/* the tick is the state, so a full row reads from across a beach */}
-                  <span className={`tick${current ? ' is-on' : ''}`} aria-hidden="true">
+                  <span className={'tick' + (current ? ' is-on' : '')} aria-hidden="true">
                     {current ? '✓' : ''}
                   </span>
                   <span className="register-name">
                     <span className="register-title">
-                      {r.childName}
-                      {r.age !== null && <span className="cell-dim"> · {r.age}</span>}
+                      {a.childName}
+                      {child?.age != null && <span className="cell-dim"> · {child.age}</span>}
                     </span>
                     <span className="register-sub">
-                      {r.guardianPhone
-                        ? `${t('Veli')}: ${r.guardianPhone}`
-                        : current
-                          ? t(current === 'full' ? 'Tam gün' : 'Yarım gün')
-                          : t('Gelmedi')}
+                      {child?.guardianPhone
+                        ? t('Veli') + ': ' + child.guardianPhone
+                        : t(current === 'half' ? 'Yarım gün' : 'Tam gün')}
                     </span>
-                    {r.allergyNote && (
+                    {child?.allergyNote && (
                       <span className="register-alert">
-                        {t('Alerji')}: {r.allergyNote}
+                        {t('Alerji')}: {child.allergyNote}
                       </span>
                     )}
                   </span>
@@ -320,25 +326,24 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
                     {MARKS.map((m) => (
                       <button
                         key={m.value}
-                        className={`segment${current === m.value ? ' is-active' : ''}`}
-                        disabled={busy === r.registrationId}
-                        onClick={() => mark(r.registrationId, current === m.value ? null : m.value)}
+                        className={'segment' + (current === m.value ? ' is-active' : '')}
+                        disabled={busy === a.registrationId}
+                        onClick={() => mark(a.registrationId, m.value)}
                         aria-pressed={current === m.value}
                       >
                         {t(m.label)}
                       </button>
                     ))}
                   </span>
-                  {current && (
-                    <button
-                      className="link-btn danger"
-                      disabled={busy === r.registrationId}
-                      onClick={() => mark(r.registrationId, null)}
-                      title={t('Bu çocuğun bu günkü yoklamasını sil')}
-                    >
-                      {t('Sil')}
-                    </button>
-                  )}
+                  <button
+                    className="iconbtn"
+                    disabled={busy === a.registrationId}
+                    onClick={() => mark(a.registrationId, null)}
+                    title={t('Yoklamadan kaldır')}
+                    aria-label={t('Yoklamadan kaldır')}
+                  >
+                    ✕
+                  </button>
                 </li>
               );
             })}
@@ -354,13 +359,15 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
               {t('Seçimi bırak')}
             </button>
             <button className="btn btn--small btn--danger" onClick={removeSelected}>
-              {t('Seçilenleri yoklamadan sil')}
+              {t('Seçilenleri kaldır')}
             </button>
           </div>
         )}
 
         <p className="admin-hint">
-          {t('İşaretlenmeyen çocuk o gün gelmemiş sayılır. Sil, o günkü işareti kaldırır.')}
+          {t(
+            'Bu liste o gün gelenlerdir. Kamp kaydı olan bir çocuk, siz yoklamaya eklemeden burada görünmez.',
+          )}
         </p>
       </section>
 

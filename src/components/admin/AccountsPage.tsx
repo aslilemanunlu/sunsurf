@@ -51,6 +51,30 @@ function levelOf(u: DirectoryUser): AccessLevel {
   return 'none';
 }
 
+/** The short version of the rules the database enforces. */
+const ACCESS_SUMMARY: { who: string; sees: string; edits: string }[] = [
+  {
+    who: 'Yönetici',
+    sees: 'Her şeyi — hoca hakedişleri dahil',
+    edits: 'Her şeyi: dersler, müşteriler, ödemeler, kamp, hesaplar, komisyon oranları',
+  },
+  {
+    who: 'Admin',
+    sees: 'Hoca hakedişleri hariç her şeyi',
+    edits: 'Dersler, müşteriler, ödemeler, kamp, hesaplar',
+  },
+  {
+    who: 'Hoca',
+    sees: 'Kendi takvimi ve kendi öğrencileri; diğer hocaların takvimi yalnız dolu/boş',
+    edits: 'Kendi takvimindeki dersler',
+  },
+  {
+    who: 'Yetkisiz hesap',
+    sees: 'Herkese açık takvim: dolu ve boş saatler',
+    edits: 'Hiçbir şey',
+  },
+];
+
 /**
  * Everybody who can sign in, in one list.
  *
@@ -147,7 +171,9 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
     setError(null);
     try {
       if (level === 'none' && !instructorId) {
-        setError(t('Yönetim yetkisi ya da hoca profili seçin; ikisi de boşsa davetin bir anlamı yok.'));
+        setError(
+          t('Yönetim yetkisi ya da hoca profili seçin; ikisi de boşsa davetin bir anlamı yok.'),
+        );
         return;
       }
       await api.inviteStaff({
@@ -236,25 +262,25 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
           </div>
 
           <label className="field">
-              <span>
-                {t('Hoca profili')} ({t('ders veriyorsa')})
-              </span>
-              <select value={instructorId} onChange={(e) => setInstructorId(e.target.value)}>
-                <option value="">{t('— hoca değil —')}</option>
-                {instructors.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.name}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="link-btn"
-                onClick={() => setMakingProfile({ for: null })}
-              >
-                {t('+ Hoca profili oluştur')}
-              </button>
-            </label>
+            <span>
+              {t('Hoca profili')} ({t('ders veriyorsa')})
+            </span>
+            <select value={instructorId} onChange={(e) => setInstructorId(e.target.value)}>
+              <option value="">{t('— hoca değil —')}</option>
+              {instructors.map((i) => (
+                <option key={i.id} value={i.id}>
+                  {i.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              className="link-btn"
+              onClick={() => setMakingProfile({ for: null })}
+            >
+              {t('+ Hoca profili oluştur')}
+            </button>
+          </label>
 
           <div className="row-actions">
             <button className="btn" onClick={invite} disabled={!emailOk || busy === 'invite'}>
@@ -431,6 +457,34 @@ export default function AccountsPage({ viewer, onChanged }: Props) {
           'Yetkisi olmayan bir hesap yalnızca herkese açık takvimi okur. Şifresini unutan herkes giriş ekranından kendisi yenileyebilir.',
         )}
       </p>
+
+      {/* The rules are enforced by the database, not by this table — it is here
+          so nobody has to guess what a role will let somebody do. */}
+      <section className="panel">
+        <h4 className="panel-title">{t('Kim neyi görür, neyi değiştirir')}</h4>
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>{t('Yetki')}</th>
+                <th>{t('Görür')}</th>
+                <th>{t('Değiştirir')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ACCESS_SUMMARY.map((r) => (
+                <tr key={r.who}>
+                  <td>
+                    <strong>{t(r.who)}</strong>
+                  </td>
+                  <td>{t(r.sees)}</td>
+                  <td>{t(r.edits)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {makingProfile && (
         <InstructorForm

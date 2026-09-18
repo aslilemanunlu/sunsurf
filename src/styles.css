@@ -3547,3 +3547,49 @@ ol {
 .notebox span {
   color: var(--text-dim);
 }
+
+/* A pick in a suggestion list is a button, not a checkbox row. */
+.pickrow--btn {
+  width: 100%;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.combo-pop {
+  list-style: none;
+}
+
+.combo-pop li {
+  margin: 0;
+}
+
+/* The small square that takes something off a list. */
+.iconbtn {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.iconbtn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.iconbtn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.combo-box {
+  position: relative;
+}
