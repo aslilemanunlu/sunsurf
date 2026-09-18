@@ -195,16 +195,24 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
     };
   }, [marks]);
 
+  /**
+   * Only the children who actually came.
+   *
+   * The totals view carries every registration, so a child who was signed up
+   * and never turned up would sit in the season list on nought days — a name
+   * saying nothing, in the one place that is about days attended.
+   */
+  const came = useMemo(() => totals.filter((r) => r.fullDays + r.halfDays > 0), [totals]);
+
   /** The season in four numbers; the per-child table is behind a toggle. */
   const seasonStats = useMemo(() => {
-    const came = totals.filter((r) => r.fullDays + r.halfDays > 0);
     return {
       children: came.length,
       full: came.reduce((s, r) => s + r.fullDays, 0),
       half: came.reduce((s, r) => s + r.halfDays, 0),
       days: came.reduce((s, r) => s + r.totalDays, 0),
     };
-  }, [totals]);
+  }, [came]);
 
   /** Every day that has marks, newest first — the season at a glance. */
   const byDay = useMemo(() => {
@@ -223,7 +231,7 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
     downloadCsv(
       `cocuk-kampi-yoklama-${season}`,
       [t('Çocuk'), t('Tam gün'), t('Yarım gün'), t('Toplam gün')],
-      totals.map((r) => [r.childName, r.fullDays, r.halfDays, r.totalDays]),
+      came.map((r) => [r.childName, r.fullDays, r.halfDays, r.totalDays]),
     );
   }
 
@@ -257,7 +265,7 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
         <button
           className="btn btn--ghost btn--small"
           onClick={exportSeason}
-          disabled={totals.length === 0}
+          disabled={came.length === 0}
         >
           {t('Excel’e aktar')}
         </button>
@@ -374,14 +382,14 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
       <section className="panel">
         <div className="admin-bar">
           <h4 className="panel-title">{t('Sezon toplamı')}</h4>
-          {totals.length > 0 && (
+          {came.length > 0 && (
             <button className="link-btn" onClick={() => setListOpen((v) => !v)}>
               {t(listOpen ? 'Liste görünümünü kapat' : 'Liste görünümünü aç')}
             </button>
           )}
         </div>
 
-        {totals.length === 0 ? (
+        {came.length === 0 ? (
           <p className="cell-dim">{t('Henüz yoklama yok.')}</p>
         ) : (
           <>
@@ -424,7 +432,7 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
                     </tr>
                   </thead>
                   <tbody>
-                    {totals.map((r) => (
+                    {came.map((r) => (
                       <tr key={r.registrationId}>
                         <td>{r.childName}</td>
                         <td className="num">{r.fullDays}</td>

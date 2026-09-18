@@ -66,8 +66,13 @@ export default function NameSearch({
     [items, value],
   );
 
-  // Typing is what makes the list appear; focus alone offers the whole list.
-  const visible = open && shown.length > 0;
+  /**
+   * Three letters before anything is offered.
+   *
+   * One letter matches a third of the customers, which is a list to scroll
+   * rather than an answer, and it covers the box the moment it is touched.
+   */
+  const visible = open && value.trim().length >= 3 && shown.length > 0;
 
   return (
     <div className="combo" ref={box}>
