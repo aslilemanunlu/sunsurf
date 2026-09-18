@@ -10,7 +10,7 @@ import {
   toDateKey,
   todayKey,
 } from '../../lib/date';
-import { BarRows, Columns, Donut, Split, type Slice } from './Charts';
+import { BarRows, Columns, Donut, type Slice } from './Charts';
 import MultiSelect from './MultiSelect';
 import { downloadCsv } from '../../lib/csv';
 import { describeLesson } from '../../lib/lessons';
@@ -121,12 +121,21 @@ export default function Dashboard() {
     void load();
   }, [load]);
 
-  /** Nothing picked means everything: an empty filter is not an empty result. */
+  /**
+   * The lessons this report is about.
+   *
+   * The camp is left out on purpose and reported on its own below: a camp day
+   * is a child being there all morning, not an hour an instructor taught, and
+   * mixing the two makes both numbers mean less than they did apart.
+   *
+   * Nothing picked means everything: an empty filter is not an empty result.
+   */
   const counted = useMemo(
     () =>
       rows.filter(
         (r) =>
           r.status !== 'rejected' &&
+          r.lessonType !== 'kids_camp' &&
           (withGuests || !r.isGuest) &&
           (pickedInstructors.length === 0 || pickedInstructors.includes(r.instructorId)) &&
           (pickedTypes.length === 0 || pickedTypes.includes(r.lessonType)),
@@ -185,18 +194,8 @@ export default function Dashboard() {
     return [
       { label: t('Bireysel'), value: count('individual'), tone: 'individual' },
       { label: t('Grup'), value: count('group'), tone: 'group' },
-      { label: t('Çocuk kampı'), value: count('kids_camp'), tone: 'kids' },
     ];
   }, [counted, t]);
-
-  const byStatus = useMemo<Slice[]>(() => {
-    const count = (s: string) => rows.filter((r) => r.status === s).length;
-    return [
-      { label: t('Onaylı'), value: count('approved'), tone: 'approved' },
-      { label: t('Beklemede'), value: count('pending'), tone: 'pending' },
-      { label: t('Reddedildi'), value: count('rejected'), tone: 'rejected' },
-    ];
-  }, [rows, t]);
 
   /** The per-instructor table behind the bars. */
   const table = useMemo(() => {
@@ -208,7 +207,6 @@ export default function Dashboard() {
         hours: number;
         individual: number;
         group: number;
-        kids: number;
       }
     >();
     for (const r of counted) {
@@ -218,13 +216,11 @@ export default function Dashboard() {
         hours: 0,
         individual: 0,
         group: 0,
-        kids: 0,
       };
       row.lessons += 1;
       row.hours += r.durationHours;
       if (r.lessonType === 'individual') row.individual += 1;
-      else if (r.lessonType === 'group') row.group += 1;
-      else row.kids += 1;
+      else row.group += 1;
       map.set(r.instructorId, row);
     }
     return [...map.values()].sort((a, b) => b.hours - a.hours);
@@ -359,12 +355,10 @@ export default function Dashboard() {
             [
               ['individual', 'Bireysel'],
               ['group', 'Grup'],
-              ['kids_camp', 'Çocuk kampı'],
             ] as [LessonType, string][]
           ).map(([value, label]) => {
             const on = pickedTypes.includes(value);
-            const tone =
-              value === 'kids_camp' ? 'kids' : value === 'group' ? 'group' : 'individual';
+            const tone = value === 'group' ? 'group' : 'individual';
             return (
               <button
                 key={value}
@@ -465,11 +459,6 @@ export default function Dashboard() {
               <h4 className="panel-title">{t('Ders tipi dağılımı')}</h4>
               <Donut data={byType} unit={t('ders')} empty={t('Bu dönemde ders yok.')} />
             </section>
-
-            <section className="panel">
-              <h4 className="panel-title">{t('Talep durumu')}</h4>
-              <Split data={byStatus} empty={t('Bu dönemde ders yok.')} />
-            </section>
           </div>
 
           <section className="panel">
@@ -486,7 +475,6 @@ export default function Dashboard() {
                       <th>{t('Saat')}</th>
                       <th>{t('Bireysel')}</th>
                       <th>{t('Grup')}</th>
-                      <th>{t('Çocuk kampı')}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -497,7 +485,6 @@ export default function Dashboard() {
                         <td>{r.hours}</td>
                         <td>{r.individual}</td>
                         <td>{r.group}</td>
-                        <td>{r.kids}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -505,6 +492,10 @@ export default function Dashboard() {
               </div>
             )}
           </section>
+
+          <p className="admin-hint">
+            {t('Yukarıdaki ders rakamlarına çocuk kampı saatleri dahil değildir.')}
+          </p>
 
           <h3 className="admin-subtitle">{t('Çocuk kampı')}</h3>
 

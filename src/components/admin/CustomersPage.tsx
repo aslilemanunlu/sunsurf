@@ -47,6 +47,12 @@ export default function CustomersPage({ onChanged }: Props) {
   const shown = useMemo(() => {
     const q = search.trim().toLocaleLowerCase('tr');
     return rows.filter((c) => {
+      /**
+       * Camp children are kept out of the customer list: they are the camp's
+       * register, not the school's customers, and they would double its length
+       * every summer. Picking the camp segment still shows them.
+       */
+      if (segment !== 'kids_camp' && c.segments.includes('kids_camp')) return false;
       if (segment === 'none' && c.segments.length > 0) return false;
       if (segment !== 'all' && segment !== 'none' && !c.segments.includes(segment)) return false;
       if (!q) return true;
@@ -121,6 +127,10 @@ export default function CustomersPage({ onChanged }: Props) {
           aria-label={t('Ara')}
         />
       </div>
+
+      <p className="admin-hint">
+        {t('Çocuk kampı öğrencileri bu listede yok; Çocuk Kampı sekmesinde tutuluyor.')}
+      </p>
 
       {loading ? (
         <p className="admin-hint">{t('Yükleniyor…')}</p>

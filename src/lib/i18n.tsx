@@ -631,6 +631,10 @@ const EN: Record<string, string> = {
   // camp register
   'Gün seç': 'Pick a day',
   'Yoklama ekle': 'Take the register',
+  'Yukarıdaki ders rakamlarına çocuk kampı saatleri dahil değildir.':
+    'The lesson figures above leave out the camp hours.',
+  'Çocuk kampı öğrencileri bu listede yok; Çocuk Kampı sekmesinde tutuluyor.':
+    'Camp children are not in this list; they are kept under Çocuk Kampı.',
   Gelmedi: 'Did not come',
   Sağlık: 'Health',
   'Listede yoksa kampa kaydet': 'Not on the list? Register them for the camp',
