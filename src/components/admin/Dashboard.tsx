@@ -45,9 +45,7 @@ const STATUS_TEXT: Record<string, string> = {
 const PRESETS: { label: string; range: () => [string, string] }[] = [
   { label: 'Bugün', range: () => [todayKey(), todayKey()] },
   { label: 'Bu hafta', range: () => [startOfWeekKey(), addDays(startOfWeekKey(), 6)] },
-  { label: 'Son 7 gün', range: () => [addDays(todayKey(), -6), todayKey()] },
   { label: 'Bu ay', range: () => [startOfMonthKey(), todayKey()] },
-  { label: 'Son 90 gün', range: () => [addDays(todayKey(), -89), todayKey()] },
 ];
 
 /** Days between two keys, inclusive. */

@@ -480,8 +480,7 @@ const EN: Record<string, string> = {
     'This customer has lessons on record; delete those first.',
   '{n} kaydı silinsin mi?': 'Delete {n}?',
   'Bu filtreye uyan müşteri yok.': 'No customer matches this filter.',
-  'Segment değiştirmek için yönetici olmanız gerekiyor.':
-    'Only an admin can change segments.',
+  'Segment değiştirmek için yönetici olmanız gerekiyor.': 'Only an admin can change segments.',
   Kaydedildi: 'Saved',
   ders: 'lessons',
   son: 'last',
@@ -537,8 +536,7 @@ const EN: Record<string, string> = {
     'Waiting means the instructor profile exists but no account is linked to it yet. The link is made automatically when they sign up with that email and verify it.',
   'Müşteri rezervasyonu açık': 'Customer booking is open',
   'Müşteri rezervasyonu kapalı': 'Customer booking is closed',
-  'Müşteriler müsait saatlere talep gönderebilir.':
-    'Customers can request any free hour.',
+  'Müşteriler müsait saatlere talep gönderebilir.': 'Customers can request any free hour.',
   'Takvim herkese görünür, ama müşteriler talep gönderemez. Hoca ve yönetici ders yazmaya devam edebilir.':
     'The schedule stays visible to everyone, but customers cannot send requests. Instructors and admins can still enter lessons.',
   'Rezervasyonu aç': 'Open booking',
@@ -561,9 +559,7 @@ const EN: Record<string, string> = {
   // reporting
   Raporlama: 'Reports',
   Dönem: 'Period',
-  'Son 7 gün': 'Last 7 days',
   'Bu ay': 'This month',
-  'Son 90 gün': 'Last 90 days',
   Özel: 'Custom',
   'Reddedilenleri de say': 'Include rejected',
   'Dönemdeki ders': 'Lessons in period',
@@ -618,9 +614,157 @@ const EN: Record<string, string> = {
   'Sayım yapılamadı': 'Could not count',
   'Rezervasyonlar yüklenemedi': 'Could not load bookings',
   'Eğitmen eklenemedi': 'Could not add the instructor',
-  'Bu e-posta ile kayıtlı bir eğitmen zaten var.':
-    'An instructor with that email already exists.',
+  'Bu e-posta ile kayıtlı bir eğitmen zaten var.': 'An instructor with that email already exists.',
   'Aylık ders saati hesaplanamadı': 'Could not total this month’s hours',
+
+  // admin menu
+  'Ödemeler / Paketler': 'Payments / Packages',
+  Kayıtlar: 'Registrations',
+  Yoklama: 'Register',
+  'Kullanım kılavuzu': 'User guide',
+
+  // camp register
+  'Gün seç': 'Pick a day',
+  'Tam gün': 'Full day',
+  'Yarım gün': 'Half day',
+  tam: 'full',
+  yarım: 'half',
+  'Toplam gün': 'Total days',
+  'Sezon toplamı': 'Season total',
+  'Gün gün': 'Day by day',
+  'Henüz yoklama yok.': 'Nothing recorded yet.',
+  'İşaretlenmeyen çocuk o gün gelmemiş sayılır. Aynı düğmeye tekrar basmak işareti kaldırır.':
+    'A child left unmarked did not come that day. Press the same button again to clear a mark.',
+
+  // guide
+  'Yönetici olarak hoca hakedişleri dahil her şeyi görürsün.':
+    'As yönetici you see everything, instructor pay included.',
+  'Admin olarak hoca hakedişleri dışında her şeyi görür ve düzenlersin.':
+    'As admin you see and edit everything except instructor pay.',
+  'Sık sorulanlar': 'Common questions',
+
+  'Takvime ders yazmak': 'Booking a lesson on the calendar',
+  'Ders kaydının tek yeri takvim. Rezervasyonlar sekmesi sonradan bakmak içindir.':
+    'The calendar is the only place lessons are created. The Bookings tab is for looking back at them.',
+  'Hocanın sütununda başlangıç saatine bas, bırakmadan aşağı sürükle: birden çok saati tek seferde seçersin.':
+    'In the instructor’s column press the first hour and drag down without letting go: you pick several hours at once.',
+  'Ders tipini seç (bireysel, grup, çocuk kampı) ve windsurf mü wingfoil mü olduğunu işaretle.':
+    'Choose the lesson type (individual, group, kids camp) and whether it is windsurf or wingfoil.',
+  'Kimin adına: müşteri adını yaz ya da listeden seç. Kayıtlı değilse aynı yerden yeni müşteri açılır; telefon zorunlu değil.':
+    'Who it is for: type the customer’s name or pick it from the list. If they are new you can create them right there; the phone number is optional.',
+  'Adı olmayan bir ders için Misafir işaretle. Misafir dersleri ana sayfadaki sayılara varsayılan olarak girmez, isteyen kutucuğu işaretler.':
+    'For a lesson with no name, tick Guest. Guest lessons are left out of the home figures by default; tick the box to include them.',
+  'Çocuk kampında isim sorulmaz; saatleri seçip kaydetmen yeter.':
+    'Kids camp asks for no name: pick the hours and save.',
+
+  'Yazılmış bütün derslerin listesi; arama, filtre ve Excel çıktısı burada.':
+    'Every lesson that has been booked, with search, filters and the Excel export.',
+  'Hoca, tarih aralığı, spor ve misafir/müşteri filtrelerini birlikte kullanabilirsin.':
+    'Instructor, date range, sport and guest/customer filters all work together.',
+  'Bir dersi düzenlemek ya da silmek için satırdaki düğmeleri kullan; silinen ders saati takvimde hemen boşalır.':
+    'Use the buttons on the row to edit or delete a lesson; a deleted lesson frees the hour on the calendar at once.',
+  'Excel’e aktar, o an ekranda görünen listeyi indirir.':
+    'Export to Excel downloads exactly the list on screen.',
+
+  'Kimin ne aldığı ve ne kadar ödediği. Bir müşterinin aynı anda birden çok anlaşması olabilir.':
+    'Who bought what and how much they have paid. One customer can hold several agreements at once.',
+  'Yeni anlaşma: müşteriyi seç, türünü seç (tek ders, 5/10/20 ders paketi, kiralama, depolama, çocuk kampı, diğer), anlaşılan tutarı yaz.':
+    'New agreement: pick the customer, pick the kind (single lesson, 5/10/20 lesson package, rental, storage, kids camp, other) and enter the agreed amount.',
+  'Ödeme aldıkça Ödeme ekle ile gir; bakiye kendiliğinden düşer.':
+    'Enter each payment as it comes in with Add payment; the balance follows on its own.',
+  'Kalanı silmek gerekirse Bakiyeyi sıfırla — bu da bir kayıt olarak durur, tutar geçmişten kaybolmaz.':
+    'To write the rest off use Clear the balance — that is kept as a record too, so nothing disappears from the history.',
+  'Paketlerde kalan ders sayısı takip edilir: ders yazarken paketi seçersen o dersten düşer.':
+    'Packages keep count of the lessons left: pick the package while booking and the lesson comes off it.',
+
+  'Okulun defteri: ders alanlar, kiralama, depolama ve çocuk kampı aynı listede.':
+    'The school’s book: lessons, rental, storage and kids camp in one list.',
+  'Kart açıldığında telefon, doğum tarihi, sağlık/alerji notu, veli ve acil durum bilgileri görünür.':
+    'Opening a card shows the phone, date of birth, health and allergy notes, guardian and emergency contacts.',
+  'İlgi alanı (ders / kiralama / depolama / çocuk kampı) birden çok seçilebilir; filtreler buna göre çalışır.':
+    'A customer can be in several segments (lessons / rental / storage / kids camp); the filters follow them.',
+  'Not eklemek için kartın altındaki not alanını kullan.':
+    'Use the note field at the bottom of the card to add a note.',
+  'Bir müşteri, dersleri ve anlaşmaları duruyorken silinmez; uyarı sana neyin engellediğini söyler.':
+    'A customer cannot be deleted while lessons or agreements still hang off them; the warning names what is in the way.',
+
+  'Çocuk kampı — Kayıtlar': 'Kids camp — Registrations',
+  'Her sezon ayrı bir kayıttır: aynı çocuk 2026 ve 2027 için ayrı ayrı kaydedilir, eski kayıt bozulmaz.':
+    'Each season is its own registration: the same child is registered separately for 2026 and 2027, and the older one is left untouched.',
+  'Üstteki yıl kutusundan sezonu seç, sonra Kamp Kaydı Ekle.':
+    'Pick the season from the year box at the top, then Add camp registration.',
+  'Daha önce gelmiş bir çocuk için Önceki sezonlardan öğrenci listesinden seç: bilgiler hazır gelir, sadece değişenleri düzelt.':
+    'For a child who has been before, pick them from Students from earlier seasons: the details come filled in and you only correct what changed.',
+  'Veli formu, sağlık raporu gibi belgeleri yükleyebilir, sonra aynı yerden indirebilirsin.':
+    'Consent forms, medical reports and the like can be uploaded and downloaded again from the same place.',
+
+  'Çocuk kampı — Yoklama': 'Kids camp — Register',
+  'Günlük tutulur: gün seç, gelen çocuğa tam gün ya da yarım gün bas. Başka bir şey girilmez.':
+    'Kept daily: pick the day and press full day or half day for each child who came. Nothing else is entered.',
+  'İsimler o sezonun kayıtlarından kendiliğinden gelir. Listede olmayan bir çocuk için Kamp Kaydı Ekle ile hemen kaydını aç.':
+    'The names come from that season’s registrations. For a child who is not on the list, Add camp registration opens one on the spot.',
+  'Sezon toplamı tablosunda her çocuğun kaç tam, kaç yarım gün geldiği toplanır (yarım gün 0,5 sayılır).':
+    'The season total adds up each child’s full and half days (a half day counts as 0.5).',
+  'Gün gün listesi hangi gün kimlerin geldiğini gösterir; Excel’e aktarabilirsin.':
+    'The day-by-day list shows who came on each day, and exports to Excel.',
+
+  'Hoca profilleri, çalışma şekli ve izinler.':
+    'Instructor profiles, how they are employed, and time off.',
+  'Hoca ekle: ad, hangi sporları verdiği ve çalışma şekli (maaşlı, freelance, diğer).':
+    'Add an instructor: name, which sports they teach and how they work (salaried, freelance, other).',
+  'İzin ya da kapalı gün girmek için hocanın satırındaki izin düğmesini kullan; o saatler takvimde kapanır.':
+    'Use the time-off button on the instructor’s row for leave or closed days; those hours close on the calendar.',
+  'Bir hoca kendi takviminde ders yazabilir ve kendi öğrencilerinin detayını görür; diğer hocaların takvimini yalnızca dolu/boş olarak görür.':
+    'An instructor can book on their own calendar and sees their own students’ details; other instructors’ calendars show only busy or free.',
+
+  'Kimin giriş yapabildiği ve ne görebildiği.': 'Who can sign in, and what they can see.',
+  'Kullanıcı ekle: e-posta gir, davet gönder. Kişi kendi şifresini kendi belirler, sonra da değiştirebilir.':
+    'Add a user: enter the email and send the invitation. They set their own password and can change it later.',
+  'Yetkiler: Admin ya da Yönetici — ikisi birden olmaz. Her ikisi de ayrıca Hoca olabilir.':
+    'Permissions: admin or yönetici — never both. Either can also be an instructor.',
+  'Yönetici her şeyi görür. Admin, hoca hakedişleri dışında her şeyi görür.':
+    'A yönetici sees everything. An admin sees everything except instructor pay.',
+  'Hesabın hoca profili yoksa satırın altındaki küçük düğmeden oluşturabilirsin.':
+    'If an account has no instructor profile, the small button under the row creates one.',
+
+  'Ana sayfa ve raporlama': 'Home and reporting',
+  'Bugün, Bu hafta ve Bu ay hazır düğmeleri; istediğin tarih aralığını da elle yazabilirsin.':
+    'Today, This week and This month are one click, and any date range can be typed in.',
+  'Grafikler seçilen tarih aralığına göre çalışır: hoca başına saat, ders tipi ve spor dağılımı.':
+    'The charts follow the chosen dates: hours per instructor, lesson types and sports.',
+  'Hoca filtresinden birden çok hoca seçilebilir.':
+    'The instructor filter takes more than one instructor.',
+  'Misafir derslerini saymak istersen kutucuğu işaretle; varsayılan olarak sayılmazlar.':
+    'Tick the box to count guest lessons; they are left out by default.',
+  'Her listenin Excel’e aktar düğmesi, ekrandaki filtrelenmiş hâli indirir.':
+    'Every list’s Export to Excel button downloads the filtered view on screen.',
+
+  'Hoca hakedişleri': 'Instructor pay',
+  'Yalnızca yöneticinin gördüğü kısım.': 'Visible to the yönetici only.',
+  'Hoca kartındaki komisyon oranını yönetici belirler; adminler bu alanı ne görür ne değiştirir.':
+    'The yönetici sets the commission rate on the instructor card; admins neither see nor change it.',
+  'Verilen saatler ile oran, hoca bazlı hakediş tablosunda birleşir.':
+    'Hours taught and the rate come together in the per-instructor pay table.',
+
+  'Bir dersi yanlış hocaya yazdım, ne yapacağım?':
+    'I booked a lesson with the wrong instructor — now what?',
+  'Rezervasyonlar sekmesinden dersi düzenle; hocayı ve saati oradan değiştirebilirsin.':
+    'Edit the lesson from the Bookings tab; the instructor and the time can both be changed there.',
+  'Müşteri adı yazmadan ders yazabilir miyim?': 'Can I book a lesson without a customer name?',
+  'Evet, Misafir işaretle. Ders takvimde ve raporlarda durur, sadece müşteri kaydına bağlanmaz.':
+    'Yes — tick Guest. The lesson stays on the calendar and in the reports, it is simply not tied to a customer record.',
+  'Aynı çocuğu her yıl yeniden mi kaydedeceğim?': 'Do I register the same child again every year?',
+  'Evet, sezon başına bir kayıt. Önceki sezonlardan öğrenci listesinden seçince bilgiler hazır gelir.':
+    'Yes, one registration per season. Picking them from Students from earlier seasons fills the details in.',
+  'Müşteriyi silemiyorum.': 'I cannot delete a customer.',
+  'Üstünde duran ders, anlaşma ya da kamp kaydı vardır. Uyarı hangisinin engellediğini yazar; önce onları temizle.':
+    'There is a lesson, an agreement or a camp registration still on them. The warning says which; clear those first.',
+  'Dışarıdan biri site açarsa ne görür?': 'What does someone from outside see?',
+  'Sadece hocaların takvimindeki dolu ve boş saatleri. İsim, telefon, ödeme hiçbiri görünmez ve dışarıdan rezervasyon yapılamaz.':
+    'Only which hours are busy or free on the instructors’ calendars. No names, phones or payments, and nothing can be booked from outside.',
+  'Şifremi unuttum.': 'I forgot my password.',
+  'Giriş ekranındaki Şifremi unuttum bağlantısı e-posta gönderir; bağlantıya tıklayıp yeni şifreni belirlersin.':
+    'The Forgot password link on the sign-in screen sends an email; follow the link and set a new password.',
 };
 
 /**
@@ -654,9 +798,17 @@ function readStored(): Lang {
   }
 }
 
-type Ctx = { lang: Lang; setLang: (l: Lang) => void; t: (text: string) => string };
+type Ctx = {
+  lang: Lang;
+  setLang: (l: Lang) => void;
+  t: (text: string) => string;
+};
 
-const LangContext = createContext<Ctx>({ lang: 'tr', setLang: () => {}, t: (s) => s });
+const LangContext = createContext<Ctx>({
+  lang: 'tr',
+  setLang: () => {},
+  t: (s) => s,
+});
 
 export function LangProvider({ children }: { children: ReactNode }) {
   const [lang, setLangState] = useState<Lang>(() => {
@@ -668,7 +820,8 @@ export function LangProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     current = lang;
     document.documentElement.lang = lang;
-    document.title = lang === 'tr' ? 'Sun Surf Alaçatı — ders ayırt' : 'Sun Surf Alaçatı — book a lesson';
+    document.title =
+      lang === 'tr' ? 'Sun Surf Alaçatı — ders ayırt' : 'Sun Surf Alaçatı — book a lesson';
     try {
       localStorage.setItem(STORAGE_KEY, lang);
     } catch {

@@ -18,6 +18,8 @@ import type {
   Block,
   Booking,
   BookingStatus,
+  CampAttendance,
+  CampAttendanceTotal,
   CampDocument,
   CampRegistration,
   Employment,
@@ -1543,4 +1545,95 @@ export async function claimInvitation(userId: string): Promise<boolean> {
     .select('user_id');
   if (result.error) return false;
   return Boolean(result.data && result.data.length > 0);
+}
+
+// -------------------------------------------------------- camp attendance
+
+export async function listCampAttendance(
+  season: number,
+  day?: string,
+): Promise<CampAttendance[]> {
+  const rows = await read<
+    {
+      id: string;
+      registration_id: string;
+      customer_id: string;
+      child_name: string;
+      day: string;
+      kind: string;
+    }[]
+  >(
+    () => {
+      const q = neon.from('camp_attendance_roll').select('*').eq('season', season);
+      return day ? q.eq('day', day).order('child_name') : q.order('day', { ascending: false });
+    },
+    'Yoklama yüklenemedi',
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    registrationId: r.registration_id,
+    customerId: r.customer_id,
+    childName: r.child_name,
+    day: r.day,
+    kind: r.kind as 'full' | 'half',
+  }));
+}
+
+export async function listCampTotals(season: number): Promise<CampAttendanceTotal[]> {
+  const rows = await read<
+    {
+      registration_id: string;
+      customer_id: string;
+      child_name: string;
+      full_days: number;
+      half_days: number;
+      total_days: string | number;
+    }[]
+  >(
+    () => neon.from('camp_attendance_totals').select('*').eq('season', season).order('child_name'),
+    'Yoklama yüklenemedi',
+  );
+  return rows.map((r) => ({
+    registrationId: r.registration_id,
+    customerId: r.customer_id,
+    childName: r.child_name,
+    fullDays: Number(r.full_days ?? 0),
+    halfDays: Number(r.half_days ?? 0),
+    totalDays: Number(r.total_days ?? 0),
+  }));
+}
+
+/**
+ * Marks a child present for a day, or takes the mark away.
+ *
+ * `null` deletes the row rather than storing "absent": a day nobody was there
+ * is a day with nothing to say about it, and an absence table would have to be
+ * filled in for every child every day to stay true.
+ */
+export async function setCampAttendance(
+  registrationId: string,
+  day: string,
+  kind: 'full' | 'half' | null,
+): Promise<void> {
+  if (kind === null) {
+    const result = await neon
+      .from('camp_attendance')
+      .delete()
+      .eq('registration_id', registrationId)
+      .eq('day', day);
+    if (result.error) {
+      throw new Error(`${translate('Yoklama kaydedilemedi')}: ${result.error.message}`);
+    }
+    return;
+  }
+
+  const result = await neon
+    .from('camp_attendance')
+    .upsert(
+      { registration_id: registrationId, day, kind },
+      { onConflict: 'registration_id,day' },
+    );
+  if (result.error) {
+    throw new Error(`${translate('Yoklama kaydedilemedi')}: ${result.error.message}`);
+  }
 }

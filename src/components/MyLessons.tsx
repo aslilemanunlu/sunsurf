@@ -30,7 +30,6 @@ const PRESETS: { label: string; range: () => [string, string] }[] = [
   { label: 'Bugün', range: () => [todayKey(), todayKey()] },
   { label: 'Bu hafta', range: () => [startOfWeekKey(), addDays(startOfWeekKey(), 6)] },
   { label: 'Bu ay', range: () => [startOfMonthKey(), todayKey()] },
-  { label: 'Son 90 gün', range: () => [addDays(todayKey(), -89), todayKey()] },
 ];
 
 /**

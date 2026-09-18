@@ -252,3 +252,24 @@ export type CampDocument = {
   data: string;
   createdAt: string;
 };
+
+/** One child, one day, how much of it. Absence is simply no row. */
+export type CampAttendance = {
+  id: string;
+  registrationId: string;
+  customerId: string;
+  childName: string;
+  day: string;
+  kind: 'full' | 'half';
+};
+
+/** What a child adds up to over a season. */
+export type CampAttendanceTotal = {
+  registrationId: string;
+  customerId: string;
+  childName: string;
+  fullDays: number;
+  halfDays: number;
+  /** Halves counted as halves — the question is days, not appearances. */
+  totalDays: number;
+};

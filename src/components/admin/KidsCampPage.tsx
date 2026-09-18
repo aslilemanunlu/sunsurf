@@ -10,7 +10,7 @@ function seasons(): number[] {
   return [now + 2, now + 1, now, now - 1, now - 2];
 }
 
-type Props = { onChanged: () => void };
+type Props = { season: number; onSeason: (year: number) => void; onChanged: () => void };
 
 /**
  * The camp roll.
@@ -20,13 +20,12 @@ type Props = { onChanged: () => void };
  * runs it needs the parents' phone numbers in one place, not one booking at a
  * time. The bottom half collapses the bookings into one row per child.
  */
-export default function KidsCampPage({ onChanged }: Props) {
+export default function KidsCampPage({ season, onSeason, onChanged }: Props) {
   const { t } = useT();
 
   const [rows, setRows] = useState<KidsCampEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [season, setSeason] = useState(new Date().getFullYear());
   const [roll, setRoll] = useState<CampRegistration[]>([]);
   const [adding, setAdding] = useState(false);
   const [openReg, setOpenReg] = useState<CampRegistration | null>(null);
@@ -127,7 +126,7 @@ export default function KidsCampPage({ onChanged }: Props) {
           <h4 className="panel-title">{t('Sezon kayıtları')}</h4>
           <select
             value={season}
-            onChange={(e) => setSeason(Number(e.target.value))}
+            onChange={(e) => onSeason(Number(e.target.value))}
             aria-label={t('Sezon')}
           >
             {seasons().map((y) => (

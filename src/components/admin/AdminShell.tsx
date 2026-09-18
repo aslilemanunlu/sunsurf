@@ -5,20 +5,50 @@ import Dashboard from './Dashboard';
 import CustomersPage from './CustomersPage';
 import BookingsPage from './BookingsPage';
 import KidsCampPage from './KidsCampPage';
+import CampAttendancePage from './CampAttendancePage';
 import StaffPage from './StaffPage';
 import AccountsPage from './AccountsPage';
 import PaymentsPage from './PaymentsPage';
+import Guide from './Guide';
 
-type Page = 'dashboard' | 'bookings' | 'customers' | 'payments' | 'kids' | 'staff' | 'accounts';
+type Page =
+  | 'dashboard'
+  | 'staff'
+  | 'bookings'
+  | 'payments'
+  | 'customers'
+  | 'camp-registrations'
+  | 'camp-attendance'
+  | 'accounts'
+  | 'guide';
 
-const NAV: { key: Page; label: string }[] = [
+type Item = {
+  key: Page;
+  label: string;
+  children?: { key: Page; label: string }[];
+};
+
+/**
+ * The order is the working day: what happened, who is teaching, what is booked,
+ * what is owed, who the customers are — then the camp, then the settings
+ * nobody touches twice a season.
+ */
+const NAV: Item[] = [
   { key: 'dashboard', label: 'Ana Sayfa' },
-  { key: 'bookings', label: 'Rezervasyonlar' },
-  { key: 'customers', label: 'Müşteriler' },
-  { key: 'payments', label: 'Ödemeler' },
-  { key: 'kids', label: 'Çocuk Kampı' },
   { key: 'staff', label: 'Hocalar' },
+  { key: 'bookings', label: 'Rezervasyonlar' },
+  { key: 'payments', label: 'Ödemeler / Paketler' },
+  { key: 'customers', label: 'Müşteriler' },
+  {
+    key: 'camp-registrations',
+    label: 'Çocuk Kampı',
+    children: [
+      { key: 'camp-registrations', label: 'Kayıtlar' },
+      { key: 'camp-attendance', label: 'Yoklama' },
+    ],
+  },
   { key: 'accounts', label: 'Hesaplar ve yetkiler' },
+  { key: 'guide', label: 'Kullanım kılavuzu' },
 ];
 
 type Props = {
@@ -31,6 +61,13 @@ type Props = {
 export default function AdminShell({ viewer, instructors, onBackToCalendar, onChanged }: Props) {
   const { t } = useT();
   const [page, setPage] = useState<Page>('dashboard');
+  /**
+   * The camp's two screens share one season: switching from the register to the
+   * registrations should not land on a different summer.
+   */
+  const [season, setSeason] = useState(new Date().getFullYear());
+
+  const inCamp = page === 'camp-registrations' || page === 'camp-attendance';
 
   return (
     <div className="admin">
@@ -39,28 +76,55 @@ export default function AdminShell({ viewer, instructors, onBackToCalendar, onCh
           ← {t('Takvime dön')}
         </button>
         <ul>
-          {NAV.map((n) => (
-            <li key={n.key}>
-              <button
-                className={`admin-navitem${page === n.key ? ' is-active' : ''}`}
-                onClick={() => setPage(n.key)}
-                aria-current={page === n.key ? 'page' : undefined}
-              >
-                {t(n.label)}
-              </button>
-            </li>
-          ))}
+          {NAV.map((n) => {
+            const open = n.children ? inCamp : page === n.key;
+            return (
+              <li key={n.label}>
+                <button
+                  className={`admin-navitem${open ? ' is-active' : ''}`}
+                  onClick={() => setPage(n.key)}
+                  aria-current={open ? 'page' : undefined}
+                >
+                  {t(n.label)}
+                </button>
+
+                {n.children && open && (
+                  <ul className="admin-subnav">
+                    {n.children.map((c) => (
+                      <li key={c.key}>
+                        <button
+                          className={`admin-navitem admin-navitem--sub${
+                            page === c.key ? ' is-active' : ''
+                          }`}
+                          onClick={() => setPage(c.key)}
+                          aria-current={page === c.key ? 'page' : undefined}
+                        >
+                          {t(c.label)}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
       <div className="admin-content">
         {page === 'dashboard' && <Dashboard />}
-        {page === 'bookings' && <BookingsPage instructors={instructors} onChanged={onChanged} />}
-        {page === 'customers' && <CustomersPage onChanged={onChanged} />}
-        {page === 'payments' && <PaymentsPage onChanged={onChanged} />}
-        {page === 'kids' && <KidsCampPage onChanged={onChanged} />}
         {page === 'staff' && <StaffPage onChanged={onChanged} />}
+        {page === 'bookings' && <BookingsPage instructors={instructors} onChanged={onChanged} />}
+        {page === 'payments' && <PaymentsPage onChanged={onChanged} />}
+        {page === 'customers' && <CustomersPage onChanged={onChanged} />}
+        {page === 'camp-registrations' && (
+          <KidsCampPage season={season} onSeason={setSeason} onChanged={onChanged} />
+        )}
+        {page === 'camp-attendance' && (
+          <CampAttendancePage season={season} onSeason={setSeason} onChanged={onChanged} />
+        )}
         {page === 'accounts' && <AccountsPage viewer={viewer} onChanged={onChanged} />}
+        {page === 'guide' && <Guide viewer={viewer} />}
       </div>
     </div>
   );

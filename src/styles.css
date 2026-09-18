@@ -73,7 +73,12 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--text);
-  font: 15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  font:
+    15px/1.5 system-ui,
+    -apple-system,
+    Segoe UI,
+    Roboto,
+    sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -544,11 +549,7 @@ ol {
 }
 
 .cal-cell.is-blocked {
-  background: repeating-linear-gradient(
-    45deg,
-    var(--surface-2) 0 6px,
-    var(--surface) 6px 12px
-  );
+  background: repeating-linear-gradient(45deg, var(--surface-2) 0 6px, var(--surface) 6px 12px);
 }
 
 .cal-cell.is-blocked .cal-state,
@@ -1036,11 +1037,7 @@ ol {
 /* waiting on a decision: locked, but visibly not settled */
 .cal-cell.is-pending,
 .cal-cell.is-mine-pending {
-  background: repeating-linear-gradient(
-    45deg,
-    var(--open-fill) 0 7px,
-    var(--surface) 7px 14px
-  );
+  background: repeating-linear-gradient(45deg, var(--open-fill) 0 7px, var(--surface) 7px 14px);
 }
 
 .cal-cell.is-pending .cal-state,
@@ -1403,6 +1400,26 @@ ol {
   font-weight: 600;
 }
 
+.admin-subnav {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0 0 0 10px;
+  display: grid;
+  gap: 2px;
+}
+
+.admin-navitem--sub {
+  font-size: 13px;
+  padding: 7px 12px;
+}
+
+/* A dash rather than indentation alone: the tie to the parent must survive
+   the active row's filled background. */
+.admin-navitem--sub::before {
+  content: '–';
+  opacity: 0.5;
+}
+
 .admin-back {
   font-size: 13px;
 }
@@ -1701,9 +1718,34 @@ ol {
     position: static;
   }
 
+  /* Eight entries do not fit side by side on a phone: let them wrap. */
   .admin-nav ul {
-    grid-auto-flow: column;
-    grid-auto-columns: 1fr;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .admin-nav > ul > li {
+    flex: 1 1 auto;
+  }
+
+  .admin-navitem {
+    padding: 8px 10px;
+    justify-content: center;
+  }
+
+  .admin-subnav {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .admin-navitem--sub {
+    padding-left: 10px;
+  }
+
+  .admin-navitem--sub::before {
+    display: none;
   }
 
   .account-name {
@@ -2014,7 +2056,9 @@ ol {
     background:
       linear-gradient(to right, var(--surface) 30%, rgba(255, 255, 255, 0)) left center,
       linear-gradient(to left, var(--surface) 30%, rgba(255, 255, 255, 0)) right center;
-    background-size: 24px 100%, 24px 100%;
+    background-size:
+      24px 100%,
+      24px 100%;
     background-repeat: no-repeat;
     background-attachment: local, local;
   }
@@ -2721,9 +2765,15 @@ ol {
   font-size: 14px;
 }
 
-.lessonlist-item.is-individual { border-left-color: var(--individual); }
-.lessonlist-item.is-group { border-left-color: var(--group); }
-.lessonlist-item.is-kids { border-left-color: var(--kids); }
+.lessonlist-item.is-individual {
+  border-left-color: var(--individual);
+}
+.lessonlist-item.is-group {
+  border-left-color: var(--group);
+}
+.lessonlist-item.is-kids {
+  border-left-color: var(--kids);
+}
 
 .lessonlist-time {
   font-variant-numeric: tabular-nums;
@@ -2748,4 +2798,110 @@ ol {
   .lessonlist-time {
     grid-column: 1 / -1;
   }
+}
+
+/* ---------- camp register ---------- */
+.register {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.register li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+/* A child who is here reads at a glance from across the beach. */
+.register li.is-here {
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+.register-name {
+  flex: 1 1 160px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-weight: 600;
+  min-width: 0;
+}
+
+.register .segmented {
+  flex: 0 0 auto;
+}
+
+/* ---------- guide ---------- */
+.guide-list {
+  margin-top: 8px;
+}
+
+.guide-item {
+  padding: 0;
+}
+
+.guide-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 14px 16px;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.guide-head .panel-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.guide-chevron {
+  color: var(--text-dim);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.guide-body {
+  padding: 0 16px 16px;
+}
+
+.guide-lead {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.guide-steps {
+  margin: 10px 0 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.guide-faq {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+.guide-faq .panel-title {
+  color: var(--text);
+  margin-bottom: 8px;
 }
