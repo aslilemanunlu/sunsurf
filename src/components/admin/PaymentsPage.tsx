@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { Agreement, AgreementKind, CustomerRef } from '../../types';
+import type { Agreement, CrmCustomer, CustomerRef } from '../../types';
 import { useT } from '../../lib/i18n';
 import * as api from '../../api/client';
 import {
@@ -13,7 +13,11 @@ import {
   planOf,
 } from '../../lib/agreements';
 import AgreementForm from './AgreementForm';
+import AgreementDetail from './AgreementDetail';
 import PaymentDialog from './PaymentDialog';
+import CustomerDrawer from './CustomerDrawer';
+import MultiSelect from './MultiSelect';
+import { initials } from '../../lib/initials';
 
 type Props = { onChanged: () => void };
 
@@ -30,19 +34,33 @@ export default function PaymentsPage({ onChanged }: Props) {
   const [customers, setCustomers] = useState<CustomerRef[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [kind, setKind] = useState<AgreementKind | 'all'>('all');
+  /** Empty means everything: a filter nobody has touched hides nothing. */
+  const [kinds, setKinds] = useState<string[]>([]);
+  const [pickedCustomers, setPickedCustomers] = useState<string[]>([]);
   const [onlyOwing, setOnlyOwing] = useState(false);
-  const [customerId, setCustomerId] = useState('all');
   const [adding, setAdding] = useState(false);
   const [paying, setPaying] = useState<Agreement | null>(null);
+  const [open, setOpen] = useState<Agreement | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** How many lessons are left on each package. */
+  const [packs, setPacks] = useState<Map<string, api.OpenPackage>>(new Map());
+  /** The customer records, so a name here can open its own card. */
+  const [people, setPeople] = useState<CrmCustomer[]>([]);
+  const [openCustomerId, setOpenCustomerId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [list, people] = await Promise.all([api.listAgreements(), api.listCustomers()]);
+      const [list, refs, open, crm] = await Promise.all([
+        api.listAgreements(),
+        api.listCustomers(),
+        api.listAllOpenPackages().catch(() => new Map<string, api.OpenPackage>()),
+        api.listCrmCustomers().catch(() => [] as CrmCustomer[]),
+      ]);
       setRows(list);
-      setCustomers(people);
+      setCustomers(refs);
+      setPacks(open);
+      setPeople(crm);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -58,12 +76,12 @@ export default function PaymentsPage({ onChanged }: Props) {
   const shown = useMemo(
     () =>
       rows.filter((a) => {
-        if (kind !== 'all' && a.kind !== kind) return false;
+        if (kinds.length > 0 && !kinds.includes(a.kind)) return false;
         if (onlyOwing && a.balance <= 0) return false;
-        if (customerId !== 'all' && a.customerId !== customerId) return false;
+        if (pickedCustomers.length > 0 && !pickedCustomers.includes(a.customerId)) return false;
         return true;
       }),
-    [rows, kind, onlyOwing, customerId],
+    [rows, kinds, onlyOwing, pickedCustomers],
   );
 
   /** Only people who actually have an agreement; the rest are noise here. */
@@ -87,10 +105,9 @@ export default function PaymentsPage({ onChanged }: Props) {
 
   async function settle(a: Agreement) {
     if (a.balance <= 0) return;
-    const question = t('{n} kalan bakiye sıfırlansın mı? Bu tutar tahsilat olarak sayılmaz.').replace(
-      '{n}',
-      formatMoney(a.balance),
-    );
+    const question = t(
+      '{n} kalan bakiye sıfırlansın mı? Bu tutar tahsilat olarak sayılmaz.',
+    ).replace('{n}', formatMoney(a.balance));
     if (!window.confirm(question)) return;
     setBusyId(a.id);
     try {
@@ -118,10 +135,12 @@ export default function PaymentsPage({ onChanged }: Props) {
     }
   }
 
+  const openCustomer = people.find((c) => c.customerId === openCustomerId) ?? null;
+
   return (
     <section>
       <div className="admin-bar">
-        <h2 className="admin-title">{t('Ödemeler')}</h2>
+        <h2 className="admin-title">{t('Paket ve bakiye')}</h2>
         <span className="admin-count">
           {shown.length} / {rows.length}
         </span>
@@ -129,6 +148,8 @@ export default function PaymentsPage({ onChanged }: Props) {
           {t('Anlaşma Ekle')}
         </button>
       </div>
+
+      <p className="admin-hint">{t('Kim kaç ders aldı, kaç dersi kaldı, ne kadar bakiyesi var')}</p>
 
       {error && <p className="dialog-error">{error}</p>}
 
@@ -160,25 +181,13 @@ export default function PaymentsPage({ onChanged }: Props) {
       </div>
 
       <div className="filters">
-        <div className="segmented" role="group" aria-label={t('Türe göre filtrele')}>
-          <button
-            className={`segment${kind === 'all' ? ' is-active' : ''}`}
-            onClick={() => setKind('all')}
-            aria-pressed={kind === 'all'}
-          >
-            {t('Tümü')}
-          </button>
-          {KINDS.map((k) => (
-            <button
-              key={k}
-              className={`segment${kind === k ? ' is-active' : ''}`}
-              onClick={() => setKind(k)}
-              aria-pressed={kind === k}
-            >
-              {t(KIND_LABEL[k])}
-            </button>
-          ))}
-        </div>
+        <MultiSelect
+          label={t('Türe göre filtrele')}
+          allLabel={t('Tüm türler')}
+          options={KINDS.map((k) => ({ value: k as string, label: t(KIND_LABEL[k]) }))}
+          picked={kinds}
+          onChange={setKinds}
+        />
 
         <label className="check check--inline">
           <input
@@ -189,18 +198,13 @@ export default function PaymentsPage({ onChanged }: Props) {
           {t('Sadece borcu olanlar')}
         </label>
 
-        <select
-          value={customerId}
-          onChange={(e) => setCustomerId(e.target.value)}
-          aria-label={t('Müşteri')}
-        >
-          <option value="all">{t('Tüm müşteriler')}</option>
-          {withAgreements.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
+        <MultiSelect
+          label={t('Müşteri')}
+          allLabel={t('Tüm müşteriler')}
+          options={withAgreements.map((c) => ({ value: c.id, label: c.name }))}
+          picked={pickedCustomers}
+          onChange={setPickedCustomers}
+        />
       </div>
 
       {loading ? (
@@ -208,98 +212,77 @@ export default function PaymentsPage({ onChanged }: Props) {
       ) : shown.length === 0 ? (
         <p className="mybookings-empty">{t('Kayıtlı anlaşma yok.')}</p>
       ) : (
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t('Müşteri')}</th>
-                <th>{t('Tür')}</th>
-                <th>{t('Detay')}</th>
-                <th className="num">{t('Anlaşılan')}</th>
-                <th className="num">{t('Ödenen')}</th>
-                <th className="num">{t('Kalan')}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((a) => (
-                <tr key={a.id} className={a.balance > 0 ? 'is-owing' : undefined}>
-                  <td>
-                    {a.customerName}
-                    {a.customerPhone && <div className="cell-dim">{a.customerPhone}</div>}
-                  </td>
-                  <td>
-                    <span
-                      className={`tag tag--${
-                        a.kind === 'kids_camp' ? 'kids' : a.kind === 'rental' ? 'group' : 'individual'
-                      }`}
-                    >
-                      {t(KIND_LABEL[a.kind])}
+        <ul className="paks">
+          {shown.map((a) => {
+            const pack = packs.get(a.id) ?? null;
+            // Lessons if it is a package, money otherwise: the bar always shows
+            // how much of the thing has been used up.
+            const done =
+              pack && pack.sold > 0
+                ? pack.used / pack.sold
+                : a.agreedAmount > 0
+                  ? a.received / a.agreedAmount
+                  : 0;
+            const detail = t(planLabel(a.kind, a.plan) ?? KIND_LABEL[a.kind]);
+            const unit = planOf(a.kind, a.plan)?.unit;
+
+            return (
+              <li key={a.id} className={'pak' + (a.balance > 0 ? ' is-owing' : '')}>
+                <button className="pak-open" onClick={() => setOpen(a)}>
+                  <span className="avatar" aria-hidden="true">
+                    {initials(a.customerName)}
+                  </span>
+                  <span className="pak-lines">
+                    <span className="pak-name">{a.customerName}</span>
+                    <span className="pak-sub">
+                      {detail}
+                      {a.units !== null && unit ? ' · ' + a.units + ' ' + t(UNIT_LABEL[unit]) : ''}
+                      {a.equipmentLevel ? ' · ' + EQUIPMENT_LABEL[a.equipmentLevel] : ''}
+                      {a.label ? ' · ' + a.label : ''}
+                      {pack ? ' · ' + pack.used + ' ' + t('ders kullanıldı') : ''}
+                      {a.kind === 'kids_camp' && a.campDays !== null
+                        ? ' · ' + a.campDays + ' ' + t('gün geldi')
+                        : ''}
                     </span>
-                  </td>
-                  <td>
-                    {t(planLabel(a.kind, a.plan) ?? '—')}
-                    {a.units !== null && (
-                      <>
-                        {' · '}
-                        {a.units}
-                        {planOf(a.kind, a.plan)?.unit
-                          ? ` ${t(UNIT_LABEL[planOf(a.kind, a.plan)!.unit!])}`
-                          : ''}
-                      </>
-                    )}
-                    {a.equipmentLevel && (
-                      <div className="cell-dim">{EQUIPMENT_LABEL[a.equipmentLevel]}</div>
-                    )}
-                    {a.label && <div className="cell-dim">{a.label}</div>}
-                    {a.kind === 'kids_camp' && a.campDays !== null && (
-                      <div className="cell-dim">
-                        {a.campDays} {t('gün geldi')}
-                      </div>
-                    )}
-                    {a.writtenOff > 0 && (
-                      <div className="cell-dim">
-                        {t('Silinen')}: {formatMoney(a.writtenOff)}
-                      </div>
-                    )}
-                  </td>
-                  <td className="num">{formatMoney(a.agreedAmount)}</td>
-                  <td className="num">{formatMoney(a.received)}</td>
-                  <td className={`num${a.balance > 0 ? ' owing' : ''}`}>
-                    {formatMoney(a.balance)}
-                  </td>
-                  <td>
-                    <div className="row-actions">
-                      <button
-                        className="btn btn--small"
-                        onClick={() => setPaying(a)}
-                        disabled={busyId === a.id}
-                      >
-                        {t('Ödeme')}
-                      </button>
-                      {a.balance > 0 && (
-                        <button
-                          className="link-btn"
-                          onClick={() => settle(a)}
-                          disabled={busyId === a.id}
-                        >
-                          {t('Bakiyeyi 0’la')}
-                        </button>
+                    <span className="pakbar" aria-hidden="true">
+                      <span
+                        className="pakbar-fill"
+                        style={{ width: Math.min(100, Math.max(2, done * 100)) + '%' }}
+                      />
+                    </span>
+                    <span className="pak-foot">
+                      {pack ? (
+                        <strong className={pack.remaining > 0 ? 'left' : 'cell-dim'}>
+                          {pack.remaining} {t('ders kaldı')}
+                        </strong>
+                      ) : (
+                        <span className="cell-dim">
+                          {t('Tahsil edilen')}: {formatMoney(a.received)}
+                        </span>
                       )}
-                      <button
-                        className="link-btn danger"
-                        onClick={() => remove(a)}
-                        disabled={busyId === a.id}
-                      >
-                        {t('Sil')}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      <span className={a.balance > 0 ? 'owing' : 'paid'}>
+                        {a.balance > 0 ? t('Bakiye') + ': ' + formatMoney(a.balance) : t('Ödendi')}
+                      </span>
+                    </span>
+                  </span>
+                </button>
+
+                <span className="row-actions">
+                  <button
+                    className="btn btn--small"
+                    onClick={() => setPaying(a)}
+                    disabled={busyId === a.id}
+                  >
+                    {t('Ödeme')}
+                  </button>
+                  <button className="link-btn" onClick={() => setOpenCustomerId(a.customerId)}>
+                    {t('Müşteri kartı')}
+                  </button>
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       )}
 
       <p className="admin-hint">
@@ -325,6 +308,43 @@ export default function PaymentsPage({ onChanged }: Props) {
         <PaymentDialog
           agreement={paying}
           onClose={() => setPaying(null)}
+          onChanged={() => {
+            void load();
+            onChanged();
+          }}
+        />
+      )}
+
+      {open && (
+        <AgreementDetail
+          agreement={open}
+          pack={packs.get(open.id) ?? null}
+          onClose={() => setOpen(null)}
+          onPay={() => {
+            setPaying(open);
+            setOpen(null);
+          }}
+          onSettle={() => {
+            const a = open;
+            setOpen(null);
+            void settle(a);
+          }}
+          onDelete={() => {
+            const a = open;
+            setOpen(null);
+            void remove(a);
+          }}
+          onOpenCustomer={() => {
+            setOpenCustomerId(open.customerId);
+            setOpen(null);
+          }}
+        />
+      )}
+
+      {openCustomer && (
+        <CustomerDrawer
+          customer={openCustomer}
+          onClose={() => setOpenCustomerId(null)}
           onChanged={() => {
             void load();
             onChanged();

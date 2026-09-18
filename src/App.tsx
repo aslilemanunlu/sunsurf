@@ -349,7 +349,6 @@ export default function App() {
         customerId: input.customerId,
         isGuest: input.isGuest,
         agreementId: input.agreementId,
-        tentative: input.tentative,
       };
 
       if (dialog.existing) {
@@ -360,7 +359,6 @@ export default function App() {
           sport: input.sport,
           groupSize: input.groupSize,
           durationHours: input.durationHours,
-          tentative: input.tentative,
           agreementId: input.agreementId,
         });
       } else if (input.dates.length > 1) {
@@ -619,7 +617,6 @@ export default function App() {
                 sport: dialog.existing.sport,
                 groupSize: dialog.existing.groupSize,
                 durationHours: dialog.existing.durationHours,
-                tentative: dialog.existing.status === 'pending',
               }
             }
             instructor={dialog.instructor}

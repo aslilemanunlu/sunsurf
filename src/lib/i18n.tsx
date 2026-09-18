@@ -632,6 +632,35 @@ const EN: Record<string, string> = {
 
   // camp register
   'Gün seç': 'Pick a day',
+  // packages and balances
+  'Paket ve bakiye': 'Packages and balances',
+  'Kim kaç ders aldı, kaç dersi kaldı, ne kadar bakiyesi var':
+    'Who bought how many lessons, how many are left, and what is owed',
+  'ders kullanıldı': 'lessons used',
+  'ders kaldı': 'lessons left',
+  Bakiye: 'Owed',
+  Ödendi: 'Paid up',
+  'Tüm türler': 'All kinds',
+  'Müşteri kartı': 'Customer card',
+  'Ödeme ekle': 'Add a payment',
+  'paketteki ders': 'in the package',
+  kullanılan: 'used',
+  'kalan hak': 'left',
+  'Bir ders bir hak düşer, kaç saat sürdüğü fark etmez.':
+    'One lesson takes one off the package, however long it runs.',
+  'Ders silinirse hak pakete geri döner.': 'Deleting the lesson puts it back.',
+  'İptal edilen / silinen': 'Cancelled / deleted',
+  'İptal et': 'Cancel it',
+  'Bu Ay Verilen Ders (bireysel ve grup)': 'Lessons this month (individual and group)',
+
+  // the health notes staff pick instead of typing
+  'Omuz sakatlığı': 'Shoulder injury',
+  'Diz sakatlığı': 'Knee injury',
+  'Bel/sırt sakatlığı': 'Back injury',
+  'Yüzme bilmiyor': 'Cannot swim',
+  Astım: 'Asthma',
+  'Gözlük/lens': 'Glasses or lenses',
+
   'Yoklama ekle': 'Take the register',
   'Yukarıdaki ders rakamlarına çocuk kampı saatleri dahil değildir.':
     'The lesson figures above leave out the camp hours.',

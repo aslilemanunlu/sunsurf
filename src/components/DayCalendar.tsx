@@ -9,7 +9,7 @@ const STATE_LABEL: Record<HourState, string> = {
   closed: '',
   past: 'Geçmiş',
   blocked: 'Bloke',
-  pending: 'Ön rezervasyon',
+  pending: 'Dolu',
   taken: 'Dolu',
   free: 'Müsait',
 };

@@ -3364,3 +3364,186 @@ ol {
 .donut-legend {
   flex: 1 1 140px;
 }
+
+/* ---------- packages and balances ---------- */
+.paks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.pak {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+/* Somebody who owes money is the reason this page gets opened. */
+.pak.is-owing {
+  border-color: var(--open-line);
+  background: var(--open-fill);
+}
+
+.pak-open {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pak-lines {
+  flex: 1;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.pak-name {
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.pak-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.pakbar {
+  display: block;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.pak.is-owing .pakbar {
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.pakbar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+}
+
+.pak-foot {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.pak-foot .left {
+  color: var(--accent-ink);
+}
+
+.owing {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.paid {
+  color: var(--wingfoil);
+  font-weight: 600;
+}
+
+/* ---------- the numbers on an agreement ---------- */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.tile {
+  padding: 12px;
+  text-align: center;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.tile--accent {
+  background: var(--open-fill);
+  border-color: var(--open-line);
+}
+
+.tile-value {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.tile--accent .tile-value {
+  color: var(--accent-ink);
+}
+
+.tile-label {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.money {
+  margin: 0 0 16px;
+  display: grid;
+  gap: 2px;
+}
+
+.money > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.money > div:last-child {
+  border-bottom: 0;
+}
+
+.money dt {
+  color: var(--text-dim);
+  font-size: 14px;
+}
+
+.money dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.notebox {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 4px;
+  padding: 12px 14px;
+  border: 1px solid var(--open-line);
+  border-radius: 12px;
+  background: var(--open-fill);
+  font-size: 13px;
+}
+
+.notebox span {
+  color: var(--text-dim);
+}

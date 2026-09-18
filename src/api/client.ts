@@ -659,12 +659,14 @@ export async function getDashboardStats(): Promise<DashboardStats> {
       countOf('bookings', 'id'),
       countOf('customers', 'id'),
       // hours has to be summed, so these rows do come back — one month at a time
+      // camp hours are not lesson hours: the camp has its own card
       read<{ duration_hours: number }[]>(
         () =>
           neon
             .from('managed_bookings')
             .select('duration_hours')
             .eq('status', 'approved')
+            .neq('lesson_type', 'kids_camp')
             .gte('starts_at', monthStart.toISOString())
             .lt('starts_at', monthEnd.toISOString()),
         'Aylık ders saati hesaplanamadı',
@@ -1192,6 +1194,36 @@ export type OpenPackage = {
   used: number;
   remaining: number;
 };
+
+/** Every open package, keyed by its agreement — what the money list needs. */
+export async function listAllOpenPackages(): Promise<Map<string, OpenPackage>> {
+  const rows = await read<
+    {
+      agreement_id: string;
+      customer_id: string;
+      plan: string | null;
+      label: string | null;
+      sold: number;
+      used: number;
+      remaining: number;
+    }[]
+  >(() => neon.from('open_packages').select('*'), 'Paketler yüklenemedi');
+
+  return new Map(
+    rows.map((r) => [
+      r.agreement_id,
+      {
+        agreementId: r.agreement_id,
+        customerId: r.customer_id,
+        plan: r.plan,
+        label: r.label,
+        sold: Number(r.sold),
+        used: Number(r.used),
+        remaining: Number(r.remaining),
+      },
+    ]),
+  );
+}
 
 export async function listOpenPackages(customerId: string): Promise<OpenPackage[]> {
   const rows = await read<

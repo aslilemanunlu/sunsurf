@@ -18,6 +18,36 @@ type Props = {
  * gives you a first name and nothing else, and a form that refuses that is a
  * form the desk stops using — the rest gets filled in later, or never.
  */
+/** What staff write down again and again, one tap instead of typing. */
+const COMMON_NOTES = [
+  'Omuz sakatlığı',
+  'Diz sakatlığı',
+  'Bel/sırt sakatlığı',
+  'Yüzme bilmiyor',
+  'Astım',
+  'Gözlük/lens',
+];
+
+/** The note is one text field; the chips are parts of it, separated by commas. */
+function parts(note: string): string[] {
+  return note
+    .split(',')
+    .map((x) => x.trim())
+    .filter(Boolean);
+}
+
+function hasNote(note: string, one: string): boolean {
+  return parts(note).some((x) => x.toLocaleLowerCase('tr') === one.toLocaleLowerCase('tr'));
+}
+
+function toggleNote(note: string, one: string): string {
+  const list = parts(note);
+  const next = hasNote(note, one)
+    ? list.filter((x) => x.toLocaleLowerCase('tr') !== one.toLocaleLowerCase('tr'))
+    : [...list, one];
+  return next.join(', ');
+}
+
 export default function CustomerForm({ customer, onClose, onSaved }: Props) {
   const { t } = useT();
   const [name, setName] = useState(customer?.name ?? '');
@@ -180,16 +210,34 @@ export default function CustomerForm({ customer, onClose, onSaved }: Props) {
           </div>
         </fieldset>
 
-        <label className="field">
+        <div className="field">
           <span>
             {t('Sakatlık / dikkat edilmesi gereken')} ({t('opsiyonel')})
           </span>
+          {/* The same four things come up every summer; the box is still free
+              text for the fifth. */}
+          <div className="chipset chipset--tight">
+            {COMMON_NOTES.map((n) => {
+              const on = hasNote(injury, n);
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  className={`chip${on ? ' is-on' : ''}`}
+                  onClick={() => setInjury(toggleNote(injury, n))}
+                  aria-pressed={on}
+                >
+                  {t(n)}
+                </button>
+              );
+            })}
+          </div>
           <input
             value={injury}
             onChange={(e) => setInjury(e.target.value)}
             placeholder={t('Suda bilinmesi gereken bir şey var mı?')}
           />
-        </label>
+        </div>
 
         {isChild && (
           <>

@@ -18,8 +18,6 @@ export type NewBooking = {
   isGuest: boolean;
   /** The package it comes off, when one was chosen. */
   agreementId: string | null;
-  /** An enquiry that is not settled yet. */
-  tentative: boolean;
   /** Every date this lesson should be written on, the first included. */
   dates: Date[];
 };
@@ -34,7 +32,6 @@ type Props = {
     sport: Sport | null;
     groupSize: number | null;
     durationHours: number;
-    tentative: boolean;
   };
   instructor: Instructor;
   startsAt: Date;
@@ -81,14 +78,11 @@ export default function BookingDialog({
   const [lessonType, setLessonType] = useState<LessonType>(
     existing?.lessonType ?? initialLessonType,
   );
-  const [sport, setSport] = useState<Sport>(
-    existing?.sport ?? instructor.sports[0] ?? 'windsurf',
-  );
+  const [sport, setSport] = useState<Sport>(existing?.sport ?? instructor.sports[0] ?? 'windsurf');
   const [groupSize, setGroupSize] = useState(existing?.groupSize ?? 2);
   const [duration, setDuration] = useState(
     existing?.durationHours ?? Math.max(1, initialDuration ?? 1),
   );
-  const [tentative, setTentative] = useState(existing?.tentative ?? false);
 
   /**
    * One field for the customer: type a name, or pick one already there.
@@ -198,7 +192,6 @@ export default function BookingDialog({
         customerId,
         isGuest: guest,
         agreementId: agreementId || null,
-        tentative,
         dates: repeatDates(startsAt, repeat, times),
       });
     } catch (e) {
@@ -239,24 +232,28 @@ export default function BookingDialog({
         )}
 
         {!isCamp && !guest && (
-        <label className="field">
-          <span>{t('Kimin adına?')}</span>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            list="customer-names"
-            placeholder={t('İsim soyisim — yazın ya da listeden seçin')}
-            autoFocus
-          />
-          <datalist id="customer-names">
-            {sorted.map((c) => (
-              <option key={c.customerId} value={c.name} />
-            ))}
-          </datalist>
-          <small className="field-hint">
-            {matched ? t('Kayıtlı müşteri') : name.trim().length >= 2 ? t('Yeni kayıt açılacak') : ''}
-          </small>
-        </label>
+          <label className="field">
+            <span>{t('Kimin adına?')}</span>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              list="customer-names"
+              placeholder={t('İsim soyisim — yazın ya da listeden seçin')}
+              autoFocus
+            />
+            <datalist id="customer-names">
+              {sorted.map((c) => (
+                <option key={c.customerId} value={c.name} />
+              ))}
+            </datalist>
+            <small className="field-hint">
+              {matched
+                ? t('Kayıtlı müşteri')
+                : name.trim().length >= 2
+                  ? t('Yeni kayıt açılacak')
+                  : ''}
+            </small>
+          </label>
         )}
 
         {isCamp && (
@@ -434,15 +431,6 @@ export default function BookingDialog({
           )}
         </div>
 
-        <label className="check check--inline">
-          <input
-            type="checkbox"
-            checked={tentative}
-            onChange={(e) => setTentative(e.target.checked)}
-          />
-          {t('Ön rezervasyon (henüz kesin değil)')}
-        </label>
-
         <div className="dialog-actions">
           <button type="button" className="btn btn--ghost" onClick={onClose}>
             {t('Vazgeç')}
@@ -451,10 +439,6 @@ export default function BookingDialog({
             {submitting || saving ? t('Kaydediliyor…') : t('Kaydet')}
           </button>
         </div>
-
-        <p className="admin-hint dialog-foot">
-          {t('Ön rezervasyon saati yine kapatır, ama takvimde beklemede görünür.')}
-        </p>
       </div>
     </div>
   );

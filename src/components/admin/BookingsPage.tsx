@@ -1,23 +1,28 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useT } from '../../lib/i18n';
-import type { BookingStatus, Instructor, ManagedBooking } from '../../types';
+import type { BookingStatus, CrmCustomer, Instructor, ManagedBooking } from '../../types';
 import * as api from '../../api/client';
 import { addDays, todayKey, fromDateKey, formatTime } from '../../lib/date';
 import { locale } from '../../lib/i18n';
 import { describeLesson, lessonClass, SPORT_LABEL } from '../../lib/lessons';
 import { downloadCsv } from '../../lib/csv';
 import MultiSelect from './MultiSelect';
+import CustomerDrawer from './CustomerDrawer';
 
+/**
+ * A booking is either on the calendar or it is not. Nothing is written down
+ * tentatively any more, so 'pending' only survives on rows written before that
+ * and reads the same as approved.
+ */
 const STATUS_LABEL: Record<BookingStatus, string> = {
-  pending: 'Ön rezervasyon',
+  pending: 'Onaylı',
   approved: 'Onaylı',
-  rejected: 'İptal edilen',
+  rejected: 'İptal edilen / silinen',
 };
 
 const STATUSES: { value: BookingStatus; label: string }[] = [
   { value: 'approved', label: 'Onaylı' },
-  { value: 'pending', label: 'Ön rezervasyon' },
-  { value: 'rejected', label: 'İptal edilen' },
+  { value: 'rejected', label: 'İptal edilen / silinen' },
 ];
 
 type Props = {
@@ -46,13 +51,21 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
   const [pickedWho, setPickedWho] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
+  /** The customer records, so a name in the table can open its own card. */
+  const [people, setPeople] = useState<CrmCustomer[]>([]);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const end = fromDateKey(to);
       end.setDate(end.getDate() + 1);
-      setRows(await api.listBookingsBetween(fromDateKey(from).toISOString(), end.toISOString()));
+      const [list, crm] = await Promise.all([
+        api.listBookingsBetween(fromDateKey(from).toISOString(), end.toISOString()),
+        api.listCrmCustomers().catch(() => [] as CrmCustomer[]),
+      ]);
+      setRows(list);
+      setPeople(crm);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -95,6 +108,8 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
       setBusyId(null);
     }
   }
+
+  const open = people.find((c) => c.customerId === openId) ?? null;
 
   return (
     <section>
@@ -235,6 +250,10 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
                     <td>
                       {r.isGuest ? (
                         <span className="cell-dim">{t('Misafir')}</span>
+                      ) : r.customerId ? (
+                        <button className="link-btn" onClick={() => setOpenId(r.customerId)}>
+                          {r.customerName ?? r.customerEmail ?? '—'}
+                        </button>
                       ) : (
                         (r.customerName ?? r.customerEmail ?? '—')
                       )}
@@ -263,23 +282,14 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
                       )}
                     </td>
                     <td>
-                      {r.status === 'pending' && (
-                        <div className="row-actions">
-                          <button
-                            className="btn btn--small"
-                            onClick={() => decide(r.id, 'approved')}
-                            disabled={busyId === r.id}
-                          >
-                            {t('Onayla')}
-                          </button>
-                          <button
-                            className="link-btn danger"
-                            onClick={() => decide(r.id, 'rejected')}
-                            disabled={busyId === r.id}
-                          >
-                            {t('Reddet')}
-                          </button>
-                        </div>
+                      {r.status !== 'rejected' && (
+                        <button
+                          className="link-btn danger"
+                          onClick={() => decide(r.id, 'rejected')}
+                          disabled={busyId === r.id}
+                        >
+                          {t('İptal et')}
+                        </button>
                       )}
                     </td>
                   </tr>
@@ -288,6 +298,17 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {open && (
+        <CustomerDrawer
+          customer={open}
+          onClose={() => setOpenId(null)}
+          onChanged={() => {
+            void load();
+            onChanged();
+          }}
+        />
       )}
     </section>
   );

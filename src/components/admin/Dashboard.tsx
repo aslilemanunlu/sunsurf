@@ -31,15 +31,14 @@ const CARDS: Card[] = [
   { key: 'campChildren', title: 'Toplam Çocuk', tone: 'kids', suffix: 'çocuk' },
   { key: 'instructors', title: 'Toplam Hoca', tone: 'individual' },
   { key: 'bookings', title: 'Toplam Rezervasyon', tone: 'group' },
-  { key: 'hoursThisMonth', title: 'Bu Ay Verilen Ders', tone: 'accent', suffix: 'saat' },
+  {
+    key: 'hoursThisMonth',
+    title: 'Bu Ay Verilen Ders (bireysel ve grup)',
+    tone: 'accent',
+    suffix: 'saat',
+  },
   { key: 'campThisMonth', title: 'Bu Ay Kampa Gelen', tone: 'kids', suffix: 'çocuk' },
 ];
-
-const STATUS_TEXT: Record<string, string> = {
-  pending: 'Ön rezervasyon',
-  approved: 'Onaylı',
-  rejected: 'İptal edilen',
-};
 
 /**
  * The shortcuts, as the dates they stand for.
@@ -146,8 +145,7 @@ export default function Dashboard() {
   const totals = useMemo(() => {
     const hours = counted.reduce((s, r) => s + r.durationHours, 0);
     const people = counted.reduce((s, r) => s + (r.groupSize ?? 1), 0);
-    const pending = counted.filter((r) => r.status === 'pending').length;
-    return { lessons: counted.length, hours, people, pending };
+    return { lessons: counted.length, hours, people };
   }, [counted]);
 
   /** Hours per instructor, busiest first. */
@@ -396,7 +394,7 @@ export default function Dashboard() {
                 r.isGuest ? t('Misafir') : (r.customerName ?? ''),
                 describeLesson(r),
                 r.durationHours,
-                r.status === 'approved' ? t('Onaylı') : t(STATUS_TEXT[r.status]),
+                r.status === 'approved' ? t('Onaylı') : t('İptal edilen'),
               ]),
             )
           }
@@ -431,12 +429,6 @@ export default function Dashboard() {
                 <span className="stat-title">{t('Toplam katılımcı')}</span>
               </header>
               <p className="stat-value">{totals.people.toLocaleString(locale())}</p>
-            </article>
-            <article className="stat stat--kids">
-              <header className="stat-head">
-                <span className="stat-title">{t('Onay bekleyen')}</span>
-              </header>
-              <p className="stat-value">{totals.pending.toLocaleString(locale())}</p>
             </article>
           </div>
 

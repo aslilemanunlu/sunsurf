@@ -274,9 +274,6 @@ export default function MyLessons({ instructorId, instructorName, onBack }: Prop
                             )}
                           </span>
                           <span className={`tag tag--${lessonClass(r)}`}>{describeLesson(r)}</span>
-                          {r.status === 'pending' && (
-                            <span className="status status--pending">{t('Ön rezervasyon')}</span>
-                          )}
                         </li>
                       );
                     })}
