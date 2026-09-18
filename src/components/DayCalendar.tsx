@@ -3,7 +3,6 @@ import type { Instructor, LessonType, ManagedBooking, Viewer } from '../types';
 import { locale, useT } from '../lib/i18n';
 import { GRID_START_HOUR, gridHours, hourKey, isOpenHour, type HourState } from '../lib/hours';
 import { SPORT_LABEL, shortLesson } from '../lib/lessons';
-import { initials } from '../lib/initials';
 import { formatTime } from '../lib/date';
 
 const STATE_LABEL: Record<HourState, string> = {
@@ -143,12 +142,7 @@ export default function DayCalendar({
         <div className="cal-corner" />
         {instructors.map((ins) => (
           <div className="cal-head" key={`h-${ins.id}`}>
-            <span className="cal-head-who">
-              <span className="avatar" aria-hidden="true">
-                {initials(ins.name)}
-              </span>
-              <span className="cal-head-name">{ins.name}</span>
-            </span>
+            <span className="cal-head-name">{ins.name}</span>
             <span className="cal-head-tags">
               {ins.sports.map((sp) => (
                 <span key={sp} className={`tag tag--${sp}`}>

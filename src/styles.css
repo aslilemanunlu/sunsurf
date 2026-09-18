@@ -439,13 +439,6 @@ ol {
   text-align: center;
 }
 
-.cal-head-who {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
 .cal-head-name {
   font-size: 14px;
   font-weight: 600;
