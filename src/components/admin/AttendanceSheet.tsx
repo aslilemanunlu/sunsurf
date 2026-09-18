@@ -10,19 +10,19 @@ type Props = {
   initialDay: string;
   /** This season's children, already loaded by the page. */
   registered: CampRegistration[];
-  onClose: () => void;
   /**
-   * The day that was taken, and the registrations created for children who had
-   * never been to camp before — they are the ones still missing a form.
+   * Closing still reports the registrations opened while the dialog was up:
+   * they exist whether or not the register was finished.
    */
+  onClose: (createdRegistrationIds: string[]) => void;
+  /** The day that was taken, plus those same new registrations. */
   onDone: (day: string, createdRegistrationIds: string[]) => void;
 };
 
-/** A line in the picker: on this season's list, a returning child, or a new name. */
+/** A line in the picker: on this season's list, or a child who came before. */
 type Row =
   | { key: string; name: string; kind: 'registered'; registrationId: string }
-  | { key: string; name: string; kind: 'returning'; past: CampRegistration }
-  | { key: string; name: string; kind: 'new' };
+  | { key: string; name: string; kind: 'returning'; past: CampRegistration };
 
 const EMPTY_FORM = {
   birthDate: null,
@@ -72,8 +72,11 @@ function matches(name: string, query: string): boolean {
  *
  * A child who came last summer is in the same list: ticking them registers them
  * for this season with last year's details, so nobody is typed in twice and the
- * seasons stay linked. Only a genuinely new name is typed, and those are the
- * registrations handed back for a form to be filled in afterwards.
+ * seasons stay linked.
+ *
+ * Adding a new child registers them for the season and stops there. Being on
+ * the camp's list and being here on a Tuesday are different facts, so the new
+ * name appears unticked like everybody else and is only present if you say so.
  */
 export default function AttendanceSheet({
   season,
@@ -86,21 +89,24 @@ export default function AttendanceSheet({
   const [day, setDay] = useState(initialDay);
   const [query, setQuery] = useState('');
   const [past, setPast] = useState<CampRegistration[]>([]);
-  const [newNames, setNewNames] = useState<string[]>([]);
+  /** Children registered from this dialog, before the page has reloaded. */
+  const [added, setAdded] = useState<{ registrationId: string; name: string }[]>([]);
   const [draft, setDraft] = useState('');
   const [picked, setPicked] = useState<Set<string>>(new Set());
   const [half, setHalf] = useState<Set<string>>(new Set());
   /** What the day already had when the dialog opened, to know what to undo. */
   const [before, setBefore] = useState<Map<string, 'full' | 'half'>>(new Map());
+  /** New registrations opened from here, which still have no form. */
+  const [created, setCreated] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onClose();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onClose(created);
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onClose, busy]);
+  }, [onClose, busy, created]);
 
   useEffect(() => {
     let cancelled = false;
@@ -137,6 +143,7 @@ export default function AttendanceSheet({
 
   const rows = useMemo<Row[]>(() => {
     const here = new Set(registered.map((r) => r.customerId));
+    const known = new Set(registered.map((r) => r.registrationId));
     return [
       ...registered.map((r) => ({
         key: `r:${r.registrationId}`,
@@ -144,6 +151,15 @@ export default function AttendanceSheet({
         kind: 'registered' as const,
         registrationId: r.registrationId,
       })),
+      // just registered from here; gone from this list once the page reloads
+      ...added
+        .filter((a) => !known.has(a.registrationId))
+        .map((a) => ({
+          key: `r:${a.registrationId}`,
+          name: a.name,
+          kind: 'registered' as const,
+          registrationId: a.registrationId,
+        })),
       ...past
         .filter((p) => !here.has(p.customerId))
         .map((p) => ({
@@ -152,9 +168,8 @@ export default function AttendanceSheet({
           kind: 'returning' as const,
           past: p,
         })),
-      ...newNames.map((n) => ({ key: `n:${n}`, name: n, kind: 'new' as const })),
     ];
-  }, [registered, past, newNames]);
+  }, [registered, past, added]);
 
   const shown = useMemo(() => rows.filter((r) => matches(r.name, query)), [rows, query]);
   const chosen = useMemo(() => rows.filter((r) => picked.has(r.key)), [rows, picked]);
@@ -185,6 +200,10 @@ export default function AttendanceSheet({
     });
   }
 
+  /**
+   * Registers a child for the season. It does not mark them present: the list
+   * above is what says who came today, and this only puts them on it.
+   */
   async function addName() {
     const name = draft.trim();
     if (name.length < 2) return;
@@ -192,10 +211,9 @@ export default function AttendanceSheet({
 
     const already = rows.find((r) => fold(r.name) === fold(name));
     if (already) {
-      // It is the same child; tick the one that is already there.
-      setPicked((prev) => new Set(prev).add(already.key));
       setDraft('');
-      setHint(t('Bu çocuk zaten listede, işaretlendi.'));
+      setQuery(name);
+      setHint(t('Bu çocuk zaten listede.'));
       return;
     }
 
@@ -212,36 +230,43 @@ export default function AttendanceSheet({
       return;
     }
 
-    setNewNames((prev) => [...prev, name]);
-    setPicked((prev) => new Set(prev).add(`n:${name}`));
-    setDraft('');
+    setBusy(true);
+    setError(null);
+    try {
+      const registrationId = await api.registerForCamp({
+        customerId: null,
+        season,
+        form: { childName: name, ...EMPTY_FORM },
+      });
+      setAdded((prev) => [...prev, { registrationId, name }]);
+      setCreated((prev) => [...prev, registrationId]);
+      setDraft('');
+      setQuery('');
+      setHint(t('{n} kampa kaydedildi. Bugün geldiyse listeden işaretleyin.').replace('{n}', name));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function complete() {
     setBusy(true);
     setError(null);
     try {
-      const created: string[] = [];
       const keptRegistrations = new Set<string>();
 
       for (const row of chosen) {
         let registrationId: string;
         if (row.kind === 'registered') {
           registrationId = row.registrationId;
-        } else if (row.kind === 'returning') {
+        } else {
           // last season's details come with them; the seasons stay linked
           registrationId = await api.registerForCamp({
             customerId: row.past.customerId,
             season,
             form: formOf(row.past),
           });
-        } else {
-          registrationId = await api.registerForCamp({
-            customerId: null,
-            season,
-            form: { childName: row.name, ...EMPTY_FORM },
-          });
-          created.push(registrationId);
         }
         keptRegistrations.add(registrationId);
         await api.setCampAttendance(registrationId, day, half.has(row.key) ? 'half' : 'full');
@@ -255,7 +280,6 @@ export default function AttendanceSheet({
       }
 
       onDone(day, created);
-      onClose();
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setBusy(false);
@@ -265,7 +289,7 @@ export default function AttendanceSheet({
   const halfCount = chosen.filter((r) => half.has(r.key)).length;
 
   return (
-    <div className="overlay" onClick={() => !busy && onClose()}>
+    <div className="overlay" onClick={() => !busy && onClose(created)}>
       <div
         className="dialog dialog--wide"
         role="dialog"
@@ -323,14 +347,13 @@ export default function AttendanceSheet({
                     {t('geçen sezon')} · {r.past.season}
                   </span>
                 )}
-                {r.kind === 'new' && <span className="cell-dim">{t('yeni')}</span>}
               </label>
             ))
           )}
         </div>
 
         <div className="field">
-          <span>{t('Listede yoksa yeni çocuk ekle')}</span>
+          <span>{t('Listede yoksa kampa kaydet')}</span>
           <div className="addrow">
             <input
               value={draft}
@@ -349,10 +372,12 @@ export default function AttendanceSheet({
               onClick={addName}
               disabled={busy || draft.trim().length < 2}
             >
-              + {t('Ekle')}
+              + {t('Kampa kaydet')}
             </button>
           </div>
-          {hint && <small className="field-hint">{hint}</small>}
+          <small className="field-hint">
+            {hint ?? t('Kampa kaydetmek yoklamaya eklemez; geldiyse yukarıdan işaretleyin.')}
+          </small>
         </div>
 
         <section className="panel picked-panel">
@@ -389,7 +414,7 @@ export default function AttendanceSheet({
         </section>
 
         <div className="dialog-actions">
-          <button className="btn btn--ghost" onClick={onClose} disabled={busy}>
+          <button className="btn btn--ghost" onClick={() => onClose(created)} disabled={busy}>
             {t('Vazgeç')}
           </button>
           <button className="btn" onClick={complete} disabled={busy}>

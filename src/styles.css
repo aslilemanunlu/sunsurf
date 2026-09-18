@@ -2973,3 +2973,26 @@ ol {
 .picked-panel .register li {
   background: var(--surface);
 }
+
+/* The register's day list carries its own actions, so it does not borrow the
+   lesson row's time column. */
+.lessonlist-date {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lessonlist-date .link-btn {
+  margin-left: auto;
+  text-transform: none;
+}
+
+.lessonlist-date .link-btn + .link-btn {
+  margin-left: 0;
+}
+
+.attrow {
+  grid-template-columns: 1fr auto auto;
+  border-left-color: var(--kids);
+}

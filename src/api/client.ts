@@ -244,12 +244,12 @@ export async function blockHour(instructorId: string, startsAt: string): Promise
   const result = await neon
     .from('instructor_blocks')
     .insert({ instructor_id: instructorId, starts_at: startsAt });
-  if (result.error) throw new Error(`${translate("Saat kapatılamadı")}: ${result.error.message}`);
+  if (result.error) throw new Error(`${translate('Saat kapatılamadı')}: ${result.error.message}`);
 }
 
 export async function unblockHour(blockId: string): Promise<void> {
   const result = await neon.from('instructor_blocks').delete().eq('id', blockId);
-  if (result.error) throw new Error(`${translate("Saat açılamadı")}: ${result.error.message}`);
+  if (result.error) throw new Error(`${translate('Saat açılamadı')}: ${result.error.message}`);
 }
 
 type ManagedRow = {
@@ -298,8 +298,7 @@ function toManaged(r: ManagedRow): ManagedBooking {
 export async function listManagedBookings(dateKey: string): Promise<ManagedBooking[]> {
   const { from, to } = dayBounds(dateKey);
   const rows = await read<ManagedRow[]>(
-    () =>
-      neon.from('managed_bookings').select('*').gte('starts_at', from).lt('starts_at', to),
+    () => neon.from('managed_bookings').select('*').gte('starts_at', from).lt('starts_at', to),
     'Ders listesi yüklenemedi',
   );
   return rows.map(toManaged);
@@ -308,8 +307,7 @@ export async function listManagedBookings(dateKey: string): Promise<ManagedBooki
 /** Everything still waiting on a decision, any day. */
 export async function listPendingRequests(): Promise<ManagedBooking[]> {
   const rows = await read<ManagedRow[]>(
-    () =>
-      neon.from('managed_bookings').select('*').eq('status', 'pending').order('starts_at'),
+    () => neon.from('managed_bookings').select('*').eq('status', 'pending').order('starts_at'),
     'Talepler yüklenemedi',
   );
   return rows.map(toManaged);
@@ -324,7 +322,7 @@ export async function decideBooking(
   status: Extract<BookingStatus, 'approved' | 'rejected'>,
 ): Promise<void> {
   const result = await neon.from('bookings').update({ status }).eq('id', bookingId);
-  if (result.error) throw new Error(`${translate("Karar kaydedilemedi")}: ${result.error.message}`);
+  if (result.error) throw new Error(`${translate('Karar kaydedilemedi')}: ${result.error.message}`);
 }
 
 // ------------------------------------------------------------------- viewer
@@ -408,7 +406,7 @@ export async function setUserRole(
     },
     { onConflict: 'user_id' },
   );
-  if (result.error) throw new Error(`${translate("Rol güncellenemedi")}: ${result.error.message}`);
+  if (result.error) throw new Error(`${translate('Rol güncellenemedi')}: ${result.error.message}`);
 }
 
 // ------------------------------------------------- bulk closing and moving
@@ -418,16 +416,14 @@ export async function setUserRole(
  * this week" is just a lot of rows; duplicates are ignored so a range that
  * overlaps an already-closed day is harmless.
  */
-export async function blockRange(
-  instructorId: string,
-  hours: string[],
-): Promise<void> {
+export async function blockRange(instructorId: string, hours: string[]): Promise<void> {
   if (hours.length === 0) return;
   const result = await neon.from('instructor_blocks').upsert(
     hours.map((starts_at) => ({ instructor_id: instructorId, starts_at })),
     { onConflict: 'instructor_id,starts_at', ignoreDuplicates: true },
   );
-  if (result.error) throw new Error(`${translate("Saatler kapatılamadı")}: ${result.error.message}`);
+  if (result.error)
+    throw new Error(`${translate('Saatler kapatılamadı')}: ${result.error.message}`);
 }
 
 /** Reopens everything closed inside the range. */
@@ -442,7 +438,7 @@ export async function unblockRange(
     .eq('instructor_id', instructorId)
     .gte('starts_at', fromISO)
     .lt('starts_at', toISO);
-  if (result.error) throw new Error(`${translate("Saatler açılamadı")}: ${result.error.message}`);
+  if (result.error) throw new Error(`${translate('Saatler açılamadı')}: ${result.error.message}`);
 }
 
 /** How many bookings already sit in a range — worth knowing before closing it. */
@@ -482,17 +478,14 @@ export async function moveBooking(
   if (result.error?.code === '23P01') {
     throw new Error(translate('Bu saatler dolu. Başka bir saat seçin.'));
   }
-  if (result.error) throw new Error(`${translate("Ders taşınamadı")}: ${result.error.message}`);
+  if (result.error) throw new Error(`${translate('Ders taşınamadı')}: ${result.error.message}`);
 }
 
 /** Who staff may book. Empty for anyone who is not staff. */
 export async function listCustomers(): Promise<CustomerRef[]> {
   const rows = await read<
     { customer_id: string; name: string; email: string | null; phone: string | null }[]
-  >(
-    () => neon.from('customer_directory').select('*').order('name'),
-    'Müşteriler yüklenemedi',
-  );
+  >(() => neon.from('customer_directory').select('*').order('name'), 'Müşteriler yüklenemedi');
   return rows.map((r) => ({
     customerId: r.customer_id,
     name: r.name,
@@ -611,11 +604,7 @@ export async function deleteCustomer(customerId: string): Promise<void> {
  * Counts name a real column rather than `*`: `instructors` has column-level
  * grants so that emails stay private, and `*` is refused outright there.
  */
-async function countOf(
-  table: string,
-  column: string,
-  apply?: (q: any) => any,
-): Promise<number> {
+async function countOf(table: string, column: string, apply?: (q: any) => any): Promise<number> {
   let q = neon.from(table).select(column, { count: 'exact', head: true });
   if (apply) q = apply(q);
   const { count, error } = (await q) as { count: number | null; error: { message: string } | null };
@@ -664,7 +653,10 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 }
 
 /** Every booking in a date range. Admin sees all; an instructor sees their own. */
-export async function listBookingsBetween(fromISO: string, toISO: string): Promise<ManagedBooking[]> {
+export async function listBookingsBetween(
+  fromISO: string,
+  toISO: string,
+): Promise<ManagedBooking[]> {
   const rows = await read<ManagedRow[]>(
     () =>
       neon
@@ -692,18 +684,20 @@ export type InstructorAdmin = {
 };
 
 export async function listInstructorsAdmin(): Promise<InstructorAdmin[]> {
-  const rows = await read<{
-    id: string;
-    name: string;
-    sports: string[];
-    bio: string;
-    email: string | null;
-    phone: string | null;
-    employment: string | null;
-    employment_note: string | null;
-    created_at: string | null;
-    linked_user_id: string | null;
-  }[]>(() => neon.from('instructor_admin').select('*').order('name'), 'Eğitmenler yüklenemedi');
+  const rows = await read<
+    {
+      id: string;
+      name: string;
+      sports: string[];
+      bio: string;
+      email: string | null;
+      phone: string | null;
+      employment: string | null;
+      employment_note: string | null;
+      created_at: string | null;
+      linked_user_id: string | null;
+    }[]
+  >(() => neon.from('instructor_admin').select('*').order('name'), 'Eğitmenler yüklenemedi');
 
   return rows.map((r) => ({
     id: r.id,
@@ -732,9 +726,10 @@ export async function createInstructor(input: {
   employment?: Employment | null;
   employmentNote?: string;
 }): Promise<string> {
-  const id = `ins-${input.email.split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase()}-${Date.now()
-    .toString(36)
-    .slice(-4)}`;
+  const id = `ins-${input.email
+    .split('@')[0]
+    .replace(/[^a-z0-9]/gi, '')
+    .toLowerCase()}-${Date.now().toString(36).slice(-4)}`;
 
   const result = await neon.from('instructors').insert({
     id,
@@ -750,7 +745,7 @@ export async function createInstructor(input: {
   if (result.error?.code === '23505') {
     throw new Error(translate('Bu e-posta ile kayıtlı bir eğitmen zaten var.'));
   }
-  if (result.error) throw new Error(`${translate("Eğitmen eklenemedi")}: ${result.error.message}`);
+  if (result.error) throw new Error(`${translate('Eğitmen eklenemedi')}: ${result.error.message}`);
   return id;
 }
 
@@ -1015,7 +1010,12 @@ export async function createAgreement(input: {
 
 export async function updateAgreement(
   id: string,
-  patch: { agreedAmount?: number; plan?: string | null; label?: string | null; note?: string | null },
+  patch: {
+    agreedAmount?: number;
+    plan?: string | null;
+    label?: string | null;
+    note?: string | null;
+  },
 ): Promise<void> {
   const row: Record<string, unknown> = {};
   if (patch.agreedAmount !== undefined) row.agreed_amount = patch.agreedAmount;
@@ -1042,7 +1042,14 @@ export async function deleteAgreement(id: string): Promise<void> {
 
 export async function listPayments(agreementId: string): Promise<Payment[]> {
   const rows = await read<
-    { id: string; agreement_id: string; amount: string | number; kind: string; paid_at: string; note: string | null }[]
+    {
+      id: string;
+      agreement_id: string;
+      amount: string | number;
+      kind: string;
+      paid_at: string;
+      note: string | null;
+    }[]
   >(
     () =>
       neon
@@ -1122,12 +1129,7 @@ export async function listOpenPackages(customerId: string): Promise<OpenPackage[
       remaining: number;
     }[]
   >(
-    () =>
-      neon
-        .from('open_packages')
-        .select('*')
-        .eq('customer_id', customerId)
-        .order('created_at'),
+    () => neon.from('open_packages').select('*').eq('customer_id', customerId).order('created_at'),
     'Paketler yüklenemedi',
   );
   return rows.map((r) => ({
@@ -1188,7 +1190,8 @@ export async function setOwner(userId: string, owner: boolean): Promise<void> {
     .update({ is_owner: owner })
     .eq('user_id', userId)
     .select('user_id');
-  if (result.error) throw new Error(`${translate('Yetki güncellenemedi')}: ${result.error.message}`);
+  if (result.error)
+    throw new Error(`${translate('Yetki güncellenemedi')}: ${result.error.message}`);
   if (!result.data || result.data.length === 0) {
     throw new Error(translate('Yetki güncellenemedi'));
   }
@@ -1374,7 +1377,9 @@ export async function deleteCampRegistration(id: string): Promise<void> {
 }
 
 export async function listCampDocuments(registrationId: string): Promise<CampDocument[]> {
-  const rows = await read<{ id: string; filename: string | null; data: string; created_at: string }[]>(
+  const rows = await read<
+    { id: string; filename: string | null; data: string; created_at: string }[]
+  >(
     () =>
       neon
         .from('camp_documents')
@@ -1549,10 +1554,7 @@ export async function claimInvitation(userId: string): Promise<boolean> {
 
 // -------------------------------------------------------- camp attendance
 
-export async function listCampAttendance(
-  season: number,
-  day?: string,
-): Promise<CampAttendance[]> {
+export async function listCampAttendance(season: number, day?: string): Promise<CampAttendance[]> {
   const rows = await read<
     {
       id: string;
@@ -1562,13 +1564,10 @@ export async function listCampAttendance(
       day: string;
       kind: string;
     }[]
-  >(
-    () => {
-      const q = neon.from('camp_attendance_roll').select('*').eq('season', season);
-      return day ? q.eq('day', day).order('child_name') : q.order('day', { ascending: false });
-    },
-    'Yoklama yüklenemedi',
-  );
+  >(() => {
+    const q = neon.from('camp_attendance_roll').select('*').eq('season', season);
+    return day ? q.eq('day', day).order('child_name') : q.order('day', { ascending: false });
+  }, 'Yoklama yüklenemedi');
   return rows.map((r) => ({
     id: r.id,
     registrationId: r.registration_id,
@@ -1604,6 +1603,34 @@ export async function listCampTotals(season: number): Promise<CampAttendanceTota
 }
 
 /**
+ * Wipes a whole day off the register.
+ *
+ * The rows are read first so the delete can be addressed by id: an RLS-filtered
+ * delete matches nothing and still succeeds, so an empty result after a
+ * non-empty read is a refusal, not an empty day.
+ */
+export async function clearCampDay(season: number, day: string): Promise<number> {
+  const rows = await listCampAttendance(season, day);
+  if (rows.length === 0) return 0;
+
+  const result = (await neon
+    .from('camp_attendance')
+    .delete()
+    .in(
+      'id',
+      rows.map((r) => r.id),
+    )
+    .select('id')) as Result<{ id: string }[]>;
+
+  if (result.error) {
+    throw new Error(`${translate('Yoklama silinemedi')}: ${result.error.message}`);
+  }
+  const gone = result.data?.length ?? 0;
+  if (gone === 0) throw new Error(translate('Yoklama silinemedi'));
+  return gone;
+}
+
+/**
  * Marks a child present for a day, or takes the mark away.
  *
  * `null` deletes the row rather than storing "absent": a day nobody was there
@@ -1629,10 +1656,7 @@ export async function setCampAttendance(
 
   const result = await neon
     .from('camp_attendance')
-    .upsert(
-      { registration_id: registrationId, day, kind },
-      { onConflict: 'registration_id,day' },
-    );
+    .upsert({ registration_id: registrationId, day, kind }, { onConflict: 'registration_id,day' });
   if (result.error) {
     throw new Error(`${translate('Yoklama kaydedilemedi')}: ${result.error.message}`);
   }

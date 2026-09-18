@@ -98,6 +98,40 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
     }
   }
 
+  /** Takes one child off one day, from the day-by-day list. */
+  async function removeMark(registrationId: string, onDay: string, childName: string) {
+    if (!window.confirm(t('{n} için bu günün yoklaması silinsin mi?').replace('{n}', childName))) {
+      return;
+    }
+    setError(null);
+    try {
+      await api.setCampAttendance(registrationId, onDay, null);
+      await load();
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  /** Wipes a whole day, for the day that was taken by mistake. */
+  async function removeDay(onDay: string) {
+    const label = fromDateKey(onDay).toLocaleDateString(locale(), {
+      day: 'numeric',
+      month: 'long',
+    });
+    if (!window.confirm(t('{d} günündeki tüm yoklama silinsin mi?').replace('{d}', label))) {
+      return;
+    }
+    setError(null);
+    try {
+      await api.clearCampDay(season, onDay);
+      await load();
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
   const here = useMemo(() => {
     const values = [...marks.values()];
     return {
@@ -210,15 +244,23 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
                       </button>
                     ))}
                   </span>
+                  {current && (
+                    <button
+                      className="link-btn danger"
+                      disabled={busy === r.registrationId}
+                      onClick={() => mark(r.registrationId, null)}
+                      title={t('Bu çocuğun bu günkü yoklamasını sil')}
+                    >
+                      {t('Sil')}
+                    </button>
+                  )}
                 </li>
               );
             })}
           </ul>
         )}
         <p className="admin-hint">
-          {t(
-            'İşaretlenmeyen çocuk o gün gelmemiş sayılır. Aynı düğmeye tekrar basmak işareti kaldırır.',
-          )}
+          {t('İşaretlenmeyen çocuk o gün gelmemiş sayılır. Sil, o günkü işareti kaldırır.')}
         </p>
       </section>
 
@@ -270,14 +312,27 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
                     {' · '}
                     {entries.length} {t('çocuk')}
                   </span>
+                  <button className="link-btn" onClick={() => setDay(d)}>
+                    {t('Bu güne git')}
+                  </button>
+                  <button className="link-btn danger" onClick={() => removeDay(d)}>
+                    {t('Günü sil')}
+                  </button>
                 </h4>
                 <ul>
                   {entries.map((a) => (
-                    <li key={a.id} className="lessonlist-item">
+                    <li key={a.id} className="lessonlist-item attrow">
                       <span className="lessonlist-who">{a.childName}</span>
                       <span className={`tag tag--${a.kind === 'full' ? 'individual' : 'group'}`}>
                         {t(a.kind === 'full' ? 'Tam gün' : 'Yarım gün')}
                       </span>
+                      <button
+                        className="link-btn danger"
+                        onClick={() => removeMark(a.registrationId, a.day, a.childName)}
+                        title={t('Sil')}
+                      >
+                        {t('Sil')}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -292,8 +347,17 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
           season={season}
           initialDay={day}
           registered={roll}
-          onClose={() => setSheetOpen(false)}
+          onClose={(created) => {
+            setSheetOpen(false);
+            // a child registered from the sheet exists even if it was cancelled
+            if (created.length > 0) {
+              setNeedForms(created);
+              void load();
+              onChanged();
+            }
+          }}
           onDone={(takenDay, created) => {
+            setSheetOpen(false);
             setDay(takenDay);
             setNeedForms(created);
             void load();
