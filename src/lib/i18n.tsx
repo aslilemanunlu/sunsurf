@@ -624,6 +624,25 @@ const EN: Record<string, string> = {
 
   // camp register
   'Gün seç': 'Pick a day',
+  'Yoklama ekle': 'Take the register',
+  'Hangi gün': 'Which day',
+  'Çocuk ara': 'Search for a child',
+  'İlk harfleri yazın': 'Type the first letters',
+  'Bu isimde çocuk yok. Aşağıdan yeni çocuk ekleyin.':
+    'No child by that name. Add a new one below.',
+  'Listede yoksa yeni çocuk ekle': 'Not on the list? Add a new child',
+  'Bu çocuk zaten listede, işaretlendi.': 'That child is already on the list, and is now ticked.',
+  Seçilenler: 'Selected',
+  'yarım gün': 'half day',
+  'geçen sezon': 'last season',
+  yeni: 'new',
+  'Henüz kimse seçilmedi. Hepsi tam gün sayılır.':
+    'Nobody selected yet. Everyone ticked counts as a full day.',
+  'Yoklamayı tamamla': 'Finish the register',
+  'Yeni çocuklar eklendi': 'New children added',
+  'Kamp formlarını şimdi doldurabilirsin: veli, telefon, alerji ve belgeler.':
+    'You can fill in their camp forms now: guardian, phone, allergies and documents.',
+  'Form oluştur': 'Fill in the form',
   'Çocuk ekle': 'Add a child',
   '— yeni çocuk —': '— new child —',
   'Adı soyadı': 'Full name',
@@ -706,10 +725,18 @@ const EN: Record<string, string> = {
     'Consent forms, medical reports and the like can be uploaded and downloaded again from the same place.',
 
   'Çocuk kampı — Yoklama': 'Kids camp — Register',
-  'Günlük tutulur: gün seç, gelen çocuğa tam gün ya da yarım gün bas. Başka bir şey girilmez.':
-    'Kept daily: pick the day and press full day or half day for each child who came. Nothing else is entered.',
-  'İsimler o sezonun kayıtlarından kendiliğinden gelir. Listede olmayan bir çocuk için Çocuk ekle: adını yaz ya da geçen seneki listeden seç, tam veya yarım gün, bitti.':
-    'The names come from that season’s registrations. For a child who is not on the list, Add a child: type the name or pick them from last year’s list, full or half day, done.',
+  'Günlük tutulur ve tek ekranda biter: kim geldi, kim yarım gün kaldı.':
+    'Kept daily and finished on one screen: who came, and who went home at lunch.',
+  'Yoklama ekle: gün hazır gelir (istersen değiştir), gelen çocukları listeden işaretle. İsim aramak için ilk harfleri yazman yeter.':
+    'Take the register: the day is already filled in (change it if you need to) and you tick the children who came. Typing the first letters of a name is enough to find it.',
+  'İşaretlenen herkes tam gün sayılır. Aşağıdaki seçilenler listesinde yarım gün kalanları işaretle, sonra Yoklamayı tamamla.':
+    'Everyone ticked counts as a full day. In the selected list below, tick whoever stayed half a day, then finish the register.',
+  'Listede olmayan çocuğu alttaki kutuya yazıp ekle. Geçen sezon gelmiş bir çocuk zaten listede çıkar; onu seçmen yeni sezon kaydını bilgileriyle birlikte açar.':
+    'A child who is not on the list can be typed into the box underneath. Somebody who came last season is already in the list, and picking them opens this season’s registration with their details.',
+  'Yeni çocuk eklediysen, yoklama bitince kamp formunu doldurman için soruluyor — istersen sonra Kayıtlar sekmesinden doldur.':
+    'If you added a new child, you are asked to fill in their camp form once the register is done — or leave it for later, from Registrations.',
+  'Günlük listede tek tek Tam gün / Yarım gün düğmeleriyle düzeltme yapabilirsin; işaretlenmeyen çocuk o gün gelmemiş sayılır.':
+    'The day’s list has full day and half day buttons for correcting one child at a time; a child left unmarked did not come that day.',
   'Sezon toplamı tablosunda her çocuğun kaç tam, kaç yarım gün geldiği toplanır (yarım gün 0,5 sayılır).':
     'The season total adds up each child’s full and half days (a half day counts as 0.5).',
   'Gün gün listesi hangi gün kimlerin geldiğini gösterir; Excel’e aktarabilirsin.':

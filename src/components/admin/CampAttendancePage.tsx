@@ -5,7 +5,7 @@ import * as api from '../../api/client';
 import { fromDateKey, todayKey } from '../../lib/date';
 import { downloadCsv } from '../../lib/csv';
 import CampRegistrationForm from './CampRegistrationForm';
-import CampQuickAdd from './CampQuickAdd';
+import AttendanceSheet from './AttendanceSheet';
 
 type Props = {
   season: number;
@@ -41,8 +41,15 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  /** Which way a child is being added: the two-field one, or the whole form. */
-  const [adding, setAdding] = useState<'quick' | 'full' | null>(null);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  /**
+   * Registrations the sheet has just created for children nobody had a form
+   * for. They are offered one straight afterwards, while the parent is still
+   * standing there.
+   */
+  const [needForms, setNeedForms] = useState<string[]>([]);
+  /** The registration whose full form is open, when one is. */
+  const [formFor, setFormFor] = useState<CampRegistration | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -106,6 +113,12 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
     return [...map.entries()].sort((a, b) => b[0].localeCompare(a[0]));
   }, [recent]);
 
+  /** The new children, once the reload has brought their registrations back. */
+  const waitingForForms = useMemo(
+    () => roll.filter((r) => needForms.includes(r.registrationId)),
+    [roll, needForms],
+  );
+
   function exportSeason() {
     downloadCsv(
       `cocuk-kampi-yoklama-${season}`,
@@ -164,8 +177,8 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
           <span className="admin-count">
             {here.full} {t('tam')} · {here.half} {t('yarım')}
           </span>
-          <button className="btn btn--small" onClick={() => setAdding('quick')}>
-            + {t('Çocuk ekle')}
+          <button className="btn btn--small" onClick={() => setSheetOpen(true)}>
+            + {t('Yoklama ekle')}
           </button>
         </div>
 
@@ -274,25 +287,62 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
         )}
       </section>
 
-      {adding === 'quick' && (
-        <CampQuickAdd
+      {sheetOpen && (
+        <AttendanceSheet
           season={season}
-          day={day}
+          initialDay={day}
           registered={roll}
-          onClose={() => setAdding(null)}
-          onDetailed={() => setAdding('full')}
-          onSaved={() => {
+          onClose={() => setSheetOpen(false)}
+          onDone={(takenDay, created) => {
+            setDay(takenDay);
+            setNeedForms(created);
             void load();
             onChanged();
           }}
         />
       )}
 
-      {adding === 'full' && (
+      {waitingForForms.length > 0 && !formFor && (
+        <div className="overlay" onClick={() => setNeedForms([])}>
+          <div
+            className="dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="newkids-title"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id="newkids-title">{t('Yeni çocuklar eklendi')}</h3>
+            <p className="admin-hint">
+              {t('Kamp formlarını şimdi doldurabilirsin: veli, telefon, alerji ve belgeler.')}
+            </p>
+            <ul className="register">
+              {waitingForForms.map((r) => (
+                <li key={r.registrationId}>
+                  <span className="register-name">{r.childName}</span>
+                  <button className="btn btn--small" onClick={() => setFormFor(r)}>
+                    {t('Form oluştur')}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <div className="dialog-actions">
+              <button className="btn btn--ghost" onClick={() => setNeedForms([])}>
+                {t('Sonra')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {formFor && (
         <CampRegistrationForm
           season={season}
-          registration={null}
-          onClose={() => setAdding(null)}
+          registration={formFor}
+          onClose={() => {
+            // whatever was filled in, this child no longer needs asking about
+            setNeedForms((prev) => prev.filter((id) => id !== formFor.registrationId));
+            setFormFor(null);
+          }}
           onSaved={() => {
             void load();
             onChanged();
