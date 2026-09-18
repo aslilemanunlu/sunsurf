@@ -111,6 +111,76 @@ export function Columns({
   );
 }
 
+/**
+ * A ring with the total in the middle, and the parts around it.
+ *
+ * Drawn with one circle per slice and a dash offset rather than arc paths: the
+ * maths is a circumference and an offset, and there is no path string to get
+ * subtly wrong. The hole carries the total, which is the number people are
+ * usually after anyway.
+ */
+export function Donut({
+  data,
+  total,
+  unit,
+  empty,
+}: {
+  data: Slice[];
+  /** What the number in the hole counts, when it is not the sum of the slices. */
+  total?: number;
+  unit: string;
+  empty: string;
+}) {
+  const sum = data.reduce((s, d) => s + d.value, 0);
+  if (sum === 0) return <p className="chart-empty">{empty}</p>;
+
+  const r = 56;
+  const c = 2 * Math.PI * r;
+  let done = 0;
+
+  return (
+    <div className="donut">
+      <svg viewBox="0 0 140 140" className="donut-svg" role="img" aria-label={empty}>
+        <circle className="donut-track" cx="70" cy="70" r={r} />
+        {data
+          .filter((d) => d.value > 0)
+          .map((d) => {
+            const length = (d.value / sum) * c;
+            const offset = done;
+            done += length;
+            return (
+              <circle
+                key={d.label}
+                className={`donut-arc${d.tone ? ` donut-arc--${d.tone}` : ''}`}
+                cx="70"
+                cy="70"
+                r={r}
+                strokeDasharray={`${length} ${c - length}`}
+                strokeDashoffset={-offset}
+              />
+            );
+          })}
+        <text className="donut-total" x="70" y="68">
+          {(total ?? sum).toLocaleString()}
+        </text>
+        <text className="donut-unit" x="70" y="86">
+          {unit}
+        </text>
+      </svg>
+
+      <ul className="split-legend donut-legend">
+        {data.map((d) => (
+          <li key={d.label}>
+            <span className={`dot${d.tone ? ` dot--${d.tone}` : ''}`} aria-hidden="true" />
+            {d.label}
+            <span className="split-pct">{Math.round((d.value / sum) * 100)}%</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 /** One bar split into its parts, with a legend. Cheaper to read than a pie. */
 export function Split({ data, empty }: { data: Slice[]; empty: string }) {
   const total = data.reduce((s, d) => s + d.value, 0);

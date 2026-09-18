@@ -3,6 +3,8 @@ import type { Instructor, LessonType, ManagedBooking, Viewer } from '../types';
 import { locale, useT } from '../lib/i18n';
 import { GRID_START_HOUR, gridHours, hourKey, isOpenHour, type HourState } from '../lib/hours';
 import { SPORT_LABEL, shortLesson } from '../lib/lessons';
+import { initials } from '../lib/initials';
+import { formatTime } from '../lib/date';
 
 const STATE_LABEL: Record<HourState, string> = {
   closed: '',
@@ -141,7 +143,12 @@ export default function DayCalendar({
         <div className="cal-corner" />
         {instructors.map((ins) => (
           <div className="cal-head" key={`h-${ins.id}`}>
-            <span className="cal-head-name">{ins.name}</span>
+            <span className="cal-head-who">
+              <span className="avatar" aria-hidden="true">
+                {initials(ins.name)}
+              </span>
+              <span className="cal-head-name">{ins.name}</span>
+            </span>
             <span className="cal-head-tags">
               {ins.sports.map((sp) => (
                 <span key={sp} className={`tag tag--${sp}`}>
@@ -187,11 +194,29 @@ export default function DayCalendar({
                   onManageHour(ins, cell ?? { instructorId: ins.id, startsAt: hour, state });
                 };
 
-                // a busy hour says what it is; a free one says what you can do
-                const text =
-                  cell?.lessonLabel ??
-                  (manages && state === 'free' ? 'Müsait · düzenle' : STATE_LABEL[state]);
-                const who = booking?.isGuest ? t('Misafir') : booking?.customerName;
+                const text = cell?.lessonLabel ?? STATE_LABEL[state];
+
+                /**
+                 * A lesson is written once, at the hour it starts. The grid is
+                 * one row per hour, so repeating the name and the hours in both
+                 * rows of a two-hour lesson would read as two lessons; the
+                 * later rows keep the colour and say nothing.
+                 */
+                const starts = booking ? new Date(booking.startsAt) : null;
+                const continued = starts !== null && starts.getTime() < hour.getTime();
+                const who = continued
+                  ? undefined
+                  : booking?.isGuest
+                    ? t('Misafir')
+                    : booking?.customerName;
+                const range =
+                  booking && starts && !continued
+                    ? `${formatTime(booking.startsAt)} – ${formatTime(
+                        new Date(
+                          starts.getTime() + booking.durationHours * 3_600_000,
+                        ).toISOString(),
+                      )}`
+                    : null;
 
                 const tone = cell?.lessonClass ? ` is-${cell.lessonClass}` : '';
 
@@ -249,13 +274,16 @@ export default function DayCalendar({
                   >
                     {clickable ? (
                       <button className="cal-hit" onClick={onClick} disabled={busy}>
-                        <span className="cal-state">{busy ? '…' : t(text)}</span>
                         {who && <span className="cal-customer">{who}</span>}
+                        {!continued && <span className="cal-state">{busy ? '…' : t(text)}</span>}
+                        {range && <span className="cal-range">{range}</span>}
+                        {state === 'free' && <span className="cal-add">+ {t('Ders yaz')}</span>}
                       </button>
                     ) : (
                       <span className="cal-hit cal-hit--static">
-                        <span className="cal-state">{t(text)}</span>
                         {who && <span className="cal-customer">{who}</span>}
+                        {!continued && <span className="cal-state">{t(text)}</span>}
+                        {range && <span className="cal-range">{range}</span>}
                       </span>
                     )}
                   </div>

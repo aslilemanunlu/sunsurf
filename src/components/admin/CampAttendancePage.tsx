@@ -294,10 +294,27 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
                     onChange={() => pick(r.registrationId)}
                     aria-label={t('Seç')}
                   />
+                  {/* the tick is the state, so a full row reads from across a beach */}
+                  <span className={`tick${current ? ' is-on' : ''}`} aria-hidden="true">
+                    {current ? '✓' : ''}
+                  </span>
                   <span className="register-name">
-                    {r.childName}
-                    {r.age !== null && <span className="cell-dim"> · {r.age}</span>}
-                    {r.allergyNote && <span className="alert-tag">{r.allergyNote}</span>}
+                    <span className="register-title">
+                      {r.childName}
+                      {r.age !== null && <span className="cell-dim"> · {r.age}</span>}
+                    </span>
+                    <span className="register-sub">
+                      {r.guardianPhone
+                        ? `${t('Veli')}: ${r.guardianPhone}`
+                        : current
+                          ? t(current === 'full' ? 'Tam gün' : 'Yarım gün')
+                          : t('Gelmedi')}
+                    </span>
+                    {r.allergyNote && (
+                      <span className="register-alert">
+                        {t('Alerji')}: {r.allergyNote}
+                      </span>
+                    )}
                   </span>
                   <span className="segmented">
                     {MARKS.map((m) => (

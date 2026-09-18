@@ -5,6 +5,7 @@ import * as api from '../../api/client';
 import { ALL_SEGMENTS, SEGMENT_LABEL, segmentTone } from '../../lib/segments';
 import CustomerDrawer from './CustomerDrawer';
 import CustomerForm from './CustomerForm';
+import { initials } from '../../lib/initials';
 
 type Props = { onChanged: () => void };
 
@@ -126,81 +127,64 @@ export default function CustomersPage({ onChanged }: Props) {
       ) : shown.length === 0 ? (
         <p className="mybookings-empty">{t('Bu filtreye uyan müşteri yok.')}</p>
       ) : (
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>{t('İsim')}</th>
-                <th>{t('İletişim')}</th>
-                <th>{t('Segment')}</th>
-                <th>{t('Ders')}</th>
-                <th>{t('Son ders')}</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((c) => (
-                <tr key={c.customerId}>
-                  <td>
-                    <button className="link-btn" onClick={() => setOpenId(c.customerId)}>
-                      {c.name}
-                    </button>
+        <ul className="people">
+          {shown.map((c) => (
+            <li key={c.customerId} className="person">
+              <button
+                className="person-open"
+                onClick={() => setOpenId(c.customerId)}
+                aria-label={c.name}
+              >
+                <span className="avatar" aria-hidden="true">
+                  {initials(c.name)}
+                </span>
+                <span className="person-lines">
+                  <span className="person-name">
+                    {c.name}
                     {c.notes > 0 && (
                       <span className="note-badge" title={t('Not var')}>
                         {c.notes}
                       </span>
                     )}
-                  </td>
-                  <td className="cell-dim">
-                    {c.phone ?? '—'}
-                    {c.email && <div>{c.email}</div>}
-                  </td>
-                  <td>
-                    {c.segments.length === 0 ? (
-                      <span className="cell-dim">—</span>
-                    ) : (
-                      <span className="chipset chipset--tight">
-                        {c.segments.map((s) => {
-                          const tone = segmentTone(s);
-                          return (
-                            <span
-                              key={s}
-                              className={`chip is-static${tone ? ` chip--${tone}` : ''}`}
-                            >
-                              {t(SEGMENT_LABEL[s])}
-                            </span>
-                          );
-                        })}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    {c.lessons}
-                    {c.hours > 0 && (
-                      <span className="cell-dim">
-                        {' '}
-                        · {c.hours} {t('saat')}
-                      </span>
-                    )}
-                  </td>
-                  <td className="cell-dim">
-                    {c.lastLessonAt ? new Date(c.lastLessonAt).toLocaleDateString(locale()) : '—'}
-                  </td>
-                  <td>
-                    <div className="row-actions">
-                      <button className="link-btn" onClick={() => setEditing(c)}>
-                        {t('Düzenle')}
-                      </button>
-                      <button className="link-btn danger" onClick={() => remove(c)}>
-                        {t('Sil')}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                  </span>
+                  <span className="person-sub">
+                    {/* the one line somebody reads before opening the card */}
+                    {c.segments.length > 0
+                      ? c.segments.map((s) => t(SEGMENT_LABEL[s])).join(' · ')
+                      : t('Kayıt')}
+                    {c.lessons > 0 && ` · ${c.lessons} ${t('ders')}`}
+                    {c.lastLessonAt &&
+                      ` · ${t('son')} ${new Date(c.lastLessonAt).toLocaleDateString(locale(), {
+                        day: 'numeric',
+                        month: 'short',
+                      })}`}
+                    {c.phone && ` · ${c.phone}`}
+                  </span>
+                </span>
+              </button>
+
+              <span className="chipset chipset--tight person-tags">
+                {c.segments.map((s) => {
+                  const tone = segmentTone(s);
+                  return (
+                    <span key={s} className={`chip is-static${tone ? ` chip--${tone}` : ''}`}>
+                      {t(SEGMENT_LABEL[s])}
+                    </span>
+                  );
+                })}
+              </span>
+
+              <span className="row-actions">
+                <button className="link-btn" onClick={() => setEditing(c)}>
+                  {t('Düzenle')}
+                </button>
+                <button className="link-btn danger" onClick={() => remove(c)}>
+                  {t('Sil')}
+                </button>
+              </span>
+            </li>
+          ))}
+        </ul>
       )}
 
       {(adding || editing) && (

@@ -6,6 +6,7 @@ import { formatTime } from '../../lib/date';
 import { describeLesson, lessonClass } from '../../lib/lessons';
 import { SEGMENTS, SEGMENT_LABEL, segmentTone } from '../../lib/segments';
 import CustomerForm from './CustomerForm';
+import { initials } from '../../lib/initials';
 
 type Props = {
   customer: CrmCustomer;
@@ -109,14 +110,22 @@ export default function CustomerDrawer({ customer, onClose, onChanged }: Props) 
         onClick={(e) => e.stopPropagation()}
       >
         <header className="drawer-head">
-          <div>
-            <h3>{customer.name}</h3>
-            <p className="cell-dim">
-              {customer.lessons} {t('ders')} · {customer.hours} {t('saat')}
-              {customer.lastLessonAt
-                ? ` · ${t('son')} ${new Date(customer.lastLessonAt).toLocaleDateString(locale())}`
-                : ''}
-            </p>
+          <div className="drawer-hero">
+            <span className="avatar avatar--lg" aria-hidden="true">
+              {initials(customer.name)}
+            </span>
+            <div>
+              <h3>{customer.name}</h3>
+              <p className="cell-dim">
+                {[
+                  customer.phone,
+                  customer.birthDate ? new Date(customer.birthDate).getFullYear() : null,
+                  `${customer.lessons} ${t('ders')} · ${customer.hours} ${t('saat')}`,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+            </div>
           </div>
           <button className="link-btn" onClick={onClose} aria-label={t('Kapat')}>
             ✕
@@ -158,18 +167,13 @@ export default function CustomerDrawer({ customer, onClose, onChanged }: Props) 
           </dl>
 
           {(customer.injuryNote || customer.allergyNote) && (
-            <p className="alertline">
-              {customer.injuryNote && (
-                <span>
-                  <strong>{t('Sakatlık')}:</strong> {customer.injuryNote}
-                </span>
-              )}
-              {customer.allergyNote && (
-                <span>
-                  <strong>{t('Alerji')}:</strong> {customer.allergyNote}
-                </span>
-              )}
-            </p>
+            <>
+              <h5 className="facts-label">{t('Sağlık')}</h5>
+              <p className="alertline">
+                {customer.injuryNote && <span className="alert-tag">{customer.injuryNote}</span>}
+                {customer.allergyNote && <span className="alert-tag">{customer.allergyNote}</span>}
+              </p>
+            </>
           )}
 
           {(customer.guardianName || customer.guardianPhone) && (
@@ -257,12 +261,17 @@ export default function CustomerDrawer({ customer, onClose, onChanged }: Props) 
           ) : (
             <ul className="history">
               {history.map((b) => (
-                <li key={b.id}>
-                  <span className="cell-dim">
-                    {new Date(b.startsAt).toLocaleDateString(locale())} · {formatTime(b.startsAt)}
+                <li key={b.id} className={`is-${lessonClass(b)}`}>
+                  <span className="history-when">
+                    {new Date(b.startsAt).toLocaleDateString(locale(), {
+                      day: 'numeric',
+                      month: 'short',
+                    })}{' '}
+                    · {b.instructorName}
                   </span>
-                  <span className={`tag tag--${lessonClass(b)}`}>{describeLesson(b)}</span>
-                  <span className="cell-dim">{b.instructorName}</span>
+                  <span className="cell-dim">
+                    {formatTime(b.startsAt)} · {describeLesson(b)}
+                  </span>
                 </li>
               ))}
             </ul>

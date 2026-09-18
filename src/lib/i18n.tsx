@@ -43,7 +43,7 @@ const EN: Record<string, string> = {
   'Müsait saatler': 'Available hours',
   Takvimim: 'My calendar',
   Müsait: 'Free',
-  'Müsait · düzenle': 'Free · edit',
+  'Ders yaz': 'Book a lesson',
   Beklemede: 'Pending',
   Dolu: 'Booked',
   Kapalı: 'Closed',
@@ -631,6 +631,8 @@ const EN: Record<string, string> = {
   // camp register
   'Gün seç': 'Pick a day',
   'Yoklama ekle': 'Take the register',
+  Gelmedi: 'Did not come',
+  Sağlık: 'Health',
   'Listede yoksa kampa kaydet': 'Not on the list? Register them for the camp',
   'Kampa kaydet': 'Register',
   'Bu çocuk zaten listede.': 'That child is already on the list.',

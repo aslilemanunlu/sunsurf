@@ -10,7 +10,7 @@ import {
   toDateKey,
   todayKey,
 } from '../../lib/date';
-import { BarRows, Columns, Split, type Slice } from './Charts';
+import { BarRows, Columns, Donut, Split, type Slice } from './Charts';
 import MultiSelect from './MultiSelect';
 import { downloadCsv } from '../../lib/csv';
 import { describeLesson } from '../../lib/lessons';
@@ -463,7 +463,7 @@ export default function Dashboard() {
 
             <section className="panel">
               <h4 className="panel-title">{t('Ders tipi dağılımı')}</h4>
-              <Split data={byType} empty={t('Bu dönemde ders yok.')} />
+              <Donut data={byType} unit={t('ders')} empty={t('Bu dönemde ders yok.')} />
             </section>
 
             <section className="panel">
@@ -547,7 +547,12 @@ export default function Dashboard() {
 
             <section className="panel">
               <h4 className="panel-title">{t('Tam / yarım gün')}</h4>
-              <Split data={campSplit} empty={t('Bu dönemde kamp yoklaması yok.')} />
+              <Donut
+                data={campSplit}
+                total={camp.children}
+                unit={t('çocuk')}
+                empty={t('Bu dönemde kamp yoklaması yok.')}
+              />
             </section>
           </div>
         </>

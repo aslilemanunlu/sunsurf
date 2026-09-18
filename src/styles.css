@@ -439,9 +439,41 @@ ol {
   text-align: center;
 }
 
+.cal-head-who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
 .cal-head-name {
   font-size: 14px;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* A name in a circle: the column headers, the customer list, the drawer. */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--accent-soft, var(--open-fill));
+  color: var(--accent-ink);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.avatar--lg {
+  width: 44px;
+  height: 44px;
+  font-size: 15px;
 }
 
 .cal-head-tags {
@@ -482,20 +514,52 @@ ol {
   border-top: 1px solid var(--border);
 }
 
-.cal-state {
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1.3;
-}
-
+/*
+ * A booked hour reads in the order somebody asks about it: who, what, when.
+ * The name is the heading, the lesson and the hours are the small print.
+ */
 .cal-customer {
   display: block;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.cal-state {
   font-size: 11px;
+  font-weight: 600;
   line-height: 1.3;
   color: var(--text-dim);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.cal-range {
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* What a free hour is for, shown when the pointer is over it rather than
+   written in every empty cell on the page. */
+.cal-add {
+  display: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent-ink);
+}
+
+.cal-cell.is-own.is-free:hover .cal-state {
+  display: none;
+}
+
+.cal-cell.is-own.is-free:hover .cal-add {
+  display: block;
 }
 
 /* the whole cell is the hit target, and holds both of its labels */
@@ -544,8 +608,42 @@ ol {
   background: var(--surface-2);
 }
 
-.cal-cell.is-taken .cal-state {
-  color: var(--text);
+/*
+ * A lesson is drawn as a band down the column in its own colour, so two hours
+ * of the same lesson read as one block rather than two bookings.
+ */
+.cal-cell.is-individual .cal-hit,
+.cal-cell.is-group .cal-hit,
+.cal-cell.is-kids .cal-hit {
+  border-left: 3px solid var(--accent);
+  background: var(--surface);
+}
+
+.cal-cell.is-individual .cal-hit {
+  border-left-color: var(--individual);
+  background: var(--individual-soft);
+}
+
+.cal-cell.is-group .cal-hit {
+  border-left-color: var(--group);
+  background: var(--group-soft);
+}
+
+.cal-cell.is-kids .cal-hit {
+  border-left-color: var(--kids);
+  background: var(--kids-soft);
+}
+
+.cal-cell.is-individual .cal-state {
+  color: var(--individual);
+}
+
+.cal-cell.is-group .cal-state {
+  color: var(--group);
+}
+
+.cal-cell.is-kids .cal-state {
+  color: var(--kids);
 }
 
 .cal-cell.is-blocked {
@@ -3056,4 +3154,220 @@ ol {
 
 .btn--danger:hover {
   filter: brightness(1.08);
+}
+
+/* ---------- people: the customer list as cards ---------- */
+.people {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.person {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+}
+
+.person:hover {
+  border-color: var(--accent);
+}
+
+/* The whole row opens the card; the actions sit outside it so they stay
+   clickable in their own right. */
+.person-open {
+  flex: 1 1 220px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.person-lines {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.person-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.person-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* The chips repeat what the subtitle already says, so they go on wide screens
+   only, where there is room for the shorthand. */
+.person-tags {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .person-tags {
+    display: flex;
+  }
+}
+
+.drawer-hero {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.drawer-hero h3 {
+  margin: 0;
+}
+
+.facts-label {
+  margin: 14px 0 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-dim);
+}
+
+/* Lesson history: the colour on the left says which kind it was. */
+.history li {
+  border-left: 3px solid var(--border);
+  padding-left: 10px;
+}
+
+.history li.is-individual {
+  border-left-color: var(--individual);
+}
+
+.history li.is-group {
+  border-left-color: var(--group);
+}
+
+.history li.is-kids {
+  border-left-color: var(--kids);
+}
+
+.history-when {
+  font-weight: 600;
+}
+
+/* ---------- register rows, in the shape of a clipboard ---------- */
+.tick {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: transparent;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.tick.is-on {
+  background: var(--kids);
+  border-color: var(--kids);
+  color: #fff;
+}
+
+.register-name {
+  display: grid;
+  gap: 1px;
+}
+
+.register-title {
+  font-weight: 600;
+}
+
+.register-sub {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.register-alert {
+  font-size: 12px;
+  color: var(--danger);
+}
+
+/* ---------- donut ---------- */
+.donut {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.donut-svg {
+  width: 140px;
+  height: 140px;
+  flex: none;
+}
+
+.donut-track {
+  fill: none;
+  stroke: var(--surface-2);
+  stroke-width: 18;
+}
+
+.donut-arc {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 18;
+  transform: rotate(-90deg);
+  transform-origin: 70px 70px;
+}
+
+.donut-arc--individual {
+  stroke: var(--individual);
+}
+
+.donut-arc--group {
+  stroke: var(--group);
+}
+
+.donut-arc--kids {
+  stroke: var(--kids);
+}
+
+.donut-total {
+  fill: var(--text);
+  font-size: 26px;
+  font-weight: 700;
+  text-anchor: middle;
+}
+
+.donut-unit {
+  fill: var(--text-dim);
+  font-size: 11px;
+  text-anchor: middle;
+}
+
+.donut-legend {
+  flex: 1 1 140px;
 }
