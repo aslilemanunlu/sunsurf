@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 660 660" width="660" height="660" font-family="Plus Jakarta Sans, Segoe UI, system-ui, sans-serif">
+  <defs>
+    <filter id="s1" x="-25%" y="-20%" width="150%" height="150%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#4a2816" flood-opacity="0.16"/>
+    </filter>
+    <filter id="s2" x="-40%" y="-60%" width="180%" height="240%">
+      <feDropShadow dx="0" dy="10" stdDeviation="14" flood-color="#4a2816" flood-opacity="0.16"/>
+    </filter>
+  </defs>
+
+  <!-- telefon -->
+  <g filter="url(#s1)">
+    <rect x="120" y="20" width="320" height="620" rx="46" fill="#1d1209"/>
+  </g>
+  <rect x="130" y="30" width="300" height="600" rx="38" fill="#fdf6ef"/>
+  <rect x="235" y="42" width="90" height="20" rx="10" fill="#1d1209"/>
+
+  <!-- başlık -->
+  <text x="154" y="100" font-size="17" font-weight="800" fill="#1d1209">Çocuk kampı</text>
+  <text x="154" y="120" font-size="12" font-weight="600" fill="#8a6e5d">Sabah yoklaması · 21 Temmuz</text>
+  <rect x="154" y="134" width="252" height="34" rx="12" fill="#ffeee4"/>
+  <text x="170" y="156" font-size="12.5" font-weight="700" fill="#a83c16">Yaz sezonu · 8 çocuk kayıtlı</text>
+
+  <!-- liste -->
+  <g>
+    <rect x="146" y="182" width="268" height="62" rx="14" fill="#ffffff" stroke="#ead9c9"/>
+    <circle cx="176" cy="213" r="16" fill="#e2f2ee"/>
+    <path d="M169 213l5 5 10-10" stroke="#0f8a72" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="202" y="208" font-size="13.5" font-weight="700" fill="#1d1209">Deniz A.</text>
+    <text x="202" y="226" font-size="11.5" fill="#8a6e5d">Veli: 0532 ••• ••71</text>
+    <rect x="346" y="200" width="54" height="26" rx="13" fill="#e2f2ee"/>
+    <text x="373" y="217" font-size="11" font-weight="700" fill="#0f8a72" text-anchor="middle">Geldi</text>
+
+    <rect x="146" y="254" width="268" height="62" rx="14" fill="#ffffff" stroke="#ead9c9"/>
+    <circle cx="176" cy="285" r="16" fill="#e2f2ee"/>
+    <path d="M169 285l5 5 10-10" stroke="#0f8a72" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="202" y="280" font-size="13.5" font-weight="700" fill="#1d1209">Ela K.</text>
+    <text x="202" y="298" font-size="11.5" fill="#c9491f">Alerji: fıstık</text>
+    <rect x="346" y="272" width="54" height="26" rx="13" fill="#e2f2ee"/>
+    <text x="373" y="289" font-size="11" font-weight="700" fill="#0f8a72" text-anchor="middle">Geldi</text>
+
+    <rect x="146" y="326" width="268" height="62" rx="14" fill="#ffffff" stroke="#ff6b35" stroke-width="2"/>
+    <circle cx="176" cy="357" r="16" fill="#ffeee4" stroke="#ffcdb4"/>
+    <text x="202" y="352" font-size="13.5" font-weight="700" fill="#1d1209">Poyraz T.</text>
+    <text x="202" y="370" font-size="11.5" fill="#8a6e5d">Veli: 0555 ••• ••09</text>
+    <rect x="336" y="344" width="64" height="26" rx="13" fill="#ff6b35"/>
+    <text x="368" y="361" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">İşaretle</text>
+
+    <rect x="146" y="398" width="268" height="62" rx="14" fill="#ffffff" stroke="#ead9c9"/>
+    <circle cx="176" cy="429" r="16" fill="#fdf6ef" stroke="#ead9c9"/>
+    <text x="202" y="424" font-size="13.5" font-weight="700" fill="#1d1209">Mira S.</text>
+    <text x="202" y="442" font-size="11.5" fill="#8a6e5d">Veli: 0542 ••• ••33</text>
+    <rect x="346" y="416" width="54" height="26" rx="13" fill="#f4ece5"/>
+    <text x="373" y="433" font-size="11" font-weight="700" fill="#8a6e5d" text-anchor="middle">Gelmedi</text>
+
+    <rect x="146" y="470" width="268" height="62" rx="14" fill="#ffffff" stroke="#ead9c9"/>
+    <circle cx="176" cy="501" r="16" fill="#e2f2ee"/>
+    <path d="M169 501l5 5 10-10" stroke="#0f8a72" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="202" y="496" font-size="13.5" font-weight="700" fill="#1d1209">Efe B.</text>
+    <text x="202" y="514" font-size="11.5" fill="#8a6e5d">Veli: 0533 ••• ••28</text>
+    <rect x="346" y="488" width="54" height="26" rx="13" fill="#e2f2ee"/>
+    <text x="373" y="505" font-size="11" font-weight="700" fill="#0f8a72" text-anchor="middle">Geldi</text>
+  </g>
+
+  <rect x="146" y="552" width="268" height="44" rx="22" fill="#ff6b35"/>
+  <text x="280" y="580" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">Yoklamayı kaydet</text>
+
+  <!-- yüzen rozet -->
+  <g filter="url(#s2)">
+    <rect x="356" y="104" width="266" height="76" rx="20" fill="#ffffff" stroke="#f0e0d3"/>
+  </g>
+  <circle cx="390" cy="142" r="17" fill="#e2f2ee"/>
+  <path d="M382 142l6 6 11-12" stroke="#0f8a72" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="418" y="137" font-size="13" font-weight="800" fill="#1d1209">Sabah tek geçişte</text>
+  <text x="418" y="157" font-size="12" fill="#8a6e5d">5 çocuk işaretlendi, 1 gelmedi</text>
+
+  <!-- yüzen rozet 2 -->
+  <g filter="url(#s2)">
+    <rect x="10" y="404" width="222" height="72" rx="20" fill="#ffffff" stroke="#f0e0d3"/>
+  </g>
+  <circle cx="44" cy="440" r="17" fill="#ffeee4"/>
+  <path d="M44 432v10M44 448v.5" stroke="#c9491f" stroke-width="3" stroke-linecap="round"/>
+  <text x="70" y="435" font-size="13" font-weight="800" fill="#1d1209">Alerji uyarısı</text>
+  <text x="70" y="455" font-size="12" fill="#8a6e5d">Kart üstünde görünür</text>
+</svg>

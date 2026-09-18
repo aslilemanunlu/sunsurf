@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { CampRegistration } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
@@ -101,6 +101,18 @@ export default function AttendanceSheet({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hint, setHint] = useState<string | null>(null);
+  /** The name list hangs under the search box rather than filling the dialog. */
+  const [open, setOpen] = useState(false);
+  const comboRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => {
+      if (!comboRef.current?.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    return () => document.removeEventListener('mousedown', onDown);
+  }, [open]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && !busy && onClose(created);
@@ -319,36 +331,46 @@ export default function AttendanceSheet({
           </small>
         </label>
 
-        <label className="field">
+        <div className="field combo" ref={comboRef}>
           <span>{t('Çocuk ara')}</span>
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              setQuery(e.target.value);
+              setOpen(true);
+            }}
+            onFocus={() => setOpen(true)}
+            onKeyDown={(e) => e.key === 'Escape' && open && setOpen(false)}
             placeholder={t('İlk harfleri yazın')}
+            role="combobox"
+            aria-expanded={open}
             autoFocus
           />
-        </label>
 
-        <div className="picklist">
-          {shown.length === 0 ? (
-            <p className="cell-dim">{t('Bu isimde çocuk yok. Aşağıdan yeni çocuk ekleyin.')}</p>
-          ) : (
-            shown.map((r) => (
-              <label key={r.key} className={`pickrow${picked.has(r.key) ? ' is-picked' : ''}`}>
-                <input
-                  type="checkbox"
-                  checked={picked.has(r.key)}
-                  onChange={() => toggle(r.key)}
-                  disabled={busy}
-                />
-                <span className="pickrow-name">{r.name}</span>
-                {r.kind === 'returning' && (
-                  <span className="cell-dim">
-                    {t('geçen sezon')} · {r.past.season}
-                  </span>
-                )}
-              </label>
-            ))
+          {open && (
+            // mousedown is what steals focus from the input; ticking must not
+            <div className="picklist combo-pop" onMouseDown={(e) => e.preventDefault()}>
+              {shown.length === 0 ? (
+                <p className="cell-dim">{t('Bu isimde çocuk yok. Aşağıdan yeni çocuk ekleyin.')}</p>
+              ) : (
+                shown.map((r) => (
+                  <label key={r.key} className={`pickrow${picked.has(r.key) ? ' is-picked' : ''}`}>
+                    <input
+                      type="checkbox"
+                      checked={picked.has(r.key)}
+                      onChange={() => toggle(r.key)}
+                      disabled={busy}
+                    />
+                    <span className="pickrow-name">{r.name}</span>
+                    {r.kind === 'returning' && (
+                      <span className="cell-dim">
+                        {t('geçen sezon')} · {r.past.season}
+                      </span>
+                    )}
+                  </label>
+                ))
+              )}
+            </div>
           )}
         </div>
 

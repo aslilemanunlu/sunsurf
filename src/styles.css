@@ -2996,3 +2996,64 @@ ol {
   grid-template-columns: 1fr auto auto;
   border-left-color: var(--kids);
 }
+
+/* The name list belongs under the search box, not permanently open: the
+   selected children are what stays on screen. */
+.combo {
+  position: relative;
+}
+
+.combo-pop {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  margin-top: 4px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.combo-pop .pickrow:hover {
+  background: var(--surface-2);
+}
+
+.combo-pop p {
+  margin: 8px 10px;
+  font-size: 14px;
+}
+
+/* Picking children off the day's list to take several off at once. */
+.register-pick {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  accent-color: var(--accent);
+}
+
+.bulkbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 14px;
+}
+
+.bulkbar .btn--danger {
+  margin-left: auto;
+}
+
+.btn--danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.btn--danger:hover {
+  filter: brightness(1.08);
+}

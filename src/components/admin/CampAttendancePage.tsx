@@ -42,6 +42,10 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  /** Children ticked on the day's list, for taking several off at once. */
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  /** The season table is the detail behind the totals, not the first thing seen. */
+  const [listOpen, setListOpen] = useState(false);
   /**
    * Registrations the sheet has just created for children nobody had a form
    * for. They are offered one straight afterwards, while the parent is still
@@ -76,6 +80,11 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
     void load();
   }, [load]);
 
+  // a selection belongs to the day it was made on
+  useEffect(() => {
+    setSelected(new Set());
+  }, [day, season]);
+
   async function mark(registrationId: string, next: Mark) {
     setBusy(registrationId);
     setError(null);
@@ -95,6 +104,47 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
       await load(); // put the row back to whatever the database actually says
     } finally {
       setBusy(null);
+    }
+  }
+
+  function pick(registrationId: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(registrationId)) next.delete(registrationId);
+      else next.add(registrationId);
+      return next;
+    });
+  }
+
+  /**
+   * Takes everybody ticked off this day's register.
+   *
+   * A ticked child with no mark has nothing to remove, so they are skipped
+   * rather than counted — the confirmation says how many marks will actually go.
+   */
+  async function removeSelected() {
+    const marked = [...selected].filter((id) => marks.get(id));
+    if (marked.length === 0) {
+      setSelected(new Set());
+      setError(t('Seçilen çocukların bu gün için yoklaması yok.'));
+      return;
+    }
+    if (
+      !window.confirm(
+        t('{n} çocuğun bu günkü yoklaması silinsin mi?').replace('{n}', String(marked.length)),
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    try {
+      for (const id of marked) await api.setCampAttendance(id, day, null);
+      setSelected(new Set());
+      await load();
+      onChanged();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      await load();
     }
   }
 
@@ -139,6 +189,17 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
       half: values.filter((m) => m === 'half').length,
     };
   }, [marks]);
+
+  /** The season in four numbers; the per-child table is behind a toggle. */
+  const seasonStats = useMemo(() => {
+    const came = totals.filter((r) => r.fullDays + r.halfDays > 0);
+    return {
+      children: came.length,
+      full: came.reduce((s, r) => s + r.fullDays, 0),
+      half: came.reduce((s, r) => s + r.halfDays, 0),
+      days: came.reduce((s, r) => s + r.totalDays, 0),
+    };
+  }, [totals]);
 
   /** Every day that has marks, newest first — the season at a glance. */
   const byDay = useMemo(() => {
@@ -226,6 +287,13 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
               const current = marks.get(r.registrationId) ?? null;
               return (
                 <li key={r.registrationId} className={current ? 'is-here' : undefined}>
+                  <input
+                    type="checkbox"
+                    className="register-pick"
+                    checked={selected.has(r.registrationId)}
+                    onChange={() => pick(r.registrationId)}
+                    aria-label={t('Seç')}
+                  />
                   <span className="register-name">
                     {r.childName}
                     {r.age !== null && <span className="cell-dim"> · {r.age}</span>}
@@ -259,38 +327,92 @@ export default function CampAttendancePage({ season, onSeason, onChanged }: Prop
             })}
           </ul>
         )}
+
+        {selected.size > 0 && (
+          <div className="bulkbar">
+            <span>
+              {selected.size} {t('çocuk seçildi')}
+            </span>
+            <button className="link-btn" onClick={() => setSelected(new Set())}>
+              {t('Seçimi bırak')}
+            </button>
+            <button className="btn btn--small btn--danger" onClick={removeSelected}>
+              {t('Seçilenleri yoklamadan sil')}
+            </button>
+          </div>
+        )}
+
         <p className="admin-hint">
           {t('İşaretlenmeyen çocuk o gün gelmemiş sayılır. Sil, o günkü işareti kaldırır.')}
         </p>
       </section>
 
       <section className="panel">
-        <h4 className="panel-title">{t('Sezon toplamı')}</h4>
+        <div className="admin-bar">
+          <h4 className="panel-title">{t('Sezon toplamı')}</h4>
+          {totals.length > 0 && (
+            <button className="link-btn" onClick={() => setListOpen((v) => !v)}>
+              {t(listOpen ? 'Liste görünümünü kapat' : 'Liste görünümünü aç')}
+            </button>
+          )}
+        </div>
+
         {totals.length === 0 ? (
           <p className="cell-dim">{t('Henüz yoklama yok.')}</p>
         ) : (
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>{t('Çocuk')}</th>
-                  <th className="num">{t('Tam gün')}</th>
-                  <th className="num">{t('Yarım gün')}</th>
-                  <th className="num">{t('Toplam gün')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {totals.map((r) => (
-                  <tr key={r.registrationId}>
-                    <td>{r.childName}</td>
-                    <td className="num">{r.fullDays}</td>
-                    <td className="num">{r.halfDays}</td>
-                    <td className="num">{r.totalDays}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <>
+            <div className="stat-grid stat-grid--compact">
+              <article className="stat stat--accent">
+                <header className="stat-head">
+                  <span className="stat-title">{t('Kampa gelen çocuk')}</span>
+                </header>
+                <p className="stat-value">{seasonStats.children}</p>
+              </article>
+              <article className="stat stat--individual">
+                <header className="stat-head">
+                  <span className="stat-title">{t('Tam gün')}</span>
+                </header>
+                <p className="stat-value">{seasonStats.full}</p>
+              </article>
+              <article className="stat stat--group">
+                <header className="stat-head">
+                  <span className="stat-title">{t('Yarım gün')}</span>
+                </header>
+                <p className="stat-value">{seasonStats.half}</p>
+              </article>
+              <article className="stat stat--kids">
+                <header className="stat-head">
+                  <span className="stat-title">{t('Toplam gün')}</span>
+                </header>
+                <p className="stat-value">{seasonStats.days}</p>
+              </article>
+            </div>
+
+            {listOpen && (
+              <div className="table-wrap">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>{t('Çocuk')}</th>
+                      <th className="num">{t('Tam gün')}</th>
+                      <th className="num">{t('Yarım gün')}</th>
+                      <th className="num">{t('Toplam gün')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {totals.map((r) => (
+                      <tr key={r.registrationId}>
+                        <td>{r.childName}</td>
+                        <td className="num">{r.fullDays}</td>
+                        <td className="num">{r.halfDays}</td>
+                        <td className="num">{r.totalDays}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </section>
 
