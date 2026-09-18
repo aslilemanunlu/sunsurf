@@ -625,12 +625,34 @@ export type DashboardStats = {
   campThisMonth: number;
 };
 
+/**
+ * Which customer records are camp children rather than customers of the school.
+ *
+ * Two things can say so and they do not always agree: a camp registration, and
+ * the `kids_camp` segment somebody ticked by hand. Either counts, and the one
+ * rule lives here so the customer list and the home figures cannot drift apart.
+ */
+export async function listCampChildIds(): Promise<Set<string>> {
+  const [registered, tagged] = await Promise.all([
+    read<{ customer_id: string }[]>(
+      () => neon.from('camp_season_roll').select('customer_id'),
+      'Sayım yapılamadı',
+    ).catch(() => [] as { customer_id: string }[]),
+    read<{ id: string }[]>(
+      () => neon.from('customers').select('id').contains('segments', ['kids_camp']),
+      'Sayım yapılamadı',
+    ).catch(() => [] as { id: string }[]),
+  ]);
+
+  return new Set([...registered.map((r) => r.customer_id), ...tagged.map((r) => r.id)]);
+}
+
 export async function getDashboardStats(): Promise<DashboardStats> {
   const now = new Date();
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-  const [users, instructors, bookings, customers, thisMonth, campRows, campDays] =
+  const [users, instructors, bookings, customers, thisMonth, campChildren, campDays] =
     await Promise.all([
       countOf('admin_users', 'user_id'),
       countOf('instructors', 'id'),
@@ -647,12 +669,8 @@ export async function getDashboardStats(): Promise<DashboardStats> {
             .lt('starts_at', monthEnd.toISOString()),
         'Aylık ders saati hesaplanamadı',
       ),
-      // counted here rather than by the database: a child registered for three
-      // summers is three rows and one child
-      read<{ customer_id: string }[]>(
-        () => neon.from('camp_season_roll').select('customer_id'),
-        'Sayım yapılamadı',
-      ).catch(() => [] as { customer_id: string }[]),
+      // a child registered for three summers is three rows and one child
+      listCampChildIds(),
       read<{ customer_id: string }[]>(
         () =>
           neon
@@ -663,8 +681,6 @@ export async function getDashboardStats(): Promise<DashboardStats> {
         'Sayım yapılamadı',
       ).catch(() => [] as { customer_id: string }[]),
     ]);
-
-  const campChildren = new Set(campRows.map((r) => r.customer_id));
 
   return {
     users,

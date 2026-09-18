@@ -14,9 +14,9 @@ const STATUS_LABEL: Record<BookingStatus, string> = {
   rejected: 'İptal edilen',
 };
 
-const STATUSES: { value: BookingStatus | 'all'; label: string }[] = [
+const STATUSES: { value: BookingStatus; label: string }[] = [
   { value: 'approved', label: 'Onaylı' },
-  { value: 'all', label: 'Tümü' },
+  { value: 'pending', label: 'Ön rezervasyon' },
   { value: 'rejected', label: 'İptal edilen' },
 ];
 
@@ -32,11 +32,18 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
   const [rows, setRows] = useState<ManagedBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<BookingStatus | 'all'>('approved');
+  /**
+   * Every filter takes several answers, and an empty one means everything.
+   *
+   * The exception is the status, which starts on the lessons that actually
+   * happened: a cancelled booking is not what somebody opens this page to see,
+   * but unticking is one click when they want it.
+   */
+  const [pickedStatuses, setPickedStatuses] = useState<string[]>(['approved']);
   const [pickedInstructors, setPickedInstructors] = useState<string[]>([]);
-  const [sport, setSport] = useState<'all' | 'windsurf' | 'wingfoil'>('all');
+  const [pickedSports, setPickedSports] = useState<string[]>([]);
   /** A guest lesson is taught time that belongs to nobody; often asked apart. */
-  const [who, setWho] = useState<'all' | 'guest' | 'customer'>('all');
+  const [pickedWho, setPickedWho] = useState<string[]>([]);
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -61,11 +68,12 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
   const shown = useMemo(() => {
     const q = search.trim().toLocaleLowerCase('tr');
     return rows.filter((r) => {
-      if (status !== 'all' && r.status !== status) return false;
+      if (pickedStatuses.length > 0 && !pickedStatuses.includes(r.status)) return false;
       if (pickedInstructors.length > 0 && !pickedInstructors.includes(r.instructorId)) return false;
-      if (sport !== 'all' && r.sport !== sport) return false;
-      if (who === 'guest' && !r.isGuest) return false;
-      if (who === 'customer' && r.isGuest) return false;
+      if (pickedSports.length > 0 && !pickedSports.includes(r.sport ?? '')) return false;
+      if (pickedWho.length > 0 && !pickedWho.includes(r.isGuest ? 'guest' : 'customer')) {
+        return false;
+      }
       if (!q) return true;
       return (
         r.id.toLowerCase().includes(q) ||
@@ -73,7 +81,7 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
         (r.customerEmail ?? '').toLocaleLowerCase('tr').includes(q)
       );
     });
-  }, [rows, status, pickedInstructors, sport, who, search]);
+  }, [rows, pickedStatuses, pickedInstructors, pickedSports, pickedWho, search]);
 
   async function decide(id: string, next: 'approved' | 'rejected') {
     setBusyId(id);
@@ -131,18 +139,13 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
       {error && <p className="dialog-error">{error}</p>}
 
       <div className="filters">
-        <div className="segmented" role="group" aria-label={t('Duruma göre filtrele')}>
-          {STATUSES.map((s) => (
-            <button
-              key={s.value}
-              className={`segment${status === s.value ? ' is-active' : ''}`}
-              onClick={() => setStatus(s.value)}
-              aria-pressed={status === s.value}
-            >
-              {t(s.label)}
-            </button>
-          ))}
-        </div>
+        <MultiSelect
+          label={t('Duruma göre filtrele')}
+          allLabel={t('Tüm durumlar')}
+          options={STATUSES.map((s) => ({ value: s.value, label: t(s.label) }))}
+          picked={pickedStatuses}
+          onChange={setPickedStatuses}
+        />
 
         <MultiSelect
           label={t('Hoca')}
@@ -152,30 +155,44 @@ export default function BookingsPage({ instructors, onChanged }: Props) {
           onChange={setPickedInstructors}
         />
 
-        <select
-          value={sport}
-          onChange={(e) => setSport(e.target.value as typeof sport)}
-          aria-label={t('Spor')}
-        >
-          <option value="all">{t('Tüm dersler')}</option>
-          <option value="windsurf">{SPORT_LABEL.windsurf}</option>
-          <option value="wingfoil">{SPORT_LABEL.wingfoil}</option>
-        </select>
+        <MultiSelect
+          label={t('Spor')}
+          allLabel={t('Tüm dersler')}
+          options={[
+            { value: 'windsurf', label: SPORT_LABEL.windsurf },
+            { value: 'wingfoil', label: SPORT_LABEL.wingfoil },
+            { value: '', label: t('Çocuk kampı') },
+          ]}
+          picked={pickedSports}
+          onChange={setPickedSports}
+        />
 
-        <select
-          value={who}
-          onChange={(e) => setWho(e.target.value as typeof who)}
-          aria-label={t('Kim')}
-        >
-          <option value="all">{t('Tümü')}</option>
-          <option value="customer">{t('Müşteri dersleri')}</option>
-          <option value="guest">{t('Misafir dersleri')}</option>
-        </select>
+        <MultiSelect
+          label={t('Kim')}
+          allLabel={t('Müşteri ve misafir')}
+          options={[
+            { value: 'customer', label: t('Müşteri dersleri') },
+            { value: 'guest', label: t('Misafir dersleri') },
+          ]}
+          picked={pickedWho}
+          onChange={setPickedWho}
+        />
 
         <label className="range">
-          <input type="date" value={from} onChange={(e) => setFrom(e.target.value)} aria-label={t('Başlangıç')} />
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            aria-label={t('Başlangıç')}
+          />
           <span>–</span>
-          <input type="date" value={to} min={from} onChange={(e) => setTo(e.target.value)} aria-label={t('Bitiş')} />
+          <input
+            type="date"
+            value={to}
+            min={from}
+            onChange={(e) => setTo(e.target.value)}
+            aria-label={t('Bitiş')}
+          />
         </label>
 
         <input

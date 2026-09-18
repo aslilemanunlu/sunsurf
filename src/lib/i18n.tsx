@@ -269,6 +269,8 @@ const EN: Record<string, string> = {
   'Excel’e aktar': 'Export to Excel',
   '{n} seçili': '{n} selected',
   'Seçimi temizle': 'Clear selection',
+  'Tüm durumlar': 'All statuses',
+  'Müşteri ve misafir': 'Customers and guests',
   'Tüm dersler': 'All sports',
   'Müşteri dersleri': 'Customer lessons',
   'Misafir dersleri': 'Guest lessons',

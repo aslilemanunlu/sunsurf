@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { CrmCustomer, Segment } from '../../types';
+import type { CrmCustomer } from '../../types';
 import { locale, useT } from '../../lib/i18n';
 import * as api from '../../api/client';
 import { ALL_SEGMENTS, SEGMENT_LABEL, segmentTone } from '../../lib/segments';
 import CustomerDrawer from './CustomerDrawer';
 import CustomerForm from './CustomerForm';
+import MultiSelect from './MultiSelect';
 import { initials } from '../../lib/initials';
 
 type Props = { onChanged: () => void };
@@ -21,7 +22,10 @@ export default function CustomersPage({ onChanged }: Props) {
   const [rows, setRows] = useState<CrmCustomer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [segment, setSegment] = useState<Segment | 'all' | 'none'>('all');
+  /** Segments to show; empty means all of them. 'none' picks the unclassified. */
+  const [picked, setPicked] = useState<string[]>([]);
+  /** Camp children, by the same rule the home figures use. */
+  const [campIds, setCampIds] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
   const [openId, setOpenId] = useState<string | null>(null);
 
@@ -31,7 +35,12 @@ export default function CustomersPage({ onChanged }: Props) {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setRows(await api.listCrmCustomers());
+      const [list, camp] = await Promise.all([
+        api.listCrmCustomers(),
+        api.listCampChildIds().catch(() => new Set<string>()),
+      ]);
+      setRows(list);
+      setCampIds(camp);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
@@ -44,17 +53,28 @@ export default function CustomersPage({ onChanged }: Props) {
     void load();
   }, [load]);
 
+  /**
+   * The school's customers: everyone except the camp children.
+   *
+   * They are the camp's register, not customers of the school, and they would
+   * double this list every summer. The same rule counts them on the home page,
+   * so the two totals agree. Ticking the camp segment brings them back.
+   */
+  const customers = useMemo(
+    () => rows.filter((c) => !campIds.has(c.customerId) && !c.segments.includes('kids_camp')),
+    [rows, campIds],
+  );
+
   const shown = useMemo(() => {
     const q = search.trim().toLocaleLowerCase('tr');
-    return rows.filter((c) => {
-      /**
-       * Camp children are kept out of the customer list: they are the camp's
-       * register, not the school's customers, and they would double its length
-       * every summer. Picking the camp segment still shows them.
-       */
-      if (segment !== 'kids_camp' && c.segments.includes('kids_camp')) return false;
-      if (segment === 'none' && c.segments.length > 0) return false;
-      if (segment !== 'all' && segment !== 'none' && !c.segments.includes(segment)) return false;
+    const base = picked.includes('kids_camp') ? rows : customers;
+    return base.filter((c) => {
+      if (picked.length > 0) {
+        const hit =
+          (picked.includes('none') && c.segments.length === 0) ||
+          c.segments.some((sg) => picked.includes(sg));
+        if (!hit) return false;
+      }
       if (!q) return true;
       return (
         c.name.toLocaleLowerCase('tr').includes(q) ||
@@ -62,7 +82,7 @@ export default function CustomersPage({ onChanged }: Props) {
         (c.phone ?? '').includes(q)
       );
     });
-  }, [rows, segment, search]);
+  }, [rows, customers, picked, search]);
 
   async function remove(c: CrmCustomer) {
     if (!window.confirm(t('{n} kaydı silinsin mi?').replace('{n}', c.name))) return;
@@ -82,7 +102,7 @@ export default function CustomersPage({ onChanged }: Props) {
       <div className="admin-bar">
         <h2 className="admin-title">{t('Müşteriler')}</h2>
         <span className="admin-count">
-          {shown.length} / {rows.length}
+          {shown.length} / {customers.length}
         </span>
         <button className="btn" onClick={() => setAdding(true)}>
           {t('Müşteri Ekle')}
@@ -92,32 +112,16 @@ export default function CustomersPage({ onChanged }: Props) {
       {error && <p className="dialog-error">{error}</p>}
 
       <div className="filters">
-        <div className="segmented" role="group" aria-label={t('Segment')}>
-          <button
-            className={`segment${segment === 'all' ? ' is-active' : ''}`}
-            onClick={() => setSegment('all')}
-            aria-pressed={segment === 'all'}
-          >
-            {t('Tümü')}
-          </button>
-          {ALL_SEGMENTS.map((s) => (
-            <button
-              key={s}
-              className={`segment${segment === s ? ' is-active' : ''}`}
-              onClick={() => setSegment(s)}
-              aria-pressed={segment === s}
-            >
-              {t(SEGMENT_LABEL[s])}
-            </button>
-          ))}
-          <button
-            className={`segment${segment === 'none' ? ' is-active' : ''}`}
-            onClick={() => setSegment('none')}
-            aria-pressed={segment === 'none'}
-          >
-            {t('Segmenti olmayan')}
-          </button>
-        </div>
+        <MultiSelect
+          label={t('Segment')}
+          allLabel={t('Tüm segmentler')}
+          options={[
+            ...ALL_SEGMENTS.map((s) => ({ value: s as string, label: t(SEGMENT_LABEL[s]) })),
+            { value: 'none', label: t('Segmenti olmayan') },
+          ]}
+          picked={picked}
+          onChange={setPicked}
+        />
 
         <input
           className="search"
