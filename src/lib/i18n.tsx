@@ -689,6 +689,43 @@ const EN: Record<string, string> = {
   'Herkese açık takvim: dolu ve boş saatler': 'The public calendar: which hours are busy or free',
   'Hiçbir şey': 'Nothing',
 
+  // the change log
+  'Kim ne zaman neyi değiştirdi — yalnızca yöneticinin gördüğü kayıt.':
+    'Who changed what, and when — the record only the yönetici sees.',
+  'Kılavuzun altındaki Değişiklik kaydı sekmesinde: rezervasyonlar, çocuk kampı yoklaması, paketler ve ödemeler, hesap ve yetki değişiklikleri, müşteri kaydı düzenleme ve silme.':
+    'Under the guide, in the Change log tab: bookings, the camp register, packages and payments, access changes, and customer records edited or deleted.',
+  'Kayıtları veritabanı yazar; uygulamadan değiştirilemez, silinemez.':
+    'The entries are written by the database; they cannot be edited or removed from the app.',
+  '90 günden eski kayıtlar silinir. Daha eskisi sorulacaksa önce Excel’e aktarın.':
+    'Anything older than 90 days is deleted. Export to Excel first if it may be asked about later.',
+  'Müşteri ya da çocuk kaydının açılması loglanmaz — her gün olan şey kaydı doldurur, bir soruya cevap vermez.':
+    'Creating a customer or a child record is not logged — what happens every day fills the log without answering anything.',
+  'Geçmiş günlere de yazabilir, geçmiş bir dersi düzeltebilir ya da silebilirsin: adminler her takvimde, hocalar kendi takvimlerinde.':
+    'Past days can be written on, and a past lesson corrected or deleted: admins on any calendar, instructors on their own.',
+  'Değişiklik kaydı': 'Change log',
+  Kılavuz: 'Guide',
+  Bölüm: 'Section',
+  'Tüm bölümler': 'All sections',
+  'Son {n} gün': 'Last {n} days',
+  'Bu aralıkta kayıt yok.': 'Nothing recorded in this range.',
+  kayıt: 'entries',
+  'İsim, e-posta veya detay ara': 'Search a name, an email or a detail',
+  bilinmiyor: 'unknown',
+  İşlem: 'What',
+  Konu: 'Subject',
+  Rezervasyon: 'Booking',
+  Paket: 'Package',
+  Ödeme: 'Payment',
+  'Hesap ve yetki': 'Account and access',
+  'Müşteri kaydı': 'Customer record',
+  eklendi: 'added',
+  değiştirildi: 'changed',
+  'iptal edildi': 'cancelled',
+  silindi: 'deleted',
+  'Değişiklik kaydı yüklenemedi': 'Could not load the change log',
+  '90 günden eski kayıtlar silinir. Kayıtları veritabanı yazar; uygulamadan değiştirilemez ve yalnızca yönetici görür.':
+    'Anything older than 90 days is deleted. The entries are written by the database, cannot be edited from the app, and only the yönetici can read them.',
+
   'Yoklama ekle': 'Take the register',
   'Yukarıdaki ders rakamlarına çocuk kampı saatleri dahil değildir.':
     'The lesson figures above leave out the camp hours.',

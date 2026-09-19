@@ -22,6 +22,7 @@ const SECTIONS: Section[] = [
       'Ders tipini seç (bireysel, grup, çocuk kampı) ve windsurf mü wingfoil mü olduğunu işaretle.',
       'Kimin adına: müşteri adını yaz ya da listeden seç. Kayıtlı değilse aynı yerden yeni müşteri açılır; telefon zorunlu değil.',
       'Adı olmayan bir ders için Misafir işaretle. Misafir dersleri ana sayfadaki sayılara varsayılan olarak girmez, isteyen kutucuğu işaretler.',
+      'Geçmiş günlere de yazabilir, geçmiş bir dersi düzeltebilir ya da silebilirsin: adminler her takvimde, hocalar kendi takvimlerinde.',
       'Çocuk kampında isim sorulmaz; saatleri seçip kaydetmen yeter.',
     ],
   },
@@ -103,6 +104,17 @@ const SECTIONS: Section[] = [
       'Hoca filtresinden birden çok hoca seçilebilir.',
       'Misafir derslerini saymak istersen kutucuğu işaretle; varsayılan olarak sayılmazlar.',
       'Her listenin Excel’e aktar düğmesi, ekrandaki filtrelenmiş hâli indirir.',
+    ],
+  },
+  {
+    title: 'Değişiklik kaydı',
+    audience: 'owner',
+    lead: 'Kim ne zaman neyi değiştirdi — yalnızca yöneticinin gördüğü kayıt.',
+    steps: [
+      'Kılavuzun altındaki Değişiklik kaydı sekmesinde: rezervasyonlar, çocuk kampı yoklaması, paketler ve ödemeler, hesap ve yetki değişiklikleri, müşteri kaydı düzenleme ve silme.',
+      'Kayıtları veritabanı yazar; uygulamadan değiştirilemez, silinemez.',
+      '90 günden eski kayıtlar silinir. Daha eskisi sorulacaksa önce Excel’e aktarın.',
+      'Müşteri ya da çocuk kaydının açılması loglanmaz — her gün olan şey kaydı doldurur, bir soruya cevap vermez.',
     ],
   },
   {

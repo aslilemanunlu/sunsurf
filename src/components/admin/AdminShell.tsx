@@ -10,6 +10,7 @@ import StaffPage from './StaffPage';
 import AccountsPage from './AccountsPage';
 import PaymentsPage from './PaymentsPage';
 import Guide from './Guide';
+import ChangeLog from './ChangeLog';
 
 type Page =
   | 'dashboard'
@@ -20,12 +21,13 @@ type Page =
   | 'camp-registrations'
   | 'camp-attendance'
   | 'accounts'
-  | 'guide';
+  | 'guide'
+  | 'changelog';
 
 type Item = {
   key: Page;
   label: string;
-  children?: { key: Page; label: string }[];
+  children?: { key: Page; label: string; ownerOnly?: boolean }[];
 };
 
 /**
@@ -48,7 +50,14 @@ const NAV: Item[] = [
     ],
   },
   { key: 'accounts', label: 'Hesaplar ve yetkiler' },
-  { key: 'guide', label: 'Kullanım kılavuzu' },
+  {
+    key: 'guide',
+    label: 'Kullanım kılavuzu',
+    children: [
+      { key: 'guide', label: 'Kılavuz' },
+      { key: 'changelog', label: 'Değişiklik kaydı', ownerOnly: true },
+    ],
+  },
 ];
 
 type Props = {
@@ -67,8 +76,6 @@ export default function AdminShell({ viewer, instructors, onBackToCalendar, onCh
    */
   const [season, setSeason] = useState(new Date().getFullYear());
 
-  const inCamp = page === 'camp-registrations' || page === 'camp-attendance';
-
   return (
     <div className="admin">
       <nav className="admin-nav" aria-label={t('Yönetim menüsü')}>
@@ -77,7 +84,9 @@ export default function AdminShell({ viewer, instructors, onBackToCalendar, onCh
         </button>
         <ul>
           {NAV.map((n) => {
-            const open = n.children ? inCamp : page === n.key;
+            const children = n.children?.filter((c) => !c.ownerOnly || viewer.isOwner) ?? [];
+            const open =
+              children.length > 0 ? children.some((c) => c.key === page) : page === n.key;
             return (
               <li key={n.label}>
                 <button
@@ -88,9 +97,9 @@ export default function AdminShell({ viewer, instructors, onBackToCalendar, onCh
                   {t(n.label)}
                 </button>
 
-                {n.children && open && (
+                {children.length > 0 && (
                   <ul className="admin-subnav">
-                    {n.children.map((c) => (
+                    {children.map((c) => (
                       <li key={c.key}>
                         <button
                           className={`admin-navitem admin-navitem--sub${
@@ -125,6 +134,7 @@ export default function AdminShell({ viewer, instructors, onBackToCalendar, onCh
         )}
         {page === 'accounts' && <AccountsPage viewer={viewer} onChanged={onChanged} />}
         {page === 'guide' && <Guide viewer={viewer} />}
+        {page === 'changelog' && viewer.isOwner && <ChangeLog />}
       </div>
     </div>
   );

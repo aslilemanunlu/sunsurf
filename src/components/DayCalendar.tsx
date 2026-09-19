@@ -176,9 +176,16 @@ export default function DayCalendar({
                 const booking = manages ? ownBookings.get(key) : undefined;
                 const busy = busyKey === key;
 
-                // Nobody outside the school can act on the calendar, so for
-                // everyone else every cell is just text.
-                const clickable = !busy && manages && state !== 'past' && state !== 'closed';
+                /*
+                 * Nobody outside the school can act on the calendar, so for
+                 * everyone else every cell is just text.
+                 *
+                 * Yesterday is editable too: a lesson written on the wrong day
+                 * is noticed the day after, and a register nobody can correct
+                 * stops being worth keeping. The database never minded — only
+                 * this line did.
+                 */
+                const clickable = !busy && manages && state !== 'closed';
 
                 const onClick = () => {
                   if (justDragged.current) {

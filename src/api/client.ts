@@ -1769,3 +1769,59 @@ export async function setCampAttendance(
     throw new Error(`${translate('Yoklama kaydedilemedi')}: ${result.error.message}`);
   }
 }
+
+// ---------------------------------------------------------------- change log
+
+export type AuditArea = 'booking' | 'camp' | 'package' | 'payment' | 'access' | 'customer';
+
+export type AuditEntry = {
+  id: string;
+  happenedAt: string;
+  actorEmail: string | null;
+  area: AuditArea;
+  action: 'create' | 'update' | 'delete' | 'cancel';
+  subject: string | null;
+  detail: string | null;
+};
+
+/**
+ * What happened lately, newest first.
+ *
+ * Written by triggers in db/023 and readable only by a yönetici — an admin can
+ * change everything it records, and an admin reading their own audit trail is
+ * most of the way to editing it. Anything older than 90 days has been deleted
+ * by then, so the range is a filter on top of that, not a way to reach further.
+ */
+export async function listAuditLog(days = 90): Promise<AuditEntry[]> {
+  const since = new Date(Date.now() - days * 86_400_000).toISOString();
+  const rows = await read<
+    {
+      id: string;
+      happened_at: string;
+      actor_email: string | null;
+      area: string;
+      action: string;
+      subject: string | null;
+      detail: string | null;
+    }[]
+  >(
+    () =>
+      neon
+        .from('audit_log')
+        .select('*')
+        .gte('happened_at', since)
+        .order('happened_at', { ascending: false })
+        .limit(1000),
+    'Değişiklik kaydı yüklenemedi',
+  );
+
+  return rows.map((r) => ({
+    id: r.id,
+    happenedAt: r.happened_at,
+    actorEmail: r.actor_email,
+    area: r.area as AuditArea,
+    action: r.action as AuditEntry['action'],
+    subject: r.subject,
+    detail: r.detail,
+  }));
+}
