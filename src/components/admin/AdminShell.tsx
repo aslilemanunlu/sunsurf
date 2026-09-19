@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { AdminPage } from '../../lib/route';
 import { useT } from '../../lib/i18n';
 import type { Instructor, Viewer } from '../../types';
 import Dashboard from './Dashboard';
@@ -12,17 +13,8 @@ import PaymentsPage from './PaymentsPage';
 import Guide from './Guide';
 import ChangeLog from './ChangeLog';
 
-type Page =
-  | 'dashboard'
-  | 'staff'
-  | 'bookings'
-  | 'payments'
-  | 'customers'
-  | 'camp-registrations'
-  | 'camp-attendance'
-  | 'accounts'
-  | 'guide'
-  | 'changelog';
+/** The pages, and the paths that name them, live in lib/route. */
+type Page = AdminPage;
 
 type Item = {
   key: Page;
@@ -63,13 +55,22 @@ const NAV: Item[] = [
 type Props = {
   viewer: Viewer;
   instructors: Instructor[];
+  /** Which page, decided by the address bar rather than by this component. */
+  page: Page;
+  onPage: (page: Page) => void;
   onBackToCalendar: () => void;
   onChanged: () => void;
 };
 
-export default function AdminShell({ viewer, instructors, onBackToCalendar, onChanged }: Props) {
+export default function AdminShell({
+  viewer,
+  instructors,
+  page,
+  onPage,
+  onBackToCalendar,
+  onChanged,
+}: Props) {
   const { t } = useT();
-  const [page, setPage] = useState<Page>('dashboard');
   /**
    * The camp's two screens share one season: switching from the register to the
    * registrations should not land on a different summer.
@@ -91,7 +92,7 @@ export default function AdminShell({ viewer, instructors, onBackToCalendar, onCh
               <li key={n.label}>
                 <button
                   className={`admin-navitem${open ? ' is-active' : ''}`}
-                  onClick={() => setPage(n.key)}
+                  onClick={() => onPage(n.key)}
                   aria-current={open ? 'page' : undefined}
                 >
                   {t(n.label)}
@@ -105,7 +106,7 @@ export default function AdminShell({ viewer, instructors, onBackToCalendar, onCh
                           className={`admin-navitem admin-navitem--sub${
                             page === c.key ? ' is-active' : ''
                           }`}
-                          onClick={() => setPage(c.key)}
+                          onClick={() => onPage(c.key)}
                           aria-current={page === c.key ? 'page' : undefined}
                         >
                           {t(c.label)}

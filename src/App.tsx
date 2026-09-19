@@ -24,6 +24,7 @@ import LangToggle from './components/LangToggle';
 import HourActions from './components/HourActions';
 import LeaveDialog from './components/LeaveDialog';
 import MyLessons from './components/MyLessons';
+import { routeFromPath, routeToPath, type Route } from './lib/route';
 
 const HOUR = 60 * 60 * 1000;
 
@@ -107,7 +108,45 @@ export default function App() {
     hours?: number;
   } | null>(null);
   const [authOpen, setAuthOpen] = useState(() => authViewFromLocation() !== null);
-  const [screen, setScreen] = useState<'calendar' | 'admin' | 'mine'>('calendar');
+  /**
+   * Which screen, kept in the address bar.
+   *
+   * A refresh used to drop everyone back on the calendar, and the back button
+   * left the app altogether. The path is now the state: /yonetim/rezervasyonlar
+   * is a place you can reload, bookmark and send to somebody.
+   */
+  const [route, setRoute] = useState<Route>(
+    () => routeFromPath(window.location.pathname) ?? { screen: 'calendar' },
+  );
+  const screen = route.screen;
+
+  const go = useCallback((next: Route) => {
+    setRoute(next);
+    const path = routeToPath(next);
+    if (window.location.pathname !== path) window.history.pushState(null, '', path);
+  }, []);
+
+  // the back and forward buttons say where to be, rather than leaving the app
+  useEffect(() => {
+    const onPop = () => setRoute(routeFromPath(window.location.pathname) ?? { screen: 'calendar' });
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
+  /**
+   * A typed-in address the account may not use lands on the calendar, and the
+   * address bar is corrected to match — an admin path on a screen that is not
+   * the admin panel is a lie the reader would have no way to spot.
+   */
+  useEffect(() => {
+    const allowed =
+      route.screen === 'calendar' ||
+      (route.screen === 'admin' && viewer.role === 'admin') ||
+      (route.screen === 'mine' && viewer.instructorId !== null);
+    if (allowed) return;
+    setRoute({ screen: 'calendar' });
+    window.history.replaceState(null, '', '/');
+  }, [route, viewer]);
   const [authView, setAuthView] = useState<AuthViewName>(() => authViewFromLocation() ?? 'SIGN_IN');
   const [submitting, setSubmitting] = useState(false);
   const [bookingError, setBookingError] = useState<string | null>(null);
@@ -441,12 +480,15 @@ export default function App() {
       <LangToggle />
       {roleLabel && <span className="role-badge">{t(roleLabel)}</span>}
       {viewer.instructorId && screen === 'calendar' && (
-        <button className="btn btn--ghost" onClick={() => setScreen('mine')}>
+        <button className="btn btn--ghost" onClick={() => go({ screen: 'mine' })}>
           {t('Derslerim')}
         </button>
       )}
       {viewer.role === 'admin' && screen === 'calendar' && (
-        <button className="btn btn--ghost" onClick={() => setScreen('admin')}>
+        <button
+          className="btn btn--ghost"
+          onClick={() => go({ screen: 'admin', page: 'dashboard' })}
+        >
           {t('Yönetim')}
         </button>
       )}
@@ -483,7 +525,7 @@ export default function App() {
           <MyLessons
             instructorId={viewer.instructorId}
             instructorName={own?.name ?? ''}
-            onBack={() => setScreen('calendar')}
+            onBack={() => go({ screen: 'calendar' })}
           />
         </div>
       </NeonAuthUIProvider>
@@ -515,7 +557,9 @@ export default function App() {
           <AdminShell
             viewer={viewer}
             instructors={instructors}
-            onBackToCalendar={() => setScreen('calendar')}
+            page={route.screen === 'admin' ? route.page : 'dashboard'}
+            onPage={(page) => go({ screen: 'admin', page })}
+            onBackToCalendar={() => go({ screen: 'calendar' })}
             onChanged={reload}
           />
         </div>
