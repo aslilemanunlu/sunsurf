@@ -1,0 +1,794 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Wavefoil</title>
+    <meta
+      name="description"
+      content="Su sporları işletmeleri için akıllı yönetim sistemi: dersler, eğitmenler, öğrenci kayıtları, müşteriler, paket ve bakiye takibi ve çocuk kampı tek platformda."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="wrap header-in">
+        <a class="logo" href="#top">
+          <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+            <path d="M6 24c4-16 10-21 17-22-1 10-5 19-12 22-2 .8-4 .8-5 0Z" fill="#ff6b35" />
+            <path d="M5 26c5 2 12 1 17-3" stroke="#c9491f" stroke-width="2.4" stroke-linecap="round" />
+          </svg>
+          wavefoil
+        </a>
+
+        <nav class="nav">
+          <div class="nav-item">
+            <button class="nav-link">
+              <span data-en="Solutions">Çözümler</span>
+              <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="nav-panel">
+              <a href="#takvim"><b data-en="Calendar and scheduling" style="display:block">Takvim ve planlama</b><span data-en="Instructors, hours, repeating lessons, leave">Eğitmenler, saatler, tekrarlayan dersler, izin</span></a>
+              <a href="#ogrenciler"><b data-en="Student records" style="display:block">Öğrenci kayıtları</b><span data-en="Contact details, health notes, lesson history">İletişim bilgileri, sağlık notları, ders geçmişi</span></a>
+              <a href="#paketler"><b data-en="Packages and balances" style="display:block">Paket ve bakiye takibi</b><span data-en="Lesson packs, remaining credits, balances">Ders paketleri, kalan haklar, bakiyeler</span></a>
+              <a href="#kamp"><b data-en="Kids camp" style="display:block">Çocuk kampı</b><span data-en="Registration, seasons, attendance">Kayıt, sezonlar, katılım takibi</span></a>
+              <a href="#raporlar"><b data-en="Lists and reports" style="display:block">Listeler ve raporlar</b><span data-en="Daily lists, instructor hours, CSV export">Günlük listeler, eğitmen saatleri, CSV</span></a>
+              <a href="#ekip"><b data-en="Team and roles" style="display:block">Ekip ve roller</b><span data-en="Permissions, invitations, instructor access">Yetkiler, davetler, eğitmen erişimi</span></a>
+            </div>
+          </div>
+
+          <div class="nav-item">
+            <button class="nav-link">
+              <span data-en="Built for">Kimler için</span>
+              <svg class="chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+            <div class="nav-panel">
+              <a href="#kimler"><b data-en="Windsurf schools" style="display:block">Windsurf okulları</b></a>
+              <a href="#kimler"><b data-en="Kitesurf schools" style="display:block">Kitesurf okulları</b></a>
+              <a href="#kimler"><b data-en="Surf schools" style="display:block">Sörf okulları</b></a>
+              <a href="#kimler"><b data-en="Sailing schools" style="display:block">Yelken okulları</b></a>
+              <a href="#kimler"><b data-en="Dive centers" style="display:block">Dalış merkezleri</b></a>
+              <a href="#kimler"><b data-en="Ski schools" style="display:block">Kayak okulları</b></a>
+            </div>
+          </div>
+
+          <div class="nav-item">
+            <a class="nav-link" href="#surec" data-en="How we work">Nasıl çalışıyoruz</a>
+          </div>
+          <div class="nav-item">
+            <a class="nav-link" href="#fiyatlar" data-en="Pricing">Fiyatlama</a>
+          </div>
+          <div class="nav-item">
+            <a class="nav-link" href="#referanslar" data-en="Customers">Referanslar</a>
+          </div>
+        </nav>
+
+        <div class="header-end">
+          <div class="lang" role="group" aria-label="Dil / Language">
+            <button class="lang-btn is-active" data-lang="tr" aria-pressed="true">TR</button>
+            <button class="lang-btn" data-lang="en" aria-pressed="false">EN</button>
+          </div>
+          <button class="btn btn-primary btn-sm" data-open-form data-en="Request a call">Görüşme talep edin</button>
+          <button class="menu-toggle" aria-expanded="false" aria-controls="mobile-menu" aria-label="Menü">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="mobile-menu" id="mobile-menu" hidden>
+        <div class="wrap">
+          <a href="#takvim" data-en="Calendar and scheduling">Takvim ve planlama</a>
+          <a href="#ogrenciler" data-en="Student records">Öğrenci kayıtları</a>
+          <a href="#paketler" data-en="Packages and balances">Paket ve bakiye takibi</a>
+          <a href="#kamp" data-en="Kids camp">Çocuk kampı</a>
+          <a href="#raporlar" data-en="Lists and reports">Listeler ve raporlar</a>
+          <a href="#ekip" data-en="Team and roles">Ekip ve roller</a>
+          <a href="#surec" data-en="How we work">Nasıl çalışıyoruz</a>
+          <a href="#kimler" data-en="Built for">Kimler için</a>
+          <a href="#fiyatlar" data-en="Pricing">Fiyatlama</a>
+          <a href="#referanslar" data-en="Customers">Referanslar</a>
+          <button class="btn btn-primary" data-open-form data-en="Request a call">Görüşme talep edin</button>
+        </div>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- hero -->
+      <section class="hero">
+        <div class="wrap hero-grid">
+          <div>
+            <h1 data-html data-en="Smart Management System<br />for Watersports Operators">Su Sporları İşletmeleri için<br />Akıllı Yönetim Sistemi</h1>
+            <p class="hero-sub" data-en="Lessons, instructors, student records, customers, customer package tracking and the kids camp, all on one platform.">
+              Dersler, eğitmenler, öğrenci kayıtları, müşteriler, müşteri paketleri takibi ve çocuk
+              kampı tek platformda.
+            </p>
+            <p class="hero-sub" data-en="Daily management gets much easier: the calendar, the records, the register and the reports stay in one place, so your team can focus on the water and on their guests.">
+              Günlük yönetim işleri çok daha kolay: takvim, kayıtlar, yoklama ve raporlar aynı yerde
+              durur, ekibiniz suya ve misafirlerine odaklanır.
+            </p>
+            <div class="hero-cta">
+              <button class="btn btn-primary" data-open-form data-en="Request a call">Görüşme talep edin</button>
+              <a class="btn btn-ghost" href="#takvim" data-en="See the calendar">Takvimi görün</a>
+            </div>
+          </div>
+          <div class="hero-art">
+            <img
+              src="./assets/mockup-calendar.svg"
+              data-en-src="./assets/mockup-calendar-en.svg"
+              alt="Gün takvimi: eğitmen kolonları ve ders oluşturma penceresi"
+              data-en-alt="The day calendar: instructor columns and the lesson form"
+              width="880"
+              height="640"
+            />
+          </div>
+        </div>
+      </section>
+
+      <!-- tek platform -->
+      <section class="section">
+        <div class="wrap">
+          <div class="section-head center">
+            <span class="eyebrow" data-en="One school. One platform.">Tek okul. Tek platform.</span>
+            <h2 data-en="Not Just a Booking Tool. The Operating System of Your School.">Sadece Bir Rezervasyon Aracı Değil. Okulunuzun İşletim Sistemi.</h2>
+            <p data-en="Keep your team, your lessons and your student records in one simple interface. Stop bouncing between spreadsheets, WhatsApp threads and the paper diary.">
+              Ekibinizi, derslerinizi ve öğrenci kayıtlarınızı tek ve sade bir arayüzde tutun. Excel
+              dosyaları, WhatsApp grupları ve kâğıt ajanda arasında gidip gelmeyi bırakın.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <!-- özellik: takvim -->
+      <section class="section section-tint" id="takvim">
+        <div class="wrap">
+          <div class="feature">
+            <div class="feature-text">
+              <h3 data-en="One Calendar, Zero Chaos">Tek Takvim, Sıfır Karmaşa</h3>
+              <p data-en="Keep every lesson and every instructor in a live calendar. Opening an hour, moving a lesson or replanning the day takes seconds.">
+                Her dersi ve her eğitmeni canlı bir takvimde tutun. Bir saati açmak, dersi taşımak ya
+                da günü yeniden planlamak saniyeler sürer.
+              </p>
+              <ul class="checks">
+                <li data-en="Scheduling built for lesson based watersports activities">Su sporları derslerine özel planlama düzeni</li>
+                <li data-en="Student details and lesson history one click away from the calendar">Takvimden tek tıkla öğrenci bilgileri ve ders geçmişi</li>
+                <li data-en="Role based mobile access, so your team can act fast anywhere">Role dayalı mobil erişim, ekibiniz her yerden hızlı hareket eder</li>
+                <li data-en="Repeating lessons and instructor leave handled in a single step">Tekrarlayan dersler ve eğitmen izinleri tek adımda</li>
+              </ul>
+              <a class="link-arrow" href="#surec">
+                <span data-en="See how it works">Nasıl çalıştığını görün</span>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+              </a>
+            </div>
+            <div>
+              <img
+                src="./assets/mockup-schedule.svg"
+                data-en-src="./assets/mockup-schedule-en.svg"
+                alt="Saatleri sürükleyerek ders oluşturma, tekrar ve izin pencereleri"
+                data-en-alt="Dragging hours to create a lesson, with the repeat and leave panels"
+                width="800"
+                height="600"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- özellik: öğrenciler -->
+      <section class="section" id="ogrenciler">
+        <div class="wrap">
+          <div class="feature reverse">
+            <div class="feature-text">
+              <h3 data-en="The Whole History on One Card">Tüm Geçmiş Tek Kartta</h3>
+              <p data-en="Contact details, health notes, the guardian and every lesson taken sit on the same card. All a new record needs is a name, and the rest you fill in when there is time.">
+                İletişim bilgileri, sağlık notları, velisi ve aldığı bütün dersler aynı kartta durur.
+                Yeni bir kayıt açmak için tek gereken isim, gerisini zaman buldukça tamamlarsınız.
+              </p>
+              <ul class="checks">
+                <li data-en="Phone, birth date, emergency contacts and guardian details">Telefon, doğum tarihi, acil durum kişileri ve veli bilgisi</li>
+                <li data-en="Injury and allergy notes, visible before anyone goes on the water">Sakatlık ve alerji notları, suya girmeden önce görünür</li>
+                <li data-en="Private notes only your staff can see">Yalnızca personelinizin görebildiği özel notlar</li>
+                <li data-en="Search by name or phone, filter, and export as CSV">İsim ya da telefonla arama, filtreleme ve CSV dışa aktarma</li>
+              </ul>
+            </div>
+            <div>
+              <img
+                src="./assets/mockup-crm.svg"
+                data-en-src="./assets/mockup-crm-en.svg"
+                alt="Öğrenci kartı: iletişim bilgileri, sağlık notları ve ders geçmişi"
+                data-en-alt="A student card: contact details, health notes and lesson history"
+                width="820"
+                height="620"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- özellik: paket ve bakiye -->
+      <section class="section section-tint" id="paketler">
+        <div class="wrap">
+          <div class="feature">
+            <div class="feature-text">
+              <h3 data-en="Package and Balance Tracking">Paket ve Bakiye Takibi</h3>
+              <p data-en="Who bought how many lessons, how many are left and what is still open. All of it sits on the customer card and stays visible while a lesson is being booked.">
+                Kim kaç ders aldı, kaç dersi kaldı ve ne kadar bakiyesi var. Hepsi müşterinin
+                kartında durur ve ders yazılırken gözünüzün önünde olur.
+              </p>
+              <ul class="checks">
+                <li data-en="A lesson pack spends one credit per booking, however long it runs">Ders paketinde bir rezervasyon bir hak düşer, ders kaç saat sürerse sürsün</li>
+                <li data-en="If a lesson is cancelled, the credit goes straight back to the package">Ders iptal edilince hak paketine anında geri döner</li>
+                <li data-en="Agreed amount, collected amount and remaining balance on one line">Anlaşılan tutar, tahsil edilen tutar ve kalan bakiye tek satırda</li>
+                <li data-en="Storage, rental and camp are followed in the same list">Depolama, kiralama ve kamp da aynı listeden takip edilir</li>
+              </ul>
+            </div>
+            <div>
+              <img
+                src="./assets/mockup-packages.svg"
+                data-en-src="./assets/mockup-packages-en.svg"
+                alt="Paket ve bakiye listesi ile bir müşterinin paket detayı"
+                data-en-alt="The package and balance list with one customer's package detail"
+                width="820"
+                height="600"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- özellik: çocuk kampı -->
+      <section class="section" id="kamp">
+        <div class="wrap">
+          <div class="feature">
+            <div class="feature-text">
+              <h3 data-en="The Morning Register in Seconds">Sabah Yoklaması Saniyeler İçinde</h3>
+              <p data-en="One row per child: the guardian's number, any allergy and the days they attend. You take the register from your phone while you are standing on the sand.">
+                Her çocuk için tek satır: velinin telefonu, varsa alerjisi ve kampa katıldığı günler.
+                Yoklamayı sahilde ayaktayken telefonunuzdan alırsınız.
+              </p>
+              <ul class="checks">
+                <li data-en="Registration forms, season based lists and attendance tracking">Kayıt formları, sezon bazlı listeler ve katılım takibi</li>
+                <li data-en="Being registered and being present are tracked separately">Kayıtlı olmak ile kampa gelmiş olmak ayrı ayrı izlenir</li>
+                <li data-en="Guardian's number and allergy warnings at the top of the list">Veli telefonu ve alerji uyarısı listenin en üstünde</li>
+                <li data-en="Camp hours appear on the calendar alongside the lessons">Kamp saatleri takvimde derslerle birlikte görünür</li>
+              </ul>
+            </div>
+            <div>
+              <img
+                src="./assets/mockup-camp.svg"
+                data-en-src="./assets/mockup-camp-en.svg"
+                alt="Telefonda çocuk kampı yoklama listesi"
+                data-en-alt="The kids camp register on a phone"
+                width="740"
+                height="660"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- sahne bandı -->
+      <section class="band-section">
+        <div class="wrap">
+          <div class="band">
+            <img
+              class="band-bg"
+              src="./assets/scene-sea.svg"
+              alt="Denizde windsurf ve wingfoil"
+              width="1200"
+              height="560"
+            />
+            <div class="band-card">
+              <span class="eyebrow" data-en="Advanced scheduling">Gelişmiş planlama</span>
+              <h3 data-en="Built for Multi Day Courses and Busy Weeks">Çok Günlü Kurslar ve Yoğun Haftalar İçin</h3>
+              <p data-en="A three day course, four instructors on the water and a kids camp running at the same time, all on one screen. When the wind turns, replanning the day takes seconds instead of phone calls.">
+                Üç günlük bir kurs, aynı anda suda olan dört eğitmen ve devam eden bir çocuk kampı,
+                hepsi tek ekranda. Rüzgâr döndüğünde günü yeniden kurmak telefon trafiği değil,
+                saniyeler alır.
+              </p>
+              <ul class="checks">
+                <li data-en="Multi day courses and repeating lessons in a single plan">Çok günlü kurslar ve tekrarlayan dersler tek planda</li>
+                <li data-en="Instructor and hour conflicts are prevented by the system">Eğitmen ve saat çakışmaları sistem tarafından engellenir</li>
+                <li data-en="Every change reaches your team's screen immediately">Her değişiklik ekibinizin ekranına anında yansır</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- özellik: listeler ve raporlar -->
+      <section class="section" id="raporlar">
+        <div class="wrap">
+          <div class="feature reverse">
+            <div class="feature-text">
+              <h3 data-en="Lists and Reports">Listeler ve Raporlar</h3>
+              <p data-en="Produce the operational lists your team needs, with everything on them: ready on mobile, ready to print, ready to export.">
+                Ekibinizin ihtiyaç duyduğu tüm bilgileri içeren operasyon listelerini oluşturun,
+                mobilde görüntüleyin, yazdırın ya da dışa aktarın.
+              </p>
+              <ul class="checks">
+                <li data-en="Daily lesson lists with contact details and key student notes">İletişim bilgileri ve önemli öğrenci notlarıyla günlük ders listeleri</li>
+                <li data-en="Attendance lists ready to print or share">Yazdırmaya ve paylaşmaya hazır yoklama listeleri</li>
+                <li data-en="Reports on instructor hours and lesson assignments">Eğitmen saatleri ve ders dağılımı raporları</li>
+                <li data-en="Export every table as CSV">Tüm tabloları CSV olarak dışa aktarın</li>
+              </ul>
+            </div>
+            <div>
+              <img
+                src="./assets/mockup-reports.svg"
+                data-en-src="./assets/mockup-reports-en.svg"
+                alt="Raporlar: ders sayısı, eğitmen saatleri ve ders tipi dağılımı"
+                data-en-alt="Reports: lesson counts, instructor hours and the lesson type mix"
+                width="780"
+                height="620"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- özellik: ekip -->
+      <section class="section section-tint" id="ekip">
+        <div class="wrap">
+          <div class="feature">
+            <div class="feature-text">
+              <h3 data-en="Roles, Permissions and Invitations">Roller, Yetkiler ve Davetler</h3>
+              <p data-en="A new account reaches no data at all until an admin gives it a role. You add your instructors with an invitation link you share yourself, and you decide what each of them can see.">
+                Yeni açılan bir hesap, yönetici rol verene kadar hiçbir veriye erişemez.
+                Eğitmenlerinizi kendi paylaştığınız davet bağlantısıyla eklersiniz, kimin neyi
+                göreceğine siz karar verirsiniz.
+              </p>
+              <ul class="checks">
+                <li data-en="Admin and instructor roles, managed from one list">Yönetici ve eğitmen rolleri tek listeden yönetilir</li>
+                <li data-en="An instructor sees their own calendar and their own lessons">Eğitmen yalnızca kendi takvimini ve kendi derslerini görür</li>
+                <li data-en="Permissions are enforced at the database level">Yetkiler veritabanı düzeyinde uygulanır</li>
+                <li data-en="Every instructor can see their own monthly hours">Her eğitmen kendi aylık çalışma saatini görüntüleyebilir</li>
+              </ul>
+            </div>
+            <div>
+              <img
+                src="./assets/mockup-team.svg"
+                data-en-src="./assets/mockup-team-en.svg"
+                alt="Hesaplar, roller ve eğitmen davet ekranı"
+                data-en-alt="Accounts, roles and the instructor invitation screen"
+                width="800"
+                height="560"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- süreç -->
+      <section class="section" id="surec">
+        <div class="wrap">
+          <div class="section-head center">
+            <span class="eyebrow" data-en="How we work">Nasıl çalışıyoruz</span>
+            <h2 data-en="Seven Simple Steps, Together With You">Sizinle Birlikte İlerleyen Yedi Adım</h2>
+            <p data-en="No installation needed: the system opens in the browser. From the first call to going live, every step is planned with your own team.">
+              Kurulum gerektirmez, sistem tarayıcıdan açılır. İlk görüşmeden canlıya geçişe kadar
+              her adım kendi ekibinizle birlikte planlanır.
+            </p>
+          </div>
+          <ol class="steps">
+            <li class="step">
+              <span class="step-num">01</span>
+              <b data-en="Discovery">Keşif</b>
+              <span data-en="We listen to your lesson types, your team and the way your season runs.">Ders tiplerinizi, ekibinizi ve sezonunuzun nasıl işlediğini dinliyoruz.</span>
+            </li>
+            <li class="step">
+              <span class="step-num">02</span>
+              <b data-en="Sample system">Örnek sistem</b>
+              <span data-en="We go through a demo prepared around your own flow, not a generic one.">Genel bir tanıtım değil, kendi akışınıza göre hazırlanmış bir demo üzerinden ilerliyoruz.</span>
+            </li>
+            <li class="step">
+              <span class="step-num">03</span>
+              <b data-en="Setup">Sistem kurulumu</b>
+              <span data-en="Instructors, lesson types, seasons and roles are defined.">Eğitmenler, ders tipleri, sezonlar ve roller tanımlanıyor.</span>
+            </li>
+            <li class="step">
+              <span class="step-num">04</span>
+              <b data-en="Data transfer">Veri aktarımı</b>
+              <span data-en="Your customer and student records move over from your existing files.">Müşteri ve öğrenci kayıtlarınız mevcut dosyalarınızdan aktarılıyor.</span>
+            </li>
+            <li class="step">
+              <span class="step-num">05</span>
+              <b data-en="Testing">Test</b>
+              <span data-en="Your team tries it on a real week and anything missing is completed.">Ekibiniz gerçek bir hafta üzerinde deniyor, eksik kalan her şey tamamlanıyor.</span>
+            </li>
+            <li class="step">
+              <span class="step-num">06</span>
+              <b data-en="Go live">Canlıya geçiş</b>
+              <span data-en="As the season starts, the system opens to everyone on the team.">Sezon başlarken sistem tüm ekibin kullanımına açılıyor.</span>
+            </li>
+            <li class="step">
+              <span class="step-num">07</span>
+              <b data-en="Questions and fixes">Soru ve hata takibi</b>
+              <span data-en="Questions and issues are followed from one channel and updates are published.">Sorular ve hatalar tek kanaldan izleniyor, güncellemeler yayına alınıyor.</span>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- kimler için -->
+      <section class="section section-tint" id="kimler">
+        <div class="wrap">
+          <div class="section-head center">
+            <h2 data-en="Built for Your School, Center or Club">Okulunuz, Merkeziniz ya da Kulübünüz İçin</h2>
+            <p data-en="Whether you run several services in a single day or coordinate a large team of instructors, the system adapts to the way you already work.">
+              İster gün içinde birden fazla hizmet yürütün, ister kalabalık bir eğitmen ekibini
+              koordine edin, sistem çalışma düzeninize uyum sağlar.
+            </p>
+          </div>
+          <div class="chips">
+            <span class="chip" data-en="Windsurf schools">Windsurf okulları</span>
+            <span class="chip" data-en="Kitesurf schools">Kitesurf okulları</span>
+            <span class="chip" data-en="Surf schools">Sörf okulları</span>
+            <span class="chip" data-en="Sailing schools">Yelken okulları</span>
+            <span class="chip" data-en="Dive centers">Dalış merkezleri</span>
+            <span class="chip" data-en="Ski schools">Kayak okulları</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- modüller -->
+      <section class="section">
+        <div class="wrap">
+          <div class="section-head center">
+            <h2 data-en="A Platform That Grows With You">Sizinle Birlikte Büyüyen Bir Platform</h2>
+            <p data-en="Start with the calendar, then add what you need: student records, the kids camp and reports. Everything is connected to the same calendar and the same people.">
+              Takvimle başlayın, ihtiyaç duydukça ekleyin: öğrenci kayıtları, çocuk kampı ve
+              raporlar. Hepsi aynı takvime ve aynı kişilere bağlıdır.
+            </p>
+          </div>
+          <div class="cards">
+            <div class="card">
+              <h4 data-en="Calendar">Takvim</h4>
+              <ul>
+                <li data-en="Day by day, instructor by instructor">Gün gün, eğitmen eğitmen</li>
+                <li data-en="Create, move, repeat and close hours">Ders oluşturma, taşıma, tekrarlama ve saat kapatma</li>
+                <li data-en="Capacity, sport and instructor under control">Kontenjan, spor ve eğitmen kontrol altında</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4 data-en="Students">Öğrenciler</h4>
+              <ul>
+                <li data-en="Contact details, guardian and emergency contacts">İletişim bilgileri, veli ve acil durum kişileri</li>
+                <li data-en="Health notes and staff only notes">Sağlık notları ve personele özel notlar</li>
+                <li data-en="The full lesson history on the card">Kartın üzerinde tüm ders geçmişi</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4 data-en="Packages and balances">Paket ve bakiye</h4>
+              <ul>
+                <li data-en="Lesson packs and the credits left in them">Ders paketleri ve içlerinde kalan haklar</li>
+                <li data-en="Agreed, collected and remaining amounts">Anlaşılan, tahsil edilen ve kalan tutar</li>
+                <li data-en="Visible on the customer card at a glance">Müşteri kartında tek bakışta görünür</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4 data-en="Kids camp">Çocuk kampı</h4>
+              <ul>
+                <li data-en="Registration forms and season based lists">Kayıt formları ve sezon bazlı listeler</li>
+                <li data-en="Attendance from a phone">Telefondan yoklama</li>
+                <li data-en="The guardian's number always to hand">Veli telefonu her zaman elinizin altında</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4 data-en="Reports">Raporlar</h4>
+              <ul>
+                <li data-en="Instructor hours, down to the day">Eğitmen saatleri, güne kadar ayrıntılı</li>
+                <li data-en="Today, this week, this month or your own dates">Bugün, bu hafta, bu ay ya da seçtiğiniz tarihler</li>
+                <li data-en="CSV export for every list">Her liste için CSV dışa aktarma</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- fiyatlama -->
+      <section class="section section-tint" id="fiyatlar">
+        <div class="wrap">
+          <div class="section-head center">
+            <span class="eyebrow" data-en="Pricing">Fiyatlama</span>
+            <h2 data-en="Three Clear Items, No Surprises">Üç Kalem, Sürpriz Yok</h2>
+            <p data-en="Discovery and the first call are free. After that there are three items: the system costs your usage creates, the service fee, and the one off setup cost.">
+              Keşif ve ön görüşme ücretsizdir. Sonrasında ödediğiniz üç kalem var: kullanımınızın
+              yarattığı sistem giderleri, hizmet bedeli ve tek seferlik kurulum maliyeti.
+            </p>
+          </div>
+
+          <div class="split-cards">
+            <div class="card">
+              <h4 data-en="System costs">Sistem giderleri</h4>
+              <p class="card-lead" data-en="Database, hosting and maintenance. As your user count and the number of reservations grow, this item grows with them, so you pay for what you actually use.">
+                Veritabanı, barındırma ve bakım. Kullanıcı sayınız ve rezervasyon adediniz arttıkça
+                bu kalem de artar, yani kullandığınız kadarını ödersiniz.
+              </p>
+              <ul>
+                <li data-en="Billed transparently at cost">Şeffaf biçimde, maliyeti üzerinden faturalanır</li>
+                <li data-en="Your season's traffic is measured, not guessed">Sezonunuzun yükü tahmin edilmez, ölçülür</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4 data-en="Service fee">Hizmet bedeli</h4>
+              <p class="card-lead" data-en="The usage fee you can pay monthly, yearly or per season. Updates, new features, questions and issue tracking are included.">
+                Aylık, yıllık ya da sezonluk ödeyebileceğiniz kullanım bedeli. Güncellemeler, yeni
+                özellikler, sorular ve hata takibi bu bedele dahildir.
+              </p>
+              <ul>
+                <li data-en="You choose the payment period">Ödeme dönemini siz seçersiniz</li>
+                <li data-en="Support and updates are always included">Destek ve güncellemeler her zaman dahildir</li>
+              </ul>
+            </div>
+            <div class="card">
+              <h4 data-en="Setup cost">Kurulum maliyeti</h4>
+              <p class="card-lead" data-en="Paid once, at the start. Your system is set up around your own flow and your existing records are carried over.">
+                Yalnızca başlangıçta, bir kez ödenir. Sisteminiz kendi akışınıza göre kurulur,
+                eldeki kayıtlarınız içeri taşınır.
+              </p>
+              <ul>
+                <li data-en="Demo and setup: from 5.000 TL">Demo ve kurulum: 5.000 TL’den başlayan fiyatlarla</li>
+                <li data-en="Data transfer: from 5.000 TL, by size and hours">Veri aktarımı: 5.000 TL’den başlayan fiyatlarla, büyüklüğe ve saate göre</li>
+              </ul>
+            </div>
+          </div>
+
+          <h3 class="plans-title" data-en="How you pay the service fee">Hizmet bedelini nasıl ödersiniz</h3>
+
+          <div class="plans">
+            <div class="plan">
+              <b data-en="Monthly">Aylık</b>
+              <p class="plan-price"><strong>___ TL</strong><span data-en="per month, starting price">aylık, başlangıç fiyatı</span></p>
+              <ul>
+                <li data-en="Stop whenever you want">İstediğiniz ay durdurursunuz</li>
+                <li data-en="Updates and support included">Güncellemeler ve destek dahil</li>
+                <li data-en="System costs billed separately">Sistem giderleri ayrıca faturalanır</li>
+              </ul>
+            </div>
+
+            <div class="plan is-featured">
+              <span class="plan-badge" data-en="For seasonal businesses">Sezonluk işletmeler için</span>
+              <b data-en="Season package">Sezonluk paket</b>
+              <p class="plan-price"><strong>___ TL</strong><span data-en="per season, starting price">sezonluk, başlangıç fiyatı</span></p>
+              <ul>
+                <li data-en="One fee that covers the whole season">Bütün sezonu kapsayan tek bedel</li>
+                <li data-en="No usage fee outside the season">Sezon dışında kullanım bedeli yok</li>
+                <li data-en="Your records stay through the winter too">Kayıtlarınız kış boyunca da durur</li>
+              </ul>
+            </div>
+
+            <div class="plan">
+              <b data-en="Yearly">Yıllık</b>
+              <p class="plan-price"><strong>___ TL</strong><span data-en="per year, starting price">yıllık, başlangıç fiyatı</span></p>
+              <ul>
+                <li data-en="For businesses open all year round">Yıl boyu açık işletmeler için</li>
+                <li data-en="Lower than paying month by month">Aylık ödemeye göre daha avantajlı</li>
+                <li data-en="Updates and support included">Güncellemeler ve destek dahil</li>
+              </ul>
+            </div>
+          </div>
+
+          <p class="extras-title" data-en="One off items, and what stays free">Tek seferlik kalemler ve ücretsiz olan</p>
+
+          <div class="extras">
+            <div>
+              <b data-en="Discovery and first call">Keşif ve ön görüşme</b>
+              <strong class="extra-price" data-en="Free">Ücretsiz</strong>
+              <span data-en="We look at your season together, go through your lesson types and your team, and see whether this fits you.">Sezonunuza birlikte bakarız, ders tiplerinizi ve ekibinizi konuşuruz, sistemin size uyup uymadığını görürüz.</span>
+            </div>
+            <div>
+              <b data-en="Demo and setup">Demo ve kurulum</b>
+              <strong class="extra-price" data-en="from 5.000 TL">5.000 TL’den başlayan fiyatlarla</strong>
+              <span data-en="A sample system built around your own flow, then the real setup: instructors, lesson types, seasons, roles and training for your team.">Kendi akışınıza göre hazırlanmış örnek sistem ve ardından asıl kurulum: eğitmenler, ders tipleri, sezonlar, roller ve ekip eğitimi.</span>
+            </div>
+            <div>
+              <b data-en="Data transfer">Veri aktarımı</b>
+              <strong class="extra-price" data-en="from 5.000 TL">5.000 TL’den başlayan fiyatlarla</strong>
+              <span data-en="Priced by the size of the data and the hours it takes, so an operator with two files and one with ten years of records do not pay the same.">Veri büyüklüğüne ve harcanan saate göre fiyatlanır. İki dosyası olan işletme ile on yıllık kaydı olan işletme aynı bedeli ödemez.</span>
+            </div>
+          </div>
+
+
+          <p class="pricing-note" data-en="Prices are shared in the call, based on your team size and the traffic of your season.">
+            Rakamlar, ekibinizin büyüklüğüne ve sezonunuzun yoğunluğuna göre görüşmede netleşir.
+          </p>
+
+          <div class="hero-cta" style="justify-content: center">
+            <button class="btn btn-primary" data-open-form data-en="Request a call">Görüşme talep edin</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- referanslar -->
+      <section class="section" id="referanslar">
+        <div class="wrap">
+          <div class="section-head center">
+            <h2 data-en="What Schools Say">Okullar Ne Diyor</h2>
+            <p data-en="Sample references. The layout is ready, the words should come from your own customers.">
+              Örnek referanslar. Düzen hazır, cümleler kendi müşterilerinizin olmalı.
+            </p>
+          </div>
+          <div class="quotes">
+            <div class="quote-card">
+              <h4 data-en="Double booking is over">Çifte rezervasyon derdi bitti</h4>
+              <p data-en="“An instructor and the front desk could unfortunately book the same hour twice. That problem is gone: everything is in one system and it is very simple.”">
+                “Bir eğitmen ve resepsiyon maalesef aynı saate double booking yapabiliyordu. Artık o
+                derdimiz kalmadı, her şey tek sistemde ve çok basit.”
+              </p>
+              <div class="quote-who">
+                <div>
+                  <b>Deniz A.</b>
+                  <span data-en="School owner, Alaçatı">Okul sahibi, Alaçatı</span>
+                </div>
+              </div>
+            </div>
+            <div class="quote-card">
+              <h4 data-en="A statement in seconds">Döküm saniyeler içinde</h4>
+              <p data-en="“When a customer or a parent asks for a statement, we can produce it in seconds. Checking WhatsApp messages, spreadsheets and forms is finally over.”">
+                “Müşteri veya velilerimiz artık döküm istediğinde bunu saniyeler içinde
+                sağlayabiliyoruz. WhatsApp mesajları, Exceller ve formlardan kontrol yönetimi bitti
+                sonunda.”
+              </p>
+              <div class="quote-who">
+                <div>
+                  <b>Elif T.</b>
+                  <span data-en="Front desk, Urla">Resepsiyon, Urla</span>
+                </div>
+              </div>
+            </div>
+            <div class="quote-card">
+              <h4 data-en="My hours, automatically">Saatlerim otomatik</h4>
+              <p data-en="“At the end of the month I can see my own hours automatically.”">
+                “Ay sonunda kendi saatlerimi otomatik görebiliyorum.”
+              </p>
+              <div class="quote-who">
+                <div>
+                  <b>Kaan D.</b>
+                  <span data-en="Instructor, Çeşme">Eğitmen, Çeşme</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="cta" id="demo">
+        <div class="wrap">
+          <h2 data-en="Start Running Your School From One Screen">Okulunuzu Tek Ekrandan Yönetmeye Başlayın</h2>
+          <p data-en="No installation needed: the system opens in the browser. In a short call we can go through a demo prepared around your own flow.">
+            Kurulum gerektirmez, sistem tarayıcıdan açılır. Kısa bir görüşmede kendi akışınıza göre
+            hazırlanmış bir demo üzerinden ilerleyelim.
+          </p>
+          <div class="hero-cta">
+            <button class="btn btn-primary" data-open-form data-en="Request a call">Görüşme talep edin</button>
+            <a class="btn btn-ghost" href="#takvim" data-en="Explore the features">Özellikleri inceleyin</a>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <div class="footer-grid">
+          <div>
+            <a class="logo" href="#top">
+              <svg width="30" height="30" viewBox="0 0 30 30" fill="none" aria-hidden="true">
+                <path d="M6 24c4-16 10-21 17-22-1 10-5 19-12 22-2 .8-4 .8-5 0Z" fill="#ff6b35" />
+                <path d="M5 26c5 2 12 1 17-3" stroke="#ff9a6a" stroke-width="2.4" stroke-linecap="round" />
+              </svg>
+              wavefoil
+            </a>
+            <p data-en="A management system for watersports schools: lessons, instructors, students and the kids camp on one platform.">
+              Su sporları okulları için yönetim sistemi: dersler, eğitmenler, öğrenciler ve çocuk
+              kampı tek platformda.
+            </p>
+          </div>
+          <div>
+            <h5 data-en="Solutions">Çözümler</h5>
+            <ul>
+              <li><a href="#takvim" data-en="Calendar and scheduling">Takvim ve planlama</a></li>
+              <li><a href="#ogrenciler" data-en="Student records">Öğrenci kayıtları</a></li>
+              <li><a href="#paketler" data-en="Packages and balances">Paket ve bakiye takibi</a></li>
+              <li><a href="#kamp" data-en="Kids camp">Çocuk kampı</a></li>
+              <li><a href="#raporlar" data-en="Lists and reports">Listeler ve raporlar</a></li>
+              <li><a href="#ekip" data-en="Team and roles">Ekip ve roller</a></li>
+            </ul>
+          </div>
+          <div>
+            <h5 data-en="Built for">Kimler için</h5>
+            <ul>
+              <li><a href="#kimler" data-en="Windsurf schools">Windsurf okulları</a></li>
+              <li><a href="#kimler" data-en="Kitesurf schools">Kitesurf okulları</a></li>
+              <li><a href="#kimler" data-en="Sailing schools">Yelken okulları</a></li>
+              <li><a href="#kimler" data-en="Dive centers">Dalış merkezleri</a></li>
+            </ul>
+          </div>
+          <div>
+            <h5 data-en="Company">Kurumsal</h5>
+            <ul>
+              <li><a href="#surec" data-en="How we work">Nasıl çalışıyoruz</a></li>
+              <li><a href="#fiyatlar" data-en="Pricing">Fiyatlama</a></li>
+              <li><a href="#referanslar" data-en="Customers">Referanslar</a></li>
+              <li><a href="#demo" data-en="Request a call">Görüşme talep edin</a></li>
+            </ul>
+          </div>
+        </div>
+        <div class="footer-end">
+          <span data-en="© 2026 wavefoil. All rights reserved.">© 2026 wavefoil. Tüm hakları saklıdır.</span>
+          <span data-en="A management system for watersports schools">Su sporları okulları için yönetim sistemi</span>
+        </div>
+      </div>
+    </footer>
+
+    <!-- görüşme formu -->
+    <dialog class="modal" id="gorusme-formu">
+      <form class="modal-form" method="dialog" novalidate>
+        <button class="modal-close" type="button" data-close-form aria-label="Kapat">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <h3 data-en="Request a call">Görüşme talep edin</h3>
+        <p class="modal-sub" data-en="Fill in the form and we will get back to you as soon as possible.">
+          Formu doldurun, en kısa sürede size dönelim.
+        </p>
+
+        <div class="field-row">
+          <label>
+            <span data-en="First name">Ad</span>
+            <input name="ad" type="text" autocomplete="given-name" required />
+          </label>
+          <label>
+            <span data-en="Last name">Soyad</span>
+            <input name="soyad" type="text" autocomplete="family-name" required />
+          </label>
+        </div>
+
+        <div class="field-row">
+          <label>
+            <span data-en="Phone">Telefon</span>
+            <input name="telefon" type="tel" autocomplete="tel" required />
+          </label>
+          <label>
+            <span data-en="Your role">Rolünüz</span>
+            <select name="rol">
+              <option data-en="School owner">Okul sahibi</option>
+              <option data-en="Manager">Yönetici</option>
+              <option data-en="Front desk">Resepsiyon</option>
+              <option data-en="Instructor">Eğitmen</option>
+              <option data-en="Other">Diğer</option>
+            </select>
+          </label>
+        </div>
+
+        <label>
+          <span data-en="Business name">İşletme ismi</span>
+          <input name="isletme" type="text" autocomplete="organization" />
+        </label>
+
+        <label>
+          <span data-en="Details">Detay</span>
+          <textarea name="detay" rows="4" data-en-placeholder="How many instructors, which lessons, when would you like to start?" placeholder="Kaç eğitmen, hangi dersler, ne zaman başlamak istiyorsunuz?"></textarea>
+        </label>
+
+        <p class="modal-note" data-en="Your details are used only to arrange this call." >
+          Bilgileriniz yalnızca bu görüşme için kullanılır.
+        </p>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" type="submit" data-en="Send">Gönder</button>
+          <button class="btn btn-ghost" type="button" data-close-form data-en="Cancel">Vazgeç</button>
+        </div>
+
+        <p class="modal-status" hidden></p>
+      </form>
+    </dialog>
+
+    <script src="./site.js"></script>
+  </body>
+</html>

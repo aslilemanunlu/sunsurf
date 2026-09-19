@@ -17,52 +17,52 @@
     <rect x="235" y="42" width="90" height="20" rx="10" fill="#1d1209"/>
 
     <!-- başlık -->
-    <text x="154" y="100" font-size="17" font-weight="800" fill="#1d1209">Çocuk kampı</text>
-    <text x="154" y="120" font-size="12" font-weight="600" fill="#8a6e5d">Sabah yoklaması · 21 Temmuz</text>
+    <text x="154" y="100" font-size="17" font-weight="800" fill="#1d1209">Kids camp</text>
+    <text x="154" y="120" font-size="12" font-weight="600" fill="#8a6e5d">Morning register · 21 July</text>
     <rect x="154" y="134" width="252" height="34" rx="12" fill="#ffeee4"/>
-    <text x="170" y="156" font-size="12.5" font-weight="700" fill="#a83c16">Yaz sezonu · 8 çocuk kayıtlı</text>
+    <text x="170" y="156" font-size="12.5" font-weight="700" fill="#a83c16">Summer season · 8 children</text>
 
     <!-- liste -->
     <rect x="146" y="182" width="268" height="62" rx="14" fill="#ffffff" stroke="#ead9c9"/>
     <circle cx="176" cy="213" r="16" fill="#e2f2ee"/>
     <path d="M169 213l5 5 10-10" stroke="#0f8a72" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     <text x="202" y="208" font-size="13.5" font-weight="700" fill="#1d1209">Deniz A.</text>
-    <text x="202" y="226" font-size="11.5" fill="#8a6e5d">Veli: 0532 ••• ••71</text>
+    <text x="202" y="226" font-size="11.5" fill="#8a6e5d">Guardian: 0532 ••• ••71</text>
     <rect x="346" y="200" width="54" height="26" rx="13" fill="#e2f2ee"/>
-    <text x="373" y="217" font-size="11" font-weight="700" fill="#0f8a72" text-anchor="middle">Geldi</text>
+    <text x="373" y="217" font-size="11" font-weight="700" fill="#0f8a72" text-anchor="middle">Here</text>
 
     <rect x="146" y="254" width="268" height="62" rx="14" fill="#ffffff" stroke="#ead9c9"/>
     <circle cx="176" cy="285" r="16" fill="#e2f2ee"/>
     <path d="M169 285l5 5 10-10" stroke="#0f8a72" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     <text x="202" y="280" font-size="13.5" font-weight="700" fill="#1d1209">Ela K.</text>
-    <text x="202" y="298" font-size="11.5" fill="#c9491f">Alerji: fıstık</text>
+    <text x="202" y="298" font-size="11.5" fill="#c9491f">Allergy: peanuts</text>
     <rect x="346" y="272" width="54" height="26" rx="13" fill="#e2f2ee"/>
-    <text x="373" y="289" font-size="11" font-weight="700" fill="#0f8a72" text-anchor="middle">Geldi</text>
+    <text x="373" y="289" font-size="11" font-weight="700" fill="#0f8a72" text-anchor="middle">Here</text>
 
     <rect x="146" y="326" width="268" height="62" rx="14" fill="#ffffff" stroke="#ff6b35" stroke-width="2"/>
     <circle cx="176" cy="357" r="16" fill="#ffeee4" stroke="#ffcdb4"/>
     <text x="202" y="352" font-size="13.5" font-weight="700" fill="#1d1209">Poyraz T.</text>
-    <text x="202" y="370" font-size="11.5" fill="#8a6e5d">Veli: 0555 ••• ••09</text>
+    <text x="202" y="370" font-size="11.5" fill="#8a6e5d">Guardian: 0555 ••• ••09</text>
     <rect x="336" y="344" width="64" height="26" rx="13" fill="#ff6b35"/>
-    <text x="368" y="361" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">İşaretle</text>
+    <text x="368" y="361" font-size="11" font-weight="700" fill="#ffffff" text-anchor="middle">Mark</text>
 
     <rect x="146" y="398" width="268" height="62" rx="14" fill="#ffffff" stroke="#ead9c9"/>
     <circle cx="176" cy="429" r="16" fill="#fdf6ef" stroke="#ead9c9"/>
     <text x="202" y="424" font-size="13.5" font-weight="700" fill="#1d1209">Mira S.</text>
-    <text x="202" y="442" font-size="11.5" fill="#8a6e5d">Veli: 0542 ••• ••33</text>
+    <text x="202" y="442" font-size="11.5" fill="#8a6e5d">Guardian: 0542 ••• ••33</text>
     <rect x="346" y="416" width="54" height="26" rx="13" fill="#f4ece5"/>
-    <text x="373" y="433" font-size="11" font-weight="700" fill="#8a6e5d" text-anchor="middle">Gelmedi</text>
+    <text x="373" y="433" font-size="11" font-weight="700" fill="#8a6e5d" text-anchor="middle">Absent</text>
 
     <rect x="146" y="470" width="268" height="62" rx="14" fill="#ffffff" stroke="#ead9c9"/>
     <circle cx="176" cy="501" r="16" fill="#e2f2ee"/>
     <path d="M169 501l5 5 10-10" stroke="#0f8a72" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
     <text x="202" y="496" font-size="13.5" font-weight="700" fill="#1d1209">Efe B.</text>
-    <text x="202" y="514" font-size="11.5" fill="#8a6e5d">Veli: 0533 ••• ••28</text>
+    <text x="202" y="514" font-size="11.5" fill="#8a6e5d">Guardian: 0533 ••• ••28</text>
     <rect x="346" y="488" width="54" height="26" rx="13" fill="#e2f2ee"/>
-    <text x="373" y="505" font-size="11" font-weight="700" fill="#0f8a72" text-anchor="middle">Geldi</text>
+    <text x="373" y="505" font-size="11" font-weight="700" fill="#0f8a72" text-anchor="middle">Here</text>
 
     <rect x="146" y="552" width="268" height="44" rx="22" fill="#ff6b35"/>
-    <text x="280" y="580" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">Yoklamayı kaydet</text>
+    <text x="280" y="580" font-size="14" font-weight="700" fill="#ffffff" text-anchor="middle">Save the register</text>
   </g>
 
   <!-- yüzen rozet: sabah tek geçişte -->
@@ -71,8 +71,8 @@
   </g>
   <circle cx="502" cy="126" r="17" fill="#e2f2ee"/>
   <path d="M494 126l6 6 11-12" stroke="#0f8a72" stroke-width="2.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="530" y="121" font-size="13" font-weight="800" fill="#1d1209">Sabah tek geçişte</text>
-  <text x="530" y="141" font-size="12" fill="#8a6e5d">5 çocuk işaretlendi, 1 gelmedi</text>
+  <text x="530" y="121" font-size="13" font-weight="800" fill="#1d1209">The morning in one pass</text>
+  <text x="530" y="141" font-size="12" fill="#8a6e5d">5 marked here, 1 absent</text>
 
   <!-- yüzen rozet: alerji -->
   <g filter="url(#s2)">
@@ -80,6 +80,6 @@
   </g>
   <circle cx="34" cy="466" r="17" fill="#ffeee4"/>
   <path d="M34 458v10M34 474v.5" stroke="#c9491f" stroke-width="3" stroke-linecap="round"/>
-  <text x="60" y="461" font-size="13" font-weight="800" fill="#1d1209">Alerji uyarısı</text>
-  <text x="60" y="481" font-size="12" fill="#8a6e5d">Kartın üstünde durur</text>
+  <text x="60" y="461" font-size="13" font-weight="800" fill="#1d1209">Allergy warning</text>
+  <text x="60" y="481" font-size="12" fill="#8a6e5d">Sits on the card</text>
 </svg>

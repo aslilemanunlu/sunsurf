@@ -12,13 +12,13 @@
   <g filter="url(#c1)">
     <rect x="10" y="30" width="470" height="540" rx="20" fill="#ffffff" stroke="#f0e0d3"/>
   </g>
-  <text x="38" y="72" font-size="16" font-weight="800" fill="#1d1209">Müşteriler</text>
+  <text x="38" y="72" font-size="16" font-weight="800" fill="#1d1209">Customers</text>
   <rect x="38" y="88" width="270" height="34" rx="12" fill="#fdf6ef" stroke="#ead9c9"/>
   <circle cx="58" cy="105" r="6.5" fill="none" stroke="#a08a7a" stroke-width="2"/>
   <path d="M63 110l5 5" stroke="#a08a7a" stroke-width="2" stroke-linecap="round"/>
-  <text x="76" y="110" font-size="12.5" fill="#a08a7a">İsim ya da telefon ara</text>
+  <text x="76" y="110" font-size="12.5" fill="#a08a7a">Search name or phone</text>
   <rect x="318" y="88" width="62" height="34" rx="12" fill="#ff6b35"/>
-  <text x="349" y="110" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">+ Yeni</text>
+  <text x="349" y="110" font-size="12.5" font-weight="700" fill="#ffffff" text-anchor="middle">+ New</text>
   <rect x="388" y="88" width="62" height="34" rx="12" fill="#ffffff" stroke="#ead9c9"/>
   <text x="419" y="110" font-size="12.5" font-weight="600" fill="#8a6e5d" text-anchor="middle">CSV</text>
 
@@ -27,7 +27,7 @@
     <circle cx="66" cy="170" r="15" fill="#ffeee4"/>
     <text x="66" y="175" font-size="11" font-weight="800" fill="#c9491f" text-anchor="middle">AD</text>
     <text x="92" y="165" font-size="13.5" font-weight="700" fill="#1d1209">Ayşe Demir</text>
-    <text x="92" y="184" font-size="11.5" fill="#8a6e5d">Ders · 14 kayıt · son ders 19 Tem</text>
+    <text x="92" y="184" font-size="11.5" fill="#8a6e5d">Lessons · 14 records · last 19 Jul</text>
     <rect x="368" y="158" width="66" height="24" rx="12" fill="#e6f0fe"/>
     <text x="401" y="174" font-size="10.5" font-weight="700" fill="#14396f" text-anchor="middle">Windsurf</text>
   </g>
@@ -40,15 +40,15 @@
   </g>
   <g>
     <circle cx="66" cy="238" r="15" fill="#f4ece5"/><text x="92" y="233" font-size="13.5" font-weight="700" fill="#1d1209">Can Yılmaz</text>
-    <text x="92" y="252" font-size="11.5" fill="#8a6e5d">Ders · 6 kayıt</text>
+    <text x="92" y="252" font-size="11.5" fill="#8a6e5d">Lessons · 6 records</text>
     <circle cx="66" cy="306" r="15" fill="#f4ece5"/><text x="92" y="301" font-size="13.5" font-weight="700" fill="#1d1209">Selin Kaya</text>
-    <text x="92" y="320" font-size="11.5" fill="#8a6e5d">Depolama · 3 kayıt</text>
+    <text x="92" y="320" font-size="11.5" fill="#8a6e5d">Storage · 3 records</text>
     <circle cx="66" cy="374" r="15" fill="#f4ece5"/><text x="92" y="369" font-size="13.5" font-weight="700" fill="#1d1209">Poyraz Toprak</text>
-    <text x="92" y="388" font-size="11.5" fill="#8a6e5d">Çocuk kampı · veli kayıtlı</text>
+    <text x="92" y="388" font-size="11.5" fill="#8a6e5d">Kids camp · guardian on file</text>
     <circle cx="66" cy="442" r="15" fill="#f4ece5"/><text x="92" y="437" font-size="13.5" font-weight="700" fill="#1d1209">Mert Öz</text>
-    <text x="92" y="456" font-size="11.5" fill="#8a6e5d">Ders · 2 kayıt</text>
+    <text x="92" y="456" font-size="11.5" fill="#8a6e5d">Lessons · 2 records</text>
     <circle cx="66" cy="510" r="15" fill="#f4ece5"/><text x="92" y="505" font-size="13.5" font-weight="700" fill="#1d1209">Elif Arslan</text>
-    <text x="92" y="524" font-size="11.5" fill="#8a6e5d">Kiralama · 1 kayıt</text>
+    <text x="92" y="524" font-size="11.5" fill="#8a6e5d">Rental · 1 record</text>
   </g>
 
   <!-- müşteri kartı (ön kart) -->
@@ -60,44 +60,44 @@
   <text x="408" y="128" font-size="19" font-weight="800" fill="#1d1209">Ayşe Demir</text>
   <text x="408" y="150" font-size="12.5" fill="#8a6e5d">0532 ••• ••14 · Alaçatı · 1994</text>
   <rect x="720" y="116" width="62" height="30" rx="15" fill="#fff4ec"/>
-  <text x="751" y="136" font-size="12" font-weight="700" fill="#a83c16" text-anchor="middle">Düzenle</text>
+  <text x="751" y="136" font-size="12" font-weight="700" fill="#a83c16" text-anchor="middle">Edit</text>
 
   <line x1="358" y1="176" x2="782" y2="176" stroke="#f0e0d3"/>
 
   <g font-size="11" font-weight="700" fill="#8a6e5d">
-    <text x="358" y="204">NASIL BULDU</text>
-    <text x="558" y="204">ACİL DURUM</text>
+    <text x="358" y="204">HOW THEY FOUND US</text>
+    <text x="558" y="204">EMERGENCY</text>
   </g>
-  <text x="358" y="226" font-size="13" font-weight="600" fill="#1d1209">Arkadaş tavsiyesi</text>
-  <text x="558" y="226" font-size="13" font-weight="600" fill="#1d1209">Kardeşi · 0533 ••• ••02</text>
+  <text x="358" y="226" font-size="13" font-weight="600" fill="#1d1209">Friend’s recommendation</text>
+  <text x="558" y="226" font-size="13" font-weight="600" fill="#1d1209">Sibling · 0533 ••• ••02</text>
 
   <g font-size="11" font-weight="700" fill="#8a6e5d">
-    <text x="358" y="262">SAĞLIK</text>
+    <text x="358" y="262">HEALTH</text>
   </g>
   <rect x="358" y="272" width="122" height="28" rx="14" fill="#ffeee4"/>
-  <text x="419" y="291" font-size="12" font-weight="700" fill="#c9491f" text-anchor="middle">Omuz sakatlığı</text>
+  <text x="419" y="291" font-size="12" font-weight="700" fill="#c9491f" text-anchor="middle">Shoulder injury</text>
   <rect x="490" y="272" width="96" height="28" rx="14" fill="#ffeee4"/>
-  <text x="538" y="291" font-size="12" font-weight="700" fill="#c9491f" text-anchor="middle">Polen alerjisi</text>
+  <text x="538" y="291" font-size="12" font-weight="700" fill="#c9491f" text-anchor="middle">Pollen allergy</text>
 
   <g font-size="11" font-weight="700" fill="#8a6e5d">
-    <text x="358" y="336">DERS GEÇMİŞİ</text>
+    <text x="358" y="336">LESSON HISTORY</text>
   </g>
   <g>
     <rect x="358" y="346" width="424" height="44" rx="12" fill="#fdf6ef" stroke="#ead9c9"/>
     <rect x="370" y="358" width="4" height="20" rx="2" fill="#1f6feb"/>
-    <text x="386" y="366" font-size="12.5" font-weight="700" fill="#1d1209">19 Tem · Kaan · Windsurf</text>
-    <text x="386" y="382" font-size="11.5" fill="#8a6e5d">09:00 → 11:00 · bireysel</text>
+    <text x="386" y="366" font-size="12.5" font-weight="700" fill="#1d1209">19 Jul · Kaan · Windsurf</text>
+    <text x="386" y="382" font-size="11.5" fill="#8a6e5d">09:00 → 11:00 · individual</text>
 
     <rect x="358" y="398" width="424" height="44" rx="12" fill="#fdf6ef" stroke="#ead9c9"/>
     <rect x="370" y="410" width="4" height="20" rx="2" fill="#0f8a72"/>
-    <text x="386" y="418" font-size="12.5" font-weight="700" fill="#1d1209">12 Tem · Elif · Wingfoil</text>
-    <text x="386" y="434" font-size="11.5" fill="#8a6e5d">10:00 → 11:00 · bireysel</text>
+    <text x="386" y="418" font-size="12.5" font-weight="700" fill="#1d1209">12 Jul · Elif · Wingfoil</text>
+    <text x="386" y="434" font-size="11.5" fill="#8a6e5d">10:00 → 11:00 · individual</text>
   </g>
 
   <rect x="358" y="458" width="424" height="72" rx="14" fill="#fff8f4" stroke="#ffdcc8"/>
-  <text x="374" y="482" font-size="11" font-weight="700" fill="#c9491f">PERSONEL NOTU · MÜŞTERİYE GÖRÜNMEZ</text>
-  <text x="374" y="504" font-size="12.5" fill="#6b5445">Rüzgâr 18 knot üstünde tedirgin oluyor, sabah</text>
-  <text x="374" y="521" font-size="12.5" fill="#6b5445">saatlerini tercih ediyor.</text>
+  <text x="374" y="482" font-size="11" font-weight="700" fill="#c9491f">STAFF NOTE · NEVER SHOWN TO THE CUSTOMER</text>
+  <text x="374" y="504" font-size="12.5" fill="#6b5445">Gets nervous above 18 knots, prefers the early</text>
+  <text x="374" y="521" font-size="12.5" fill="#6b5445">morning slots.</text>
 
   <!-- yüzen rozet -->
   <g filter="url(#c2)">
@@ -105,6 +105,6 @@
   </g>
   <circle cx="626" cy="568" r="15" fill="#e2f2ee"/>
   <path d="M619 568l5 5 10-10" stroke="#0f8a72" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-  <text x="650" y="564" font-size="12.5" font-weight="800" fill="#1d1209">Tek zorunlu alan</text>
-  <text x="650" y="582" font-size="11.5" fill="#8a6e5d">İsim. Gerisi vakit oldukça.</text>
+  <text x="650" y="564" font-size="12.5" font-weight="800" fill="#1d1209">One required field</text>
+  <text x="650" y="582" font-size="11.5" fill="#8a6e5d">The name. The rest when there is time.</text>
 </svg>

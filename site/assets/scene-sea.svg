@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" width="1200" height="560" font-family="Plus Jakarta Sans, Segoe UI, system-ui, sans-serif">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffd9a8"/>
+      <stop offset="45%" stop-color="#ffb682"/>
+      <stop offset="100%" stop-color="#ff8f5c"/>
+    </linearGradient>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#c9532a"/>
+      <stop offset="100%" stop-color="#7d2f18"/>
+    </linearGradient>
+    <linearGradient id="sun-glow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fff3d6" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#ffcf92" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="frame"><rect x="0" y="0" width="1200" height="560" rx="28"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#frame)">
+    <rect width="1200" height="560" fill="url(#sky)"/>
+    <circle cx="880" cy="300" r="200" fill="url(#sun-glow)"/>
+    <circle cx="880" cy="312" r="74" fill="#fff0cf"/>
+
+    <!-- uzak kara -->
+    <path d="M0 330 L120 306 L230 322 L340 298 L470 320 L560 310 L560 340 L0 340 Z" fill="#b8683f" opacity="0.55"/>
+    <path d="M1200 326 L1080 300 L980 318 L900 306 L900 340 L1200 340 Z" fill="#b8683f" opacity="0.45"/>
+
+    <!-- deniz -->
+    <rect y="340" width="1200" height="220" fill="url(#sea)"/>
+    <g stroke="#ffd2ab" stroke-opacity="0.35" stroke-width="3" stroke-linecap="round">
+      <path d="M60 392h120M230 380h70M360 400h160M620 386h90M760 404h140M980 384h120M120 436h180M420 448h110M660 440h150M900 452h130M200 486h140M520 492h190M840 496h180"/>
+    </g>
+    <path d="M700 340c60 0 90 26 180 26s120-26 180-26h140v18H700z" fill="#fff0cf" opacity="0.25"/>
+
+    <!-- windsurf 1 -->
+    <g transform="translate(650 296)">
+      <path d="M0 96 C -6 54 6 18 26 -4 C 34 26 34 66 26 96 Z" fill="#ff6b35"/>
+      <path d="M0 96 C -4 62 4 30 22 8" fill="none" stroke="#fff0cf" stroke-width="3"/>
+      <path d="M2 96 L52 100" stroke="#3b1a0d" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="16" cy="86" r="8" fill="#3b1a0d"/>
+      <path d="M16 94 l-4 14 l10 -2z" fill="#3b1a0d"/>
+    </g>
+
+    <!-- windsurf 2 -->
+    <g transform="translate(846 332) scale(0.78)">
+      <path d="M0 96 C -6 54 6 18 26 -4 C 34 26 34 66 26 96 Z" fill="#ffd166"/>
+      <path d="M2 96 L52 100" stroke="#3b1a0d" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="16" cy="86" r="8" fill="#3b1a0d"/>
+    </g>
+
+    <!-- wingfoil -->
+    <g transform="translate(1006 330) scale(0.9)">
+      <path d="M-10 40 C 20 -2 70 -14 96 4 C 70 26 30 44 -10 40 Z" fill="#fff0cf" opacity="0.92"/>
+      <path d="M-10 40 C 20 8 60 0 96 4" fill="none" stroke="#c9491f" stroke-width="3"/>
+      <circle cx="34" cy="62" r="9" fill="#3b1a0d"/>
+      <path d="M34 70 l-6 22 l14 -2z" fill="#3b1a0d"/>
+      <path d="M22 92 h34" stroke="#3b1a0d" stroke-width="5" stroke-linecap="round"/>
+      <path d="M40 92 v20" stroke="#3b1a0d" stroke-width="4"/>
+      <path d="M28 112 h26" stroke="#3b1a0d" stroke-width="5" stroke-linecap="round"/>
+    </g>
+
+    <!-- ön kum -->
+    <path d="M0 520 C 180 500 340 534 520 526 C 760 516 900 540 1200 524 L1200 560 L0 560 Z" fill="#5c2110"/>
+  </g>
+</svg>
